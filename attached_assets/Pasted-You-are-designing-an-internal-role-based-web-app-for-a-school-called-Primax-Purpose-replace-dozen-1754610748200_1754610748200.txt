@@ -1,0 +1,106 @@
+You are designing an internal, role‑based web app for a school called Primax.
+Purpose: replace dozens of Google Sheets and paper processes with one clean system. Prioritize clarity, speed, offline friendliness, and easy printing/exports. Use mock data where needed.
+
+What this app is
+A unified workspace with 4 user roles:
+
+Finance/Front Desk – enrollment, invoices, payments, receipts, daily close, reports.
+
+Teachers – take class‑level attendance every period, enter grades, see earnings.
+
+Parents (view‑only) – secure link to see child’s attendance, grades, and fee balance; get auto alerts (SMS/WhatsApp/Email).
+
+Management/Owners – P&L, teacher payout rules, cash‑draw approvals, SOS/panic mask, expenses.
+
+North Star
+“One place for everything.” No spreadsheet hopping. All data joins across billing, attendance, and grades. Minimal clicks. Works on teacher phones and office PCs.
+
+Core outcomes to build (use simple, production‑looking UI with mock data)
+A) Finance / Enrollment (Front Desk)
+Enrollment wizard (Student → Subjects/Combos → Add‑ons/Discounts → Review).
+
+Invoices & payments: monthly by default; support partial payments and annual upfront (auto carry‑forward credit).
+
+Receipts: printable thermal‑style preview + PDF archive.
+
+Student ledger: one screen showing outstanding fees + attendance % + average grade.
+
+Daily Close: end‑of‑day cash & bank totals, variance, Lock Day (edits blocked after lock), auto‑generated daily PDF.
+
+Reports & Exports: month/quarter P&L, aging receivables, CSV downloads.
+
+Cash‑draw approvals: queue to approve/deny teacher requests; reconcile against payouts.
+
+Teacher payout rules: configurable slabs (e.g., Affan/Sheraz/Umer fixed 70%; others tiered 70% until X, then 60%). Edge‑case override per teacher.
+
+Custom payments: handle “whole year upfront” or odd cases; allow manual adjustment with reason notes.
+
+B) Teacher App (Attendance + Grades)
+Today’s Schedule: per‑period cards; color shows which classes still need attendance.
+
+Attendance capture (choose method per school):
+
+Teacher Tap (baseline) – quick present/absent/late toggles.
+
+QR scan – uses teacher’s own phone/tablet/laptop camera to scan student lanyards (no extra hardware required to pilot).
+
+Offline first: allow taking attendance and entering grades offline; auto‑sync on reconnect.
+
+Gradebook: spreadsheet‑like table; create assessments, enter scores, CSV import; small analytics (class average, trends).
+
+Earnings: “earned this month”, list of attributed students/invoices, cash‑draw request form, downloadable PDF statement.
+
+C) Parent View (Read‑only link)
+Home: child switcher (if multiple), fee balance + due date, last payment.
+
+Attendance: calendar view, subject/period percentages, late/early logs, real‑time absence notifications.
+
+Grades: recent scores, subject‑wise breakdown, trend over time; teacher comments.
+
+Receipts/Statements: download links.
+
+Notifications: wire up stubs for SMS, WhatsApp, Email so messages can be triggered for absences and fee reminders.
+
+D) Management (Owner)
+Company finance: expenses entry & categories; “who owes what to whom” summary.
+
+P&L hub: monthly/quarterly view; export CSV/PDF.
+
+Teacher payout summary: apply slabs, view totals, mark paid‑out.
+
+SOS / Panic Mask: secure toggle (PIN) that temporarily hides most cash transactions in all finance views (show only ~10%) until disabled; nothing is deleted.
+
+Settings: receipt branding; discounts (sibling, referral); late‑fee rule; attendance method per class; WhatsApp/SMS/Email templates.
+
+Screen list to generate (high‑level, with mock data)
+Login (role‑aware), Error/Offline banner.
+
+Finance: Dashboard; Enrollment Wizard (4 steps); Invoice List + Detail; Receipt Preview; Student Ledger; Daily Close & Lock; Cash‑Draw Approvals; Teacher Slabs; Reports (P&L/Exports); Settings.
+
+Teacher: Today; Attendance (Tap + QR modes); Sync Log; Gradebook (select/enter/import); Earnings; Cash‑Draw Request.
+
+Parent: Portal Home; Attendance Calendar; Grades Overview; Fees & Receipts.
+
+Owner: Company Finance (expenses); Payout Summary; SOS Modal.
+
+Data & rules (keep it simple, mock where needed)
+Subjects & combos: e.g., “Pak Studies + Islamiat” combo priced lower than singles; all other subjects flat (O‑Level 9k, A‑Level 10k by default).
+
+Discounts: sibling and referral (6 kids = free) + manual override when needed; store reason notes.
+
+Refunds & swaps: allow mid‑cycle class swaps and case‑by‑case refunds; keep a clean audit note.
+
+Partial payments: record now, remainder due later—system should surface “amount remaining” clearly.
+
+Attendance is per class/period, not at the main entrance.
+
+Teacher slabs: fixed (e.g., 70%) for some; tiered thresholds for others; allow 100% edge case by pre‑setting before 1st of month.
+
+Daily Close: one‑click PDF; yesterday becomes read‑only after lock.
+
+UX tone
+Clean, minimal, fast. Large tap targets for teachers.
+
+Student ledger gives a single truth: bills + attendance + grades in one place.
+
+Dark mode optional; printing is tidy (A4 statements + 80mm thermal receipts).
