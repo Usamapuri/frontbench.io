@@ -62,9 +62,60 @@ export default function Enrollment() {
     },
   });
 
+  const validateStep = (step: number): boolean => {
+    switch (step) {
+      case 1:
+        // Validate required fields for Step 1
+        const requiredFields = ['firstName', 'lastName', 'dateOfBirth', 'gender', 'classLevel', 'rollNumber', 'parentName', 'parentPhone'];
+        const missingFields = requiredFields.filter(field => !formData[field as keyof EnrollmentFormData]);
+        
+        if (missingFields.length > 0) {
+          toast({
+            title: "Required Fields Missing",
+            description: `Please fill in all required fields: ${missingFields.join(', ')}`,
+            variant: "destructive",
+          });
+          return false;
+        }
+        
+        // Validate date format
+        if (formData.dateOfBirth && isNaN(new Date(formData.dateOfBirth).getTime())) {
+          toast({
+            title: "Invalid Date",
+            description: "Please enter a valid date of birth",
+            variant: "destructive",
+          });
+          return false;
+        }
+        
+        return true;
+      
+      case 2:
+        // Validate at least one subject is selected
+        if (!formData.selectedSubjects || formData.selectedSubjects.length === 0) {
+          toast({
+            title: "No Subjects Selected",
+            description: "Please select at least one subject to continue",
+            variant: "destructive",
+          });
+          return false;
+        }
+        return true;
+      
+      case 3:
+        // Step 3 (discounts) is optional, so always valid
+        return true;
+      
+      default:
+        return true;
+    }
+  };
+
   const handleNext = () => {
-    if (currentStep < 4) {
-      setCurrentStep(currentStep + 1);
+    if (validateStep(currentStep)) {
+      if (currentStep < 4) {
+        setCurrentStep(currentStep + 1);
+      }
     }
   };
 
@@ -124,24 +175,28 @@ export default function Enrollment() {
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="firstName">Full Name *</Label>
+                  <Label htmlFor="firstName" className="text-gray-700 font-medium">Full Name *</Label>
                   <Input
                     id="firstName"
                     placeholder="First Name"
                     value={formData.firstName || ''}
                     onChange={(e) => updateFormData('firstName', e.target.value)}
+                    className={!formData.firstName ? "border-gray-300 focus:border-blue-500" : "border-green-300 focus:border-green-500"}
                     data-testid="input-first-name"
+                    required
                   />
                 </div>
                 
                 <div>
-                  <Label htmlFor="lastName">Last Name *</Label>
+                  <Label htmlFor="lastName" className="text-gray-700 font-medium">Last Name *</Label>
                   <Input
                     id="lastName"
                     placeholder="Last Name"
                     value={formData.lastName || ''}
                     onChange={(e) => updateFormData('lastName', e.target.value)}
+                    className={!formData.lastName ? "border-gray-300 focus:border-blue-500" : "border-green-300 focus:border-green-500"}
                     data-testid="input-last-name"
+                    required
                   />
                 </div>
                 
