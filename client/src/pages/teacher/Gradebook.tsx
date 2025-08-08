@@ -19,8 +19,6 @@ interface Student {
 }
 
 export default function Gradebook() {
-  const [selectedSubject, setSelectedSubject] = useState("");
-  const [selectedAssessment, setSelectedAssessment] = useState("");
   const [dialogSubject, setDialogSubject] = useState("");
   const [newAssessment, setNewAssessment] = useState({
     name: "",
@@ -29,6 +27,7 @@ export default function Gradebook() {
     description: "",
   });
   const [grades, setGrades] = useState<{ [studentId: string]: { marks: string; comments: string } }>({});
+  const [selectedAssessmentForGrading, setSelectedAssessmentForGrading] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -42,7 +41,6 @@ export default function Gradebook() {
 
   const { data: assessments } = useQuery<Assessment[]>({
     queryKey: ['/api/assessments'],
-    enabled: !!selectedSubject,
   });
 
   const createAssessmentMutation = useMutation({
@@ -96,7 +94,6 @@ export default function Gradebook() {
       name: newAssessment.name,
       totalMarks: newAssessment.totalMarks,
       dialogSubject: dialogSubject,
-      selectedSubject: selectedSubject,
       date: newAssessment.date
     });
     
@@ -104,7 +101,7 @@ export default function Gradebook() {
     const missingFields = [];
     if (!newAssessment.name?.trim()) missingFields.push('Assessment Name');
     if (!newAssessment.totalMarks?.trim()) missingFields.push('Total Marks');
-    if (!dialogSubject && !selectedSubject) missingFields.push('Subject');
+    if (!dialogSubject) missingFields.push('Subject');
     
     if (missingFields.length > 0) {
       console.log('Validation failed - missing fields:', missingFields);
@@ -116,8 +113,8 @@ export default function Gradebook() {
       return;
     }
 
-    // Use dialogSubject if available, otherwise fall back to selectedSubject
-    const subjectToUse = dialogSubject || selectedSubject;
+    // Use dialogSubject for assessment creation
+    const subjectToUse = dialogSubject;
     
     console.log('Creating assessment with data:', {
       name: newAssessment.name,
@@ -157,13 +154,18 @@ export default function Gradebook() {
   };
 
   const handleSubmitGrades = () => {
+    if (!selectedAssessmentForGrading) return;
+    
+    const selectedAssessmentData = assessments?.find(a => a.id === selectedAssessmentForGrading);
+    if (!selectedAssessmentData) return;
+
     const gradesData = Object.entries(grades)
       .filter(([_, data]) => data.marks.trim() !== '')
       .map(([studentId, data]) => ({
-        assessmentId: selectedAssessment,
+        assessmentId: selectedAssessmentForGrading,
         studentId,
         marksObtained: parseInt(data.marks),
-        grade: calculateGrade(parseInt(data.marks), parseInt(newAssessment.totalMarks)),
+        grade: calculateGrade(parseInt(data.marks), selectedAssessmentData.totalMarks),
         comments: data.comments,
       }));
 
@@ -179,332 +181,285 @@ export default function Gradebook() {
     createGradesMutation.mutate(gradesData);
   };
 
-  const selectedAssessmentData = assessments?.find(a => a.id === selectedAssessment);
+  const handleEnterScores = (assessmentId: string) => {
+    setSelectedAssessmentForGrading(assessmentId);
+    setGrades({}); // Reset grades when switching assessments
+  };
 
-  return (
-    <div className="space-y-6">
-      {/* Subject Selection */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Gradebook</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+  const handleBackToDashboard = () => {
+    setSelectedAssessmentForGrading(null);
+    setGrades({});
+  };
+
+  // Get subject name by ID
+  const getSubjectName = (subjectId: string) => {
+    return subjects?.find((s: any) => s.id === subjectId)?.name || 'Unknown Subject';
+  };
+
+  const selectedAssessmentData = assessments?.find(a => a.id === selectedAssessmentForGrading);
+
+  // Grade Entry View - When an assessment is selected for grading
+  if (selectedAssessmentForGrading && selectedAssessmentData) {
+    return (
+      <div className="space-y-6">
+        {/* Header with Back Button */}
+        <div className="flex items-center justify-between">
           <div>
-            <Label htmlFor="subject">Select Subject</Label>
-            <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-              <SelectTrigger data-testid="select-subject">
-                <SelectValue placeholder="Choose a subject..." />
-              </SelectTrigger>
-              <SelectContent>
-                {subjects?.map((subject: any) => (
-                  <SelectItem key={subject.id} value={subject.id}>
-                    {subject.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <h1 className="text-2xl font-bold">Enter Scores</h1>
+            <p className="text-gray-600 mt-1">
+              {selectedAssessmentData.name} - {getSubjectName(selectedAssessmentData.subjectId)}
+            </p>
           </div>
+          <Button variant="outline" onClick={handleBackToDashboard} data-testid="button-back-dashboard">
+            <i className="fas fa-arrow-left mr-2"></i>
+            Back to Dashboard
+          </Button>
+        </div>
 
-          <div className="flex justify-between items-center">
-            <div>
-              <Label htmlFor="assessment">Select Assessment</Label>
-              <Select value={selectedAssessment} onValueChange={setSelectedAssessment}>
-                <SelectTrigger className="w-64" data-testid="select-assessment">
-                  <SelectValue placeholder="Choose an assessment..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {selectedSubject && assessments?.map((assessment) => (
-                    <SelectItem key={assessment.id} value={assessment.id}>
-                      {assessment.name} ({assessment.totalMarks} marks)
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button data-testid="button-create-assessment">
-                  <i className="fas fa-plus mr-2"></i>
-                  Create Assessment
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Create New Assessment</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="assessmentSubject">Subject *</Label>
-                    <Select 
-                      value={dialogSubject} 
-                      onValueChange={(value) => {
-                        console.log('Subject selected:', value);
-                        setDialogSubject(value);
-                      }}
-                    >
-                      <SelectTrigger data-testid="select-assessment-subject">
-                        <SelectValue placeholder="Choose a subject..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {subjects?.map((subject: any) => (
-                          <SelectItem key={subject.id} value={subject.id}>
-                            {subject.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="assessmentName">Assessment Name *</Label>
-                    <Input
-                      id="assessmentName"
-                      placeholder="e.g., Quiz 1, Midterm Exam"
-                      value={newAssessment.name}
-                      onChange={(e) => {
-                        console.log('Assessment name changed:', e.target.value);
-                        setNewAssessment(prev => ({ ...prev, name: e.target.value }));
-                      }}
-                      data-testid="input-assessment-name"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="totalMarks">Total Marks *</Label>
-                    <Input
-                      id="totalMarks"
-                      type="number"
-                      placeholder="100"
-                      value={newAssessment.totalMarks}
-                      onChange={(e) => {
-                        console.log('Total marks changed:', e.target.value);
-                        setNewAssessment(prev => ({ ...prev, totalMarks: e.target.value }));
-                      }}
-                      data-testid="input-total-marks"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="assessmentDate">Assessment Date</Label>
-                    <Input
-                      id="assessmentDate"
-                      type="date"
-                      value={newAssessment.date}
-                      onChange={(e) => setNewAssessment(prev => ({ ...prev, date: e.target.value }))}
-                      data-testid="input-assessment-date"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="description">Description</Label>
-                    <Textarea
-                      id="description"
-                      placeholder="Optional description..."
-                      value={newAssessment.description}
-                      onChange={(e) => setNewAssessment(prev => ({ ...prev, description: e.target.value }))}
-                      data-testid="textarea-description"
-                    />
-                  </div>
-
-                  <div className="flex justify-end space-x-2">
-                    <Button variant="outline">Cancel</Button>
-                    <Button 
-                      onClick={handleCreateAssessment}
-                      disabled={createAssessmentMutation.isPending}
-                      data-testid="button-save-assessment"
-                    >
-                      {createAssessmentMutation.isPending ? 'Creating...' : 'Create Assessment'}
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Grade Entry */}
-      {selectedAssessment && selectedAssessmentData && (
+        {/* Student List for Grade Entry */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>{selectedAssessmentData.name}</CardTitle>
-                <p className="text-sm text-gray-600 mt-1">
-                  Total Marks: {selectedAssessmentData.totalMarks} | 
-                  Date: {new Date(selectedAssessmentData.assessmentDate).toLocaleDateString()}
-                </p>
+            <CardTitle>Student List</CardTitle>
+            <p className="text-sm text-gray-600">
+              Enter the marks obtained by each student. Total marks for this assessment are{' '}
+              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded font-medium">
+                {selectedAssessmentData.totalMarks}
+              </span>
+              .
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="grid grid-cols-4 gap-4 pb-2 border-b font-medium text-gray-700">
+                <div>Student ID</div>
+                <div>Student Name</div>
+                <div></div>
+                <div>Score</div>
               </div>
-              <div className="flex space-x-2">
-                <Button variant="outline" data-testid="button-import-csv">
-                  <i className="fas fa-upload mr-2"></i>
-                  Import CSV
-                </Button>
-                <Button variant="outline" data-testid="button-export-grades">
-                  <i className="fas fa-download mr-2"></i>
-                  Export
+              
+              {students?.map((student) => {
+                const studentGrade = grades[student.id];
+                const marks = studentGrade?.marks || '';
+                
+                return (
+                  <div key={student.id} className="grid grid-cols-4 gap-4 items-center py-3 border-b border-gray-100">
+                    <div className="font-medium" data-testid={`text-student-id-${student.id}`}>
+                      {student.rollNumber}
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-sm font-medium text-gray-600 mr-3">
+                        {student.firstName.charAt(0)}{student.lastName.charAt(0)}
+                      </div>
+                      <span data-testid={`text-student-name-${student.id}`}>
+                        {student.firstName} {student.lastName}
+                      </span>
+                    </div>
+                    <div></div>
+                    <div className="flex items-center">
+                      <Input
+                        type="number"
+                        placeholder="0"
+                        value={marks}
+                        onChange={(e) => handleGradeChange(student.id, 'marks', e.target.value)}
+                        className="w-20 text-center"
+                        max={selectedAssessmentData.totalMarks}
+                        min="0"
+                        data-testid={`input-score-${student.id}`}
+                      />
+                      <span className="ml-2 text-gray-500">/ {selectedAssessmentData.totalMarks}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            
+            <div className="mt-6 flex justify-end">
+              <Button 
+                onClick={handleSubmitGrades}
+                disabled={createGradesMutation.isPending}
+                data-testid="button-submit-grades"
+              >
+                {createGradesMutation.isPending ? 'Submitting...' : 'Save Grades'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Main Assessments Table View
+  return (
+    <div className="space-y-6">
+      {/* Header with Create Button */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Gradebook</h1>
+        </div>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button data-testid="button-create-assessment">
+              <i className="fas fa-plus mr-2"></i>
+              Create New Assessment
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create New Assessment</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="assessmentSubject">Subject *</Label>
+                <Select 
+                  value={dialogSubject} 
+                  onValueChange={(value) => {
+                    console.log('Subject selected:', value);
+                    setDialogSubject(value);
+                  }}
+                >
+                  <SelectTrigger data-testid="select-assessment-subject">
+                    <SelectValue placeholder="Choose a subject..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {subjects?.map((subject: any) => (
+                      <SelectItem key={subject.id} value={subject.id}>
+                        {subject.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="assessmentName">Assessment Name *</Label>
+                <Input
+                  id="assessmentName"
+                  placeholder="e.g., Quiz 1, Midterm Exam"
+                  value={newAssessment.name}
+                  onChange={(e) => {
+                    console.log('Assessment name changed:', e.target.value);
+                    setNewAssessment(prev => ({ ...prev, name: e.target.value }));
+                  }}
+                  data-testid="input-assessment-name"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="totalMarks">Total Marks *</Label>
+                <Input
+                  id="totalMarks"
+                  type="number"
+                  placeholder="100"
+                  value={newAssessment.totalMarks}
+                  onChange={(e) => {
+                    console.log('Total marks changed:', e.target.value);
+                    setNewAssessment(prev => ({ ...prev, totalMarks: e.target.value }));
+                  }}
+                  data-testid="input-total-marks"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="assessmentDate">Assessment Date</Label>
+                <Input
+                  id="assessmentDate"
+                  type="date"
+                  value={newAssessment.date}
+                  onChange={(e) => setNewAssessment(prev => ({ ...prev, date: e.target.value }))}
+                  data-testid="input-assessment-date"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  placeholder="Optional description..."
+                  value={newAssessment.description}
+                  onChange={(e) => setNewAssessment(prev => ({ ...prev, description: e.target.value }))}
+                  data-testid="textarea-description"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-2">
+                <Button variant="outline">Cancel</Button>
+                <Button 
+                  onClick={handleCreateAssessment}
+                  disabled={createAssessmentMutation.isPending}
+                  data-testid="button-save-assessment"
+                >
+                  {createAssessmentMutation.isPending ? 'Creating...' : 'Create Assessment'}
                 </Button>
               </div>
             </div>
-          </CardHeader>
-          
-          <CardContent>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Assessments Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Assessments</CardTitle>
+          <p className="text-sm text-gray-600">View and manage your created assessments.</p>
+        </CardHeader>
+        <CardContent>
+          {assessments && assessments.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 text-left font-medium text-gray-700">Student</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-700">Roll Number</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-700">Marks Obtained</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-700">Grade</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-700">Comments</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Title</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Subject</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Date</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Entries</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Total Marks</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {students?.map((student) => {
-                    const studentGrade = grades[student.id];
-                    const marks = studentGrade?.marks ? parseInt(studentGrade.marks) : 0;
-                    const grade = marks > 0 ? calculateGrade(marks, selectedAssessmentData.totalMarks) : '';
-                    
-                    return (
-                      <tr key={student.id} data-testid={`row-student-${student.id}`}>
-                        <td className="px-4 py-3">
-                          <span className="font-medium" data-testid={`text-student-name-${student.id}`}>
-                            {student.firstName} {student.lastName}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3" data-testid={`text-roll-number-${student.id}`}>
-                          {student.rollNumber}
-                        </td>
-                        <td className="px-4 py-3">
-                          <Input
-                            type="number"
-                            placeholder="0"
-                            min="0"
-                            max={selectedAssessmentData.totalMarks}
-                            value={studentGrade?.marks || ''}
-                            onChange={(e) => handleGradeChange(student.id, 'marks', e.target.value)}
-                            className="w-20"
-                            data-testid={`input-marks-${student.id}`}
-                          />
-                          <span className="text-xs text-gray-500 ml-2">
-                            / {selectedAssessmentData.totalMarks}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span 
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              grade === 'A+' || grade === 'A' ? 'bg-green-100 text-green-800' :
-                              grade === 'B+' || grade === 'B' ? 'bg-blue-100 text-blue-800' :
-                              grade === 'C' ? 'bg-yellow-100 text-yellow-800' :
-                              grade === 'F' ? 'bg-red-100 text-red-800' :
-                              'bg-gray-100 text-gray-800'
-                            }`}
-                            data-testid={`badge-grade-${student.id}`}
-                          >
-                            {grade || '-'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <Input
-                            placeholder="Optional comments..."
-                            value={studentGrade?.comments || ''}
-                            onChange={(e) => handleGradeChange(student.id, 'comments', e.target.value)}
-                            className="w-48"
-                            data-testid={`input-comments-${student.id}`}
-                          />
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {assessments.map((assessment) => (
+                    <tr key={assessment.id} data-testid={`row-assessment-${assessment.id}`}>
+                      <td className="px-4 py-3">
+                        <div className="font-medium" data-testid={`text-assessment-title-${assessment.id}`}>
+                          {assessment.name}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3" data-testid={`text-assessment-subject-${assessment.id}`}>
+                        {getSubjectName(assessment.subjectId)}
+                      </td>
+                      <td className="px-4 py-3" data-testid={`text-assessment-date-${assessment.id}`}>
+                        {new Date(assessment.assessmentDate).toLocaleDateString()}
+                      </td>
+                      <td className="px-4 py-3" data-testid={`text-assessment-entries-${assessment.id}`}>
+                        0 / {students?.length || 0}
+                      </td>
+                      <td className="px-4 py-3" data-testid={`text-assessment-marks-${assessment.id}`}>
+                        {assessment.totalMarks}
+                      </td>
+                      <td className="px-4 py-3">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleEnterScores(assessment.id)}
+                          data-testid={`button-enter-scores-${assessment.id}`}
+                        >
+                          <i className="fas fa-edit mr-1"></i>
+                          Enter Scores
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
-
-            <div className="flex justify-between items-center mt-6 pt-6 border-t">
-              <div className="text-sm text-gray-600">
-                <span data-testid="text-graded-count">
-                  {Object.values(grades).filter(g => g.marks.trim() !== '').length}
-                </span> of <span>{students?.length || 0}</span> students graded
-              </div>
-              <div className="flex space-x-3">
-                <Button variant="outline" data-testid="button-save-draft">
-                  Save as Draft
-                </Button>
-                <Button 
-                  onClick={handleSubmitGrades}
-                  disabled={createGradesMutation.isPending}
-                  data-testid="button-submit-grades"
-                >
-                  {createGradesMutation.isPending ? 'Submitting...' : 'Submit Grades'}
-                </Button>
-              </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <p>No assessments created yet.</p>
+              <p className="text-sm mt-1">Click "Create New Assessment" to get started.</p>
             </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Analytics */}
-      {selectedAssessment && Object.keys(grades).length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Class Analytics</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <div className="text-center">
-                <p className="text-2xl font-bold text-blue-600" data-testid="text-class-average">
-                  {(() => {
-                    const validGrades = Object.values(grades).filter(g => g.marks.trim() !== '');
-                    const average = validGrades.length > 0 
-                      ? validGrades.reduce((sum, g) => sum + parseInt(g.marks), 0) / validGrades.length 
-                      : 0;
-                    return average.toFixed(1);
-                  })()}%
-                </p>
-                <p className="text-sm text-gray-600">Class Average</p>
-              </div>
-              
-              <div className="text-center">
-                <p className="text-2xl font-bold text-green-600" data-testid="text-highest-score">
-                  {(() => {
-                    const validMarks = Object.values(grades)
-                      .filter(g => g.marks.trim() !== '')
-                      .map(g => parseInt(g.marks));
-                    return validMarks.length > 0 ? Math.max(...validMarks) : 0;
-                  })()}
-                </p>
-                <p className="text-sm text-gray-600">Highest Score</p>
-              </div>
-              
-              <div className="text-center">
-                <p className="text-2xl font-bold text-red-600" data-testid="text-lowest-score">
-                  {(() => {
-                    const validMarks = Object.values(grades)
-                      .filter(g => g.marks.trim() !== '')
-                      .map(g => parseInt(g.marks));
-                    return validMarks.length > 0 ? Math.min(...validMarks) : 0;
-                  })()}
-                </p>
-                <p className="text-sm text-gray-600">Lowest Score</p>
-              </div>
-              
-              <div className="text-center">
-                <p className="text-2xl font-bold text-purple-600" data-testid="text-pass-rate">
-                  {(() => {
-                    const validGrades = Object.values(grades).filter(g => g.marks.trim() !== '');
-                    const passed = validGrades.filter(g => parseInt(g.marks) >= (selectedAssessmentData?.totalMarks || 100) * 0.5);
-                    const passRate = validGrades.length > 0 ? (passed.length / validGrades.length) * 100 : 0;
-                    return passRate.toFixed(0);
-                  })()}%
-                </p>
-                <p className="text-sm text-gray-600">Pass Rate</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
