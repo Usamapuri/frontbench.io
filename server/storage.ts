@@ -112,6 +112,9 @@ export interface IStorage {
   getExpenses(limit?: number): Promise<Expense[]>;
   createExpense(expense: any): Promise<Expense>;
   
+  // Staff Members (for expense tracking)
+  getStaffMembers(): Promise<any[]>;
+  
   // Dashboard stats
   getDashboardStats(): Promise<any>;
   getTeacherEarnings(teacherId: string): Promise<any>;
@@ -493,6 +496,21 @@ export class DatabaseStorage implements IStorage {
   async createExpense(expenseData: any): Promise<Expense> {
     const [expense] = await db.insert(expenses).values(expenseData).returning();
     return expense;
+  }
+
+  // Staff Members (for expense tracking)
+  async getStaffMembers(): Promise<any[]> {
+    return await db
+      .select({
+        id: users.id,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        email: users.email,
+        role: users.role,
+      })
+      .from(users)
+      .where(sql`${users.role} IN ('teacher', 'management', 'finance')`)
+      .orderBy(users.firstName);
   }
 
   // Dashboard stats

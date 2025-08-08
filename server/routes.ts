@@ -467,6 +467,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Staff routes (for expense tracking)
+  app.get("/api/staff", async (req, res) => {
+    try {
+      const staff = await storage.getStaffMembers();
+      res.json(staff);
+    } catch (error) {
+      console.error("Error fetching staff:", error);
+      res.status(500).json({ message: "Failed to fetch staff members" });
+    }
+  });
+
   // Expenses routes
   app.get("/api/expenses", async (req, res) => {
     try {
@@ -479,7 +490,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/expenses", isAuthenticated, async (req: any, res) => {
+  app.post("/api/expenses", async (req: any, res) => {
     try {
       const expenseData = {
         ...req.body,

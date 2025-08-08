@@ -295,6 +295,7 @@ export const expenses = pgTable("expenses", {
   expenseDate: date("expense_date").notNull(),
   paymentMethod: paymentMethodEnum("payment_method").notNull(),
   enteredBy: varchar("entered_by").references(() => users.id).notNull(),
+  whoPaid: varchar("who_paid").references(() => users.id), // Track who actually paid for the expense
   receiptUrl: varchar("receipt_url"),
   createdAt: timestamp("created_at").defaultNow(),
 });

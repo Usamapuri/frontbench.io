@@ -21,12 +21,18 @@ export default function Expenses() {
     amount: "",
     expenseDate: new Date().toISOString().split('T')[0],
     paymentMethod: "cash" as const,
+    whoPaid: "", // Track who paid for the expense
   });
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: expenses, isLoading } = useQuery<Expense[]>({
     queryKey: ['/api/expenses'],
+  });
+
+  // Get all teachers and management staff for the "Who Paid" dropdown
+  const { data: staffMembers } = useQuery({
+    queryKey: ['/api/staff'],
   });
 
   const createExpenseMutation = useMutation({
@@ -45,6 +51,7 @@ export default function Expenses() {
         amount: "",
         expenseDate: new Date().toISOString().split('T')[0],
         paymentMethod: "cash",
+        whoPaid: "",
       });
     },
     onError: () => {
@@ -57,10 +64,10 @@ export default function Expenses() {
   });
 
   const handleSubmitExpense = () => {
-    if (!newExpense.category || !newExpense.description || !newExpense.amount) {
+    if (!newExpense.category || !newExpense.description || !newExpense.amount || !newExpense.whoPaid) {
       toast({
         title: "Validation Error",
-        description: "Please fill in all required fields.",
+        description: "Please fill in all required fields including who paid.",
         variant: "destructive",
       });
       return;
@@ -320,6 +327,26 @@ export default function Expenses() {
                           <SelectItem value="cheque">Cheque</SelectItem>
                         </SelectContent>
                       </Select>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="whoPaid">Who Paid? *</Label>
+                      <Select value={newExpense.whoPaid} onValueChange={(value) => setNewExpense(prev => ({ ...prev, whoPaid: value }))}>
+                        <SelectTrigger data-testid="select-who-paid">
+                          <SelectValue placeholder="Select staff member..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="school">School/Office (No Individual)</SelectItem>
+                          {staffMembers?.map((staff: any) => (
+                            <SelectItem key={staff.id} value={staff.id}>
+                              {staff.firstName} {staff.lastName} - {staff.role}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Select who actually paid for this expense. If a teacher/staff paid out of pocket, select them for later reconciliation.
+                      </p>
                     </div>
 
                     <div className="flex justify-end space-x-2">

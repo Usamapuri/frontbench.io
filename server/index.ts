@@ -38,7 +38,7 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Setup authentication middleware
+  // Setup authentication components but don't apply globally
   await setupAuth(app);
   
   const server = await registerRoutes(app);
