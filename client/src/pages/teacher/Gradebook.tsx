@@ -21,6 +21,7 @@ interface Student {
 export default function Gradebook() {
   const [selectedSubject, setSelectedSubject] = useState("");
   const [selectedAssessment, setSelectedAssessment] = useState("");
+  const [dialogSubject, setDialogSubject] = useState("");
   const [newAssessment, setNewAssessment] = useState({
     name: "",
     totalMarks: "",
@@ -55,6 +56,7 @@ export default function Gradebook() {
       });
       queryClient.invalidateQueries({ queryKey: ['/api/assessments'] });
       setNewAssessment({ name: "", totalMarks: "", date: "", description: "" });
+      setDialogSubject("");
     },
     onError: () => {
       toast({
@@ -90,7 +92,7 @@ export default function Gradebook() {
   });
 
   const handleCreateAssessment = () => {
-    if (!newAssessment.name || !newAssessment.totalMarks || !selectedSubject) {
+    if (!newAssessment.name || !newAssessment.totalMarks || !dialogSubject) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields.",
@@ -101,7 +103,7 @@ export default function Gradebook() {
 
     createAssessmentMutation.mutate({
       name: newAssessment.name,
-      subjectId: selectedSubject,
+      subjectId: dialogSubject,
       totalMarks: parseInt(newAssessment.totalMarks),
       assessmentDate: newAssessment.date,
       description: newAssessment.description,
@@ -208,7 +210,7 @@ export default function Gradebook() {
                 <div className="space-y-4">
                   <div>
                     <Label htmlFor="assessmentSubject">Subject *</Label>
-                    <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+                    <Select value={dialogSubject} onValueChange={setDialogSubject}>
                       <SelectTrigger data-testid="select-assessment-subject">
                         <SelectValue placeholder="Choose a subject..." />
                       </SelectTrigger>
