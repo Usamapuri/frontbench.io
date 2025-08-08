@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { billingService } from "./billing";
 import { 
   insertStudentSchema, 
   insertInvoiceSchema, 
@@ -365,6 +366,145 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating expense:", error);
       res.status(400).json({ message: "Failed to create expense" });
+    }
+  });
+
+  // Enhanced Billing System Routes
+  
+  // Generate monthly invoices
+  app.post("/api/billing/generate-monthly", async (req: any, res) => {
+    try {
+      const { targetDate } = req.body;
+      const invoices = await billingService.generateMonthlyInvoices(targetDate);
+      res.json({ success: true, invoicesGenerated: invoices.length, invoices });
+    } catch (error) {
+      console.error("Error generating monthly invoices:", error);
+      res.status(500).json({ message: "Failed to generate monthly invoices" });
+    }
+  });
+
+  // Process advance payment
+  app.post("/api/billing/advance-payment", async (req: any, res) => {
+    try {
+      const { studentId, amount, paymentMethod, notes, transactionNumber } = req.body;
+      
+      const paymentData = {
+        paymentMethod,
+        receivedBy: 'demo-user', // req.user.claims.sub,
+        notes,
+        transactionNumber: paymentMethod === 'bank_transfer' ? transactionNumber : null
+      };
+      
+      const result = await billingService.processAdvancePayment(studentId, amount, paymentData);
+      res.json({ success: true, ...result });
+    } catch (error) {
+      console.error("Error processing advance payment:", error);
+      res.status(500).json({ message: "Failed to process advance payment" });
+    }
+  });
+
+  // Process partial payment
+  app.post("/api/billing/partial-payment", async (req: any, res) => {
+    try {
+      const { invoiceId, amount, paymentMethod, notes, transactionNumber } = req.body;
+      
+      const paymentData = {
+        paymentMethod,
+        receivedBy: 'demo-user', // req.user.claims.sub,
+        notes,
+        transactionNumber: paymentMethod === 'bank_transfer' ? transactionNumber : null
+      };
+      
+      const result = await billingService.processPartialPayment(invoiceId, amount, paymentData);
+      res.json({ success: true, ...result });
+    } catch (error) {
+      console.error("Error processing partial payment:", error);
+      res.status(500).json({ message: "Failed to process partial payment" });
+    }
+  });
+
+  // Generate pro-rated invoice for mid-month enrollment
+  app.post("/api/billing/prorated-invoice", async (req: any, res) => {
+    try {
+      const { studentId, enrollmentDate, isFullMonth } = req.body;
+      const invoice = await billingService.generateProRatedInvoice(
+        studentId, 
+        new Date(enrollmentDate), 
+        isFullMonth
+      );
+      res.json({ success: true, invoice });
+    } catch (error) {
+      console.error("Error generating pro-rated invoice:", error);
+      res.status(500).json({ message: "Failed to generate pro-rated invoice" });
+    }
+  });
+
+  // Apply invoice adjustment
+  app.post("/api/billing/adjustment", async (req: any, res) => {
+    try {
+      const { invoiceId, type, amount, reason, notes } = req.body;
+      
+      const adjustment = {
+        type,
+        amount: parseFloat(amount),
+        reason,
+        appliedBy: 'demo-user', // req.user.claims.sub,
+        notes
+      };
+      
+      const result = await billingService.applyInvoiceAdjustment(invoiceId, adjustment);
+      res.json({ success: true, ...result });
+    } catch (error) {
+      console.error("Error applying invoice adjustment:", error);
+      res.status(500).json({ message: "Failed to apply invoice adjustment" });
+    }
+  });
+
+  // Get student credit balance
+  app.get("/api/billing/student-credit/:studentId", async (req, res) => {
+    try {
+      const credit = await billingService.getStudentCredit(req.params.studentId);
+      res.json({ creditBalance: credit });
+    } catch (error) {
+      console.error("Error fetching student credit:", error);
+      res.status(500).json({ message: "Failed to fetch student credit" });
+    }
+  });
+
+  // Get student ledger
+  app.get("/api/billing/student-ledger/:studentId", async (req, res) => {
+    try {
+      const ledger = await billingService.getStudentLedger(req.params.studentId);
+      res.json(ledger);
+    } catch (error) {
+      console.error("Error fetching student ledger:", error);
+      res.status(500).json({ message: "Failed to fetch student ledger" });
+    }
+  });
+
+  // Update invoice status
+  app.patch("/api/billing/invoice-status/:invoiceId", async (req, res) => {
+    try {
+      const result = await billingService.updateInvoiceStatus(req.params.invoiceId);
+      res.json({ success: true, ...result });
+    } catch (error) {
+      console.error("Error updating invoice status:", error);
+      res.status(500).json({ message: "Failed to update invoice status" });
+    }
+  });
+
+  // Demo endpoint to test the billing system
+  app.post("/api/billing/run-demo", async (req, res) => {
+    try {
+      const { runBillingDemo } = await import("./billing-demo");
+      await runBillingDemo();
+      res.json({ 
+        success: true, 
+        message: "Billing system demo completed successfully. Check console for detailed results." 
+      });
+    } catch (error) {
+      console.error("Error running billing demo:", error);
+      res.status(500).json({ message: "Failed to run billing demo" });
     }
   });
 
