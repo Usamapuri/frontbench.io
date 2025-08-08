@@ -23,6 +23,7 @@ export default function StudentLedger() {
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
+  const [transactionNumber, setTransactionNumber] = useState("");
   const [reminderMessage, setReminderMessage] = useState("");
   
   const { toast } = useToast();
@@ -102,6 +103,8 @@ export default function StudentLedger() {
   const handleRecordPayment = (student: any) => {
     setSelectedStudent(student);
     setPaymentAmount(student.outstandingBalance.toString());
+    setPaymentMethod("");
+    setTransactionNumber("");
     setShowPaymentDialog(true);
   };
   
@@ -132,17 +135,33 @@ export default function StudentLedger() {
         });
         return;
       }
+
+      if (paymentMethod === "bank_transfer" && !transactionNumber.trim()) {
+        toast({
+          title: "Error",
+          description: "Transaction number is required for bank transfers",
+          variant: "destructive",
+        });
+        return;
+      }
       
-      // In a real app, this would create a payment record
+      // In a real app, this would create a payment record with transaction number
+      const paymentDetails = {
+        amount: parseFloat(paymentAmount),
+        method: paymentMethod,
+        ...(paymentMethod === "bank_transfer" && { transactionNumber })
+      };
+      
       toast({
         title: "Payment Recorded",
-        description: `Payment of ${formatPKR(parseFloat(paymentAmount))} recorded for ${selectedStudent?.firstName} ${selectedStudent?.lastName}`,
+        description: `Payment of ${formatPKR(parseFloat(paymentAmount))} via ${paymentMethod === 'bank_transfer' ? 'Bank Transfer' : 'Cash'} recorded for ${selectedStudent?.firstName} ${selectedStudent?.lastName}`,
         variant: "default",
       });
       
       setShowPaymentDialog(false);
       setPaymentAmount("");
       setPaymentMethod("");
+      setTransactionNumber("");
     } catch (error) {
       toast({
         title: "Error",
@@ -457,11 +476,27 @@ export default function StudentLedger() {
                   <SelectContent>
                     <SelectItem value="cash">Cash</SelectItem>
                     <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                    <SelectItem value="card">Card</SelectItem>
-                    <SelectItem value="cheque">Cheque</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+              
+              {/* Transaction Number for Bank Transfer */}
+              {paymentMethod === "bank_transfer" && (
+                <div>
+                  <Label htmlFor="transactionNumber">Transaction Number *</Label>
+                  <Input
+                    id="transactionNumber"
+                    value={transactionNumber}
+                    onChange={(e) => setTransactionNumber(e.target.value)}
+                    placeholder="Enter bank transaction number"
+                    className="mt-1"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Please enter the bank transaction/reference number for this transfer
+                  </p>
+                </div>
+              )}
+              
               <div className="flex justify-end space-x-2 pt-4">
                 <Button variant="outline" onClick={() => setShowPaymentDialog(false)}>
                   Cancel
