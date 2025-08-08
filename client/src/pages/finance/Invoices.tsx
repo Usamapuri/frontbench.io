@@ -24,6 +24,8 @@ export default function Invoices() {
   const [selectedStudentId, setSelectedStudentId] = useState("");
   const [invoiceAmount, setInvoiceAmount] = useState("");
   const [invoiceNotes, setInvoiceNotes] = useState("");
+  const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -35,6 +37,18 @@ export default function Invoices() {
   const { data: students = [] } = useQuery({
     queryKey: ['/api/students'],
   });
+
+  // Create a map of students by ID for quick lookup
+  const studentsMap = students.reduce((acc: any, student: any) => {
+    acc[student.id] = student;
+    return acc;
+  }, {});
+
+  // Function to get student name by ID
+  const getStudentName = (studentId: string) => {
+    const student = studentsMap[studentId];
+    return student ? `${student.firstName} ${student.lastName}` : 'Unknown Student';
+  };
 
   const filteredInvoices = invoices?.filter(invoice =>
     invoice.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase())
@@ -189,6 +203,121 @@ export default function Invoices() {
     });
   };
 
+  // Handle invoice PDF view/printing
+  const handleViewInvoicePDF = (invoice: Invoice) => {
+    const studentName = getStudentName(invoice.studentId);
+    const invoiceHTML = `
+      <html>
+        <head>
+          <title>Invoice ${invoice.invoiceNumber}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 40px; }
+            .header { text-align: center; margin-bottom: 30px; }
+            .invoice-details { margin: 20px 0; }
+            .amount { font-size: 24px; font-weight: bold; color: #2563eb; }
+            .footer { margin-top: 40px; text-align: center; color: #666; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>PRIMAX EDUCATIONAL INSTITUTION</h1>
+            <h2>INVOICE</h2>
+          </div>
+          <div class="invoice-details">
+            <p><strong>Invoice Number:</strong> ${invoice.invoiceNumber}</p>
+            <p><strong>Student:</strong> ${studentName}</p>
+            <p><strong>Issue Date:</strong> ${new Date(invoice.issueDate).toLocaleDateString()}</p>
+            <p><strong>Due Date:</strong> ${new Date(invoice.dueDate).toLocaleDateString()}</p>
+            <p><strong>Notes:</strong> ${invoice.notes || 'Monthly tuition fees'}</p>
+            <br>
+            <p class="amount"><strong>Amount Due: Rs. ${Number(invoice.balanceDue || invoice.total).toLocaleString()}</strong></p>
+            <p><strong>Total Amount:</strong> Rs. ${Number(invoice.total).toLocaleString()}</p>
+            <p><strong>Amount Paid:</strong> Rs. ${Number(invoice.amountPaid || 0).toLocaleString()}</p>
+          </div>
+          <div class="footer">
+            <p>Please pay by the due date to avoid late fees</p>
+            <p>Thank you for choosing Primax Educational Institution</p>
+          </div>
+        </body>
+      </html>
+    `;
+    
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(invoiceHTML);
+      printWindow.document.close();
+      printWindow.focus();
+      
+      // Auto-trigger print dialog
+      setTimeout(() => {
+        printWindow.print();
+      }, 500);
+    }
+  };
+
+  // Handle invoice editing
+  const handleEditInvoice = (invoice: Invoice) => {
+    setEditingInvoice(invoice);
+    setInvoiceAmount(invoice.total);
+    setInvoiceNotes(invoice.notes || "");
+    setShowEditDialog(true);
+  };
+
+  // Update invoice mutation
+  const updateInvoiceMutation = useMutation({
+    mutationFn: async (invoiceData: {
+      id: string;
+      total: string;
+      notes: string;
+    }) => {
+      return apiRequest('PATCH', `/api/invoices/${invoiceData.id}`, {
+        total: invoiceData.total,
+        subtotal: invoiceData.total,
+        balanceDue: (parseFloat(invoiceData.total) - parseFloat(editingInvoice?.amountPaid || '0')).toFixed(2),
+        notes: invoiceData.notes,
+      });
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Invoice updated successfully",
+        description: `Invoice ${editingInvoice?.invoiceNumber} has been updated`,
+      });
+      
+      // Refresh invoice data
+      queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
+      
+      // Reset form
+      setEditingInvoice(null);
+      setInvoiceAmount("");
+      setInvoiceNotes("");
+      setShowEditDialog(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to update invoice",
+        description: error.message || "Failed to update invoice",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleUpdateInvoice = async () => {
+    if (!editingInvoice || !invoiceAmount) {
+      toast({
+        title: "Missing information",
+        description: "Please enter an amount",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    await updateInvoiceMutation.mutateAsync({
+      id: editingInvoice.id,
+      total: invoiceAmount,
+      notes: invoiceNotes,
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -246,12 +375,16 @@ export default function Invoices() {
                 {filteredInvoices.length > 0 ? filteredInvoices.map((invoice) => (
                   <tr key={invoice.id} className="hover:bg-gray-50" data-testid={`row-invoice-${invoice.id}`}>
                     <td className="px-4 py-3">
-                      <span className="font-medium text-blue-600" data-testid={`text-invoice-number-${invoice.id}`}>
+                      <button 
+                        className="font-medium text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                        onClick={() => handleViewInvoicePDF(invoice)}
+                        data-testid={`text-invoice-number-${invoice.id}`}
+                      >
                         {invoice.invoiceNumber}
-                      </span>
+                      </button>
                     </td>
-                    <td className="px-4 py-3">
-                      <span data-testid={`text-student-${invoice.id}`}>Student Name</span>
+                    <td className="px-4 py-3" data-testid={`text-student-${invoice.id}`}>
+                      {getStudentName(invoice.studentId)}
                     </td>
                     <td className="px-4 py-3" data-testid={`text-issue-date-${invoice.id}`}>
                       {new Date(invoice.issueDate).toLocaleDateString()}
@@ -290,12 +423,7 @@ export default function Invoices() {
                         <Button 
                           size="sm" 
                           variant="ghost"
-                          onClick={() => {
-                            toast({
-                              title: "Edit Invoice",
-                              description: "Invoice editing functionality coming soon",
-                            });
-                          }}
+                          onClick={() => handleEditInvoice(invoice)}
                           data-testid={`button-edit-invoice-${invoice.id}`}
                         >
                           <i className="fas fa-edit"></i>
@@ -402,6 +530,56 @@ export default function Invoices() {
       </Dialog>
 
 
+
+      {/* Edit Invoice Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Invoice - {editingInvoice?.invoiceNumber}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="editAmount">Invoice Amount (Rs.)</Label>
+              <Input
+                id="editAmount"
+                type="number"
+                value={invoiceAmount}
+                onChange={(e) => setInvoiceAmount(e.target.value)}
+                placeholder="Enter amount"
+                className="mt-1"
+                data-testid="input-edit-amount"
+              />
+            </div>
+            <div>
+              <Label htmlFor="editNotes">Notes (Optional)</Label>
+              <Input
+                id="editNotes"
+                value={invoiceNotes}
+                onChange={(e) => setInvoiceNotes(e.target.value)}
+                placeholder="Add notes for this invoice"
+                className="mt-1"
+                data-testid="input-edit-notes"
+              />
+            </div>
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowEditDialog(false)}
+                data-testid="button-cancel-edit"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleUpdateInvoice}
+                disabled={updateInvoiceMutation.isPending}
+                data-testid="button-save-invoice"
+              >
+                {updateInvoiceMutation.isPending ? "Saving..." : "Save Changes"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Create Invoice Dialog */}
       <Dialog open={showCreateInvoiceDialog} onOpenChange={setShowCreateInvoiceDialog}>

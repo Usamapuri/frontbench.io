@@ -58,7 +58,13 @@ export interface IStorage {
   // Invoices
   getInvoices(limit?: number): Promise<Invoice[]>;
   getStudentInvoices(studentId: string): Promise<Invoice[]>;
+  getInvoiceById(invoiceId: string): Promise<Invoice | null>;
   createInvoice(invoice: any): Promise<Invoice>;
+  updateInvoice(id: string, updates: Partial<Invoice>): Promise<Invoice>;
+  getInvoicesByStudent(studentId: string): Promise<Invoice[]>;
+  getEnrollmentsByStudent(studentId: string): Promise<any[]>;
+  getSubjectById(subjectId: string): Promise<Subject | null>;
+  createPaymentAllocation(allocationData: { paymentId: string; invoiceId: string; amount: string; }): Promise<any>;
   
   // Payments
   getPayments(limit?: number): Promise<Payment[]>;
@@ -246,6 +252,65 @@ export class DatabaseStorage implements IStorage {
   async createInvoice(invoiceData: any): Promise<Invoice> {
     const [invoice] = await db.insert(invoices).values(invoiceData).returning();
     return invoice;
+  }
+
+  async updateInvoice(id: string, updates: Partial<Invoice>): Promise<Invoice> {
+    const [updated] = await db
+      .update(invoices)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(eq(invoices.id, id))
+      .returning();
+    
+    if (!updated) {
+      throw new Error('Invoice not found');
+    }
+    
+    return updated;
+  }
+
+  async getInvoicesByStudent(studentId: string): Promise<Invoice[]> {
+    return await db
+      .select()
+      .from(invoices)
+      .where(eq(invoices.studentId, studentId))
+      .orderBy(desc(invoices.createdAt));
+  }
+
+  async getEnrollmentsByStudent(studentId: string): Promise<any[]> {
+    return await db
+      .select({
+        id: enrollments.id,
+        studentId: enrollments.studentId,
+        subjectId: enrollments.subjectId,
+        subjectName: subjects.name,
+        tuitionFee: subjects.tuitionFee,
+        enrollmentDate: enrollments.enrollmentDate,
+        isActive: enrollments.isActive,
+      })
+      .from(enrollments)
+      .innerJoin(subjects, eq(enrollments.subjectId, subjects.id))
+      .where(and(eq(enrollments.studentId, studentId), eq(enrollments.isActive, true)));
+  }
+
+  async getSubjectById(subjectId: string): Promise<Subject | null> {
+    const result = await db
+      .select()
+      .from(subjects)
+      .where(eq(subjects.id, subjectId));
+    
+    return result.length > 0 ? result[0] : null;
+  }
+
+  async createPaymentAllocation(allocationData: {
+    paymentId: string;
+    invoiceId: string;
+    amount: string;
+  }): Promise<any> {
+    const [allocation] = await db.insert(paymentAllocations).values(allocationData).returning();
+    return allocation;
   }
 
   // Payments
