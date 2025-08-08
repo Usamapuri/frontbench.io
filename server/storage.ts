@@ -6,6 +6,9 @@ import {
   enrollments,
   invoices,
   payments,
+  paymentAllocations,
+  invoiceAdjustments,
+  billingSchedules,
   attendance,
   assessments,
   grades,
@@ -74,7 +77,7 @@ export interface IStorage {
   // Cash Draw Requests
   getCashDrawRequests(): Promise<CashDrawRequest[]>;
   
-  // Student Financial Data
+  // Enhanced Billing System
   getStudentFinancialSummary(studentId: string): Promise<{
     totalOwed: number;
     totalPaid: number;
@@ -85,6 +88,13 @@ export interface IStorage {
   
   getStudentAttendancePercentage(studentId: string): Promise<number>;
   getStudentAverageGrade(studentId: string): Promise<string>;
+  
+  // Advanced Billing Operations
+  createPaymentWithAllocations(paymentData: any, allocations: any[]): Promise<Payment>;
+  addInvoiceAdjustment(invoiceId: string, adjustment: any): Promise<any>;
+  getStudentLedger(studentId: string): Promise<any[]>;
+  createBillingSchedule(scheduleData: any): Promise<any>;
+  generateRecurringInvoices(date?: string): Promise<Invoice[]>;
   createCashDrawRequest(request: any): Promise<CashDrawRequest>;
   updateCashDrawRequest(id: string, updates: any): Promise<CashDrawRequest>;
   
@@ -210,7 +220,21 @@ export class DatabaseStorage implements IStorage {
   // Invoices
   async getInvoices(limit = 50): Promise<Invoice[]> {
     return await db
-      .select()
+      .select({
+        id: invoices.id,
+        invoiceNumber: invoices.invoiceNumber,
+        studentId: invoices.studentId,
+        issueDate: invoices.issueDate,
+        dueDate: invoices.dueDate,
+        subtotal: invoices.subtotal,
+        discount: invoices.discount,
+        lateFee: invoices.lateFee,
+        total: invoices.total,
+        status: invoices.status,
+        notes: invoices.notes,
+        createdAt: invoices.createdAt,
+        updatedAt: invoices.updatedAt,
+      })
       .from(invoices)
       .orderBy(desc(invoices.createdAt))
       .limit(limit);
@@ -218,7 +242,21 @@ export class DatabaseStorage implements IStorage {
 
   async getStudentInvoices(studentId: string): Promise<Invoice[]> {
     return await db
-      .select()
+      .select({
+        id: invoices.id,
+        invoiceNumber: invoices.invoiceNumber,
+        studentId: invoices.studentId,
+        issueDate: invoices.issueDate,
+        dueDate: invoices.dueDate,
+        subtotal: invoices.subtotal,
+        discount: invoices.discount,
+        lateFee: invoices.lateFee,
+        total: invoices.total,
+        status: invoices.status,
+        notes: invoices.notes,
+        createdAt: invoices.createdAt,
+        updatedAt: invoices.updatedAt,
+      })
       .from(invoices)
       .where(eq(invoices.studentId, studentId))
       .orderBy(desc(invoices.createdAt));
@@ -232,7 +270,18 @@ export class DatabaseStorage implements IStorage {
   // Payments
   async getPayments(limit = 50): Promise<Payment[]> {
     return await db
-      .select()
+      .select({
+        id: payments.id,
+        receiptNumber: payments.receiptNumber,
+        studentId: payments.studentId,
+        amount: payments.amount,
+        paymentMethod: payments.paymentMethod,
+        receivedBy: payments.receivedBy,
+        paymentDate: payments.paymentDate,
+        notes: payments.notes,
+        isRefunded: payments.isRefunded,
+        createdAt: payments.createdAt,
+      })
       .from(payments)
       .orderBy(desc(payments.createdAt))
       .limit(limit);

@@ -44,7 +44,10 @@ export const genderEnum = pgEnum('gender', ['male', 'female']);
 export const feeStatusEnum = pgEnum('fee_status', ['paid', 'pending', 'overdue', 'partial']);
 export const attendanceStatusEnum = pgEnum('attendance_status', ['present', 'absent', 'late']);
 export const paymentMethodEnum = pgEnum('payment_method', ['cash', 'bank_transfer', 'card', 'cheque']);
-export const invoiceStatusEnum = pgEnum('invoice_status', ['draft', 'sent', 'paid', 'overdue']);
+export const invoiceStatusEnum = pgEnum('invoice_status', ['draft', 'sent', 'paid', 'overdue', 'partial', 'cancelled']);
+export const invoiceTypeEnum = pgEnum('invoice_type', ['monthly', 'prorated', 'custom', 'multi_month', 'adjustment']);
+export const paymentStatusEnum = pgEnum('payment_status', ['completed', 'pending', 'failed', 'refunded']);
+export const adjustmentTypeEnum = pgEnum('adjustment_type', ['discount', 'late_fee', 'manual_edit', 'refund', 'writeoff']);
 
 // Students table
 export const students = pgTable("students", {
@@ -103,19 +106,28 @@ export const enrollments = pgTable("enrollments", {
   isActive: boolean("is_active").default(true),
 });
 
-// Invoices
+// Invoices  
 export const invoices = pgTable("invoices", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   invoiceNumber: varchar("invoice_number").notNull().unique(),
   studentId: varchar("student_id").references(() => students.id).notNull(),
+  type: invoiceTypeEnum("type").default('monthly'),
+  billingPeriodStart: date("billing_period_start").notNull(),
+  billingPeriodEnd: date("billing_period_end").notNull(),
   issueDate: date("issue_date").notNull(),
   dueDate: date("due_date").notNull(),
   subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
   discount: decimal("discount", { precision: 10, scale: 2 }).default('0'),
   lateFee: decimal("late_fee", { precision: 10, scale: 2 }).default('0'),
+  adjustments: decimal("adjustments", { precision: 10, scale: 2 }).default('0'),
   total: decimal("total", { precision: 10, scale: 2 }).notNull(),
+  amountPaid: decimal("amount_paid", { precision: 10, scale: 2 }).default('0'),
+  balanceDue: decimal("balance_due", { precision: 10, scale: 2 }).notNull(),
   status: invoiceStatusEnum("status").default('draft'),
+  isRecurring: boolean("is_recurring").default(false),
+  parentInvoiceId: varchar("parent_invoice_id").references(() => invoices.id), // For adjustments/corrections
   notes: text("notes"),
+  createdBy: varchar("created_by").references(() => users.id).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -135,14 +147,55 @@ export const payments = pgTable("payments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   receiptNumber: varchar("receipt_number").notNull().unique(),
   studentId: varchar("student_id").references(() => students.id).notNull(),
-  invoiceId: varchar("invoice_id").references(() => invoices.id),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   paymentMethod: paymentMethodEnum("payment_method").notNull(),
+  transactionNumber: varchar("transaction_number"), // For bank transfers
   receivedBy: varchar("received_by").references(() => users.id).notNull(),
   paymentDate: timestamp("payment_date").defaultNow(),
+  status: paymentStatusEnum("status").default('completed'),
   notes: text("notes"),
   isRefunded: boolean("is_refunded").default(false),
+  refundedAt: timestamp("refunded_at"),
+  refundedBy: varchar("refunded_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Payment allocations - many-to-many between payments and invoices
+export const paymentAllocations = pgTable("payment_allocations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  paymentId: varchar("payment_id").references(() => payments.id).notNull(),
+  invoiceId: varchar("invoice_id").references(() => invoices.id).notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Invoice adjustments for audit trail
+export const invoiceAdjustments = pgTable("invoice_adjustments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  invoiceId: varchar("invoice_id").references(() => invoices.id).notNull(),
+  type: adjustmentTypeEnum("type").notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  reason: text("reason").notNull(),
+  appliedBy: varchar("applied_by").references(() => users.id).notNull(),
+  appliedAt: timestamp("applied_at").defaultNow(),
+  notes: text("notes"),
+});
+
+// Billing schedules for recurring invoices
+export const billingSchedules = pgTable("billing_schedules", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  studentId: varchar("student_id").references(() => students.id).notNull(),
+  enrollmentId: varchar("enrollment_id").references(() => enrollments.id).notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date"), // null for indefinite
+  frequency: varchar("frequency").default('monthly'), // monthly, weekly, custom
+  dayOfMonth: integer("day_of_month").default(1), // 1-31 for monthly billing
+  isActive: boolean("is_active").default(true),
+  lastGeneratedDate: date("last_generated_date"),
+  nextBillingDate: date("next_billing_date").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Classes/Periods
@@ -269,6 +322,7 @@ export const studentsRelations = relations(students, ({ one, many }) => ({
   enrollments: many(enrollments),
   invoices: many(invoices),
   payments: many(payments),
+  billingSchedules: many(billingSchedules),
   attendance: many(attendance),
   grades: many(grades),
 }));
@@ -296,7 +350,7 @@ export const comboSubjectsRelations = relations(comboSubjects, ({ one }) => ({
   }),
 }));
 
-export const enrollmentsRelations = relations(enrollments, ({ one }) => ({
+export const enrollmentsRelations = relations(enrollments, ({ one, many }) => ({
   student: one(students, {
     fields: [enrollments.studentId],
     references: [students.id],
@@ -313,6 +367,7 @@ export const enrollmentsRelations = relations(enrollments, ({ one }) => ({
     fields: [enrollments.teacherId],
     references: [users.id],
   }),
+  billingSchedules: many(billingSchedules),
 }));
 
 export const invoicesRelations = relations(invoices, ({ one, many }) => ({
@@ -321,7 +376,17 @@ export const invoicesRelations = relations(invoices, ({ one, many }) => ({
     references: [students.id],
   }),
   items: many(invoiceItems),
-  payments: many(payments),
+  paymentAllocations: many(paymentAllocations),
+  adjustments: many(invoiceAdjustments),
+  parentInvoice: one(invoices, {
+    fields: [invoices.parentInvoiceId],
+    references: [invoices.id],
+  }),
+  childInvoices: many(invoices),
+  createdByUser: one(users, {
+    fields: [invoices.createdBy],
+    references: [users.id],
+  }),
 }));
 
 export const invoiceItemsRelations = relations(invoiceItems, ({ one }) => ({
@@ -331,18 +396,52 @@ export const invoiceItemsRelations = relations(invoiceItems, ({ one }) => ({
   }),
 }));
 
-export const paymentsRelations = relations(payments, ({ one }) => ({
+export const paymentsRelations = relations(payments, ({ one, many }) => ({
   student: one(students, {
     fields: [payments.studentId],
     references: [students.id],
   }),
-  invoice: one(invoices, {
-    fields: [payments.invoiceId],
-    references: [invoices.id],
-  }),
+  allocations: many(paymentAllocations),
   receivedByUser: one(users, {
     fields: [payments.receivedBy],
     references: [users.id],
+  }),
+  refundedByUser: one(users, {
+    fields: [payments.refundedBy],
+    references: [users.id],
+  }),
+}));
+
+export const paymentAllocationsRelations = relations(paymentAllocations, ({ one }) => ({
+  payment: one(payments, {
+    fields: [paymentAllocations.paymentId],
+    references: [payments.id],
+  }),
+  invoice: one(invoices, {
+    fields: [paymentAllocations.invoiceId],
+    references: [invoices.id],
+  }),
+}));
+
+export const invoiceAdjustmentsRelations = relations(invoiceAdjustments, ({ one }) => ({
+  invoice: one(invoices, {
+    fields: [invoiceAdjustments.invoiceId],
+    references: [invoices.id],
+  }),
+  appliedByUser: one(users, {
+    fields: [invoiceAdjustments.appliedBy],
+    references: [users.id],
+  }),
+}));
+
+export const billingSchedulesRelations = relations(billingSchedules, ({ one }) => ({
+  student: one(students, {
+    fields: [billingSchedules.studentId],
+    references: [students.id],
+  }),
+  enrollment: one(enrollments, {
+    fields: [billingSchedules.enrollmentId],
+    references: [enrollments.id],
   }),
 }));
 
