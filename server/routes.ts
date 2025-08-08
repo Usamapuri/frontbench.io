@@ -381,9 +381,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Assessments routes - NO AUTH REQUIRED FOR DEMO
   app.get("/api/assessments", async (req, res) => {
     try {
-      // For demo purposes, return empty array for now
-      // In a real implementation, you'd filter by subject or teacher
-      res.json([]);
+      const assessments = await storage.getAssessments();
+      res.json(assessments);
     } catch (error) {
       console.error("Error fetching assessments:", error);
       res.status(500).json({ message: "Failed to fetch assessments" });

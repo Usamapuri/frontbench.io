@@ -75,8 +75,11 @@ export interface IStorage {
   getAttendanceByClass(classId: string, date: string): Promise<Attendance[]>;
   getStudentAttendance(studentId: string, startDate?: string, endDate?: string): Promise<Attendance[]>;
   
-  // Grades
+  // Assessments
+  getAssessments(): Promise<Assessment[]>;
   createAssessment(assessment: any): Promise<Assessment>;
+  
+  // Grades
   createGrade(grade: any): Promise<Grade>;
   getStudentGrades(studentId: string): Promise<Grade[]>;
   
@@ -430,6 +433,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Grades
+  async getAssessments(): Promise<Assessment[]> {
+    const allAssessments = await db.select().from(assessments).orderBy(desc(assessments.createdAt));
+    return allAssessments;
+  }
+
   async createAssessment(assessmentData: any): Promise<Assessment> {
     const [assessment] = await db.insert(assessments).values(assessmentData).returning();
     return assessment;
