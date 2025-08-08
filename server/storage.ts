@@ -220,21 +220,7 @@ export class DatabaseStorage implements IStorage {
   // Invoices
   async getInvoices(limit = 50): Promise<Invoice[]> {
     return await db
-      .select({
-        id: invoices.id,
-        invoiceNumber: invoices.invoiceNumber,
-        studentId: invoices.studentId,
-        issueDate: invoices.issueDate,
-        dueDate: invoices.dueDate,
-        subtotal: invoices.subtotal,
-        discount: invoices.discount,
-        lateFee: invoices.lateFee,
-        total: invoices.total,
-        status: invoices.status,
-        notes: invoices.notes,
-        createdAt: invoices.createdAt,
-        updatedAt: invoices.updatedAt,
-      })
+      .select()
       .from(invoices)
       .orderBy(desc(invoices.createdAt))
       .limit(limit);
@@ -242,21 +228,7 @@ export class DatabaseStorage implements IStorage {
 
   async getStudentInvoices(studentId: string): Promise<Invoice[]> {
     return await db
-      .select({
-        id: invoices.id,
-        invoiceNumber: invoices.invoiceNumber,
-        studentId: invoices.studentId,
-        issueDate: invoices.issueDate,
-        dueDate: invoices.dueDate,
-        subtotal: invoices.subtotal,
-        discount: invoices.discount,
-        lateFee: invoices.lateFee,
-        total: invoices.total,
-        status: invoices.status,
-        notes: invoices.notes,
-        createdAt: invoices.createdAt,
-        updatedAt: invoices.updatedAt,
-      })
+      .select()
       .from(invoices)
       .where(eq(invoices.studentId, studentId))
       .orderBy(desc(invoices.createdAt));
@@ -270,18 +242,7 @@ export class DatabaseStorage implements IStorage {
   // Payments
   async getPayments(limit = 50): Promise<Payment[]> {
     return await db
-      .select({
-        id: payments.id,
-        receiptNumber: payments.receiptNumber,
-        studentId: payments.studentId,
-        amount: payments.amount,
-        paymentMethod: payments.paymentMethod,
-        receivedBy: payments.receivedBy,
-        paymentDate: payments.paymentDate,
-        notes: payments.notes,
-        isRefunded: payments.isRefunded,
-        createdAt: payments.createdAt,
-      })
+      .select()
       .from(payments)
       .orderBy(desc(payments.createdAt))
       .limit(limit);
@@ -306,16 +267,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getStudentAttendance(studentId: string, startDate?: string, endDate?: string): Promise<Attendance[]> {
-    let query = db.select().from(attendance).where(eq(attendance.studentId, studentId));
+    let conditions = [eq(attendance.studentId, studentId)];
     
     if (startDate) {
-      query = query.where(gte(attendance.attendanceDate, startDate));
+      conditions.push(gte(attendance.attendanceDate, startDate));
     }
     if (endDate) {
-      query = query.where(lte(attendance.attendanceDate, endDate));
+      conditions.push(lte(attendance.attendanceDate, endDate));
     }
     
-    return await query.orderBy(desc(attendance.attendanceDate));
+    return await db
+      .select()
+      .from(attendance)
+      .where(and(...conditions))
+      .orderBy(desc(attendance.attendanceDate));
   }
 
   // Grades
@@ -409,7 +374,7 @@ export class DatabaseStorage implements IStorage {
       totalStudents: totalStudents[0]?.count || 0,
       monthlyRevenue: monthlyRevenue[0]?.total || 0,
       pendingFees: pendingInvoices[0]?.total || 0,
-      avgAttendance: Math.round((avgAttendance[0]?.avg || 0) * 100),
+      avgAttendance: Math.round(Number(avgAttendance[0]?.avg || 0) * 100),
     };
   }
 
@@ -465,14 +430,15 @@ export class DatabaseStorage implements IStorage {
     }
     
     const lastPayment = studentPayments
-      .sort((a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime())[0];
+      .filter(p => p.paymentDate)
+      .sort((a, b) => new Date(b.paymentDate!).getTime() - new Date(a.paymentDate!).getTime())[0];
     
     return {
       totalOwed,
       totalPaid,
       outstandingBalance,
       feeStatus,
-      lastPaymentDate: lastPayment?.paymentDate
+      lastPaymentDate: lastPayment?.paymentDate ?? undefined
     };
   }
   
@@ -523,6 +489,79 @@ export class DatabaseStorage implements IStorage {
     if (averagePercentage >= 55) return 'C-';
     if (averagePercentage >= 50) return 'D';
     return 'F';
+  }
+
+  // Missing methods to complete interface implementation
+  async createPaymentWithAllocations(paymentData: any, allocations: any[]): Promise<Payment> {
+    const [payment] = await db.insert(payments).values(paymentData).returning();
+    
+    // Create payment allocations
+    for (const allocation of allocations) {
+      await db.insert(paymentAllocations).values({
+        paymentId: payment.id,
+        ...allocation
+      });
+    }
+    
+    return payment;
+  }
+
+  async addInvoiceAdjustment(invoiceId: string, adjustment: any): Promise<any> {
+    const [adjustmentRecord] = await db.insert(invoiceAdjustments).values({
+      invoiceId,
+      ...adjustment
+    }).returning();
+    return adjustmentRecord;
+  }
+
+  async getStudentLedger(studentId: string): Promise<any[]> {
+    // Get student invoices and payments to create ledger
+    const invoices = await this.getStudentInvoices(studentId);
+    const studentPayments = await db
+      .select()
+      .from(payments)
+      .where(eq(payments.studentId, studentId))
+      .orderBy(desc(payments.createdAt));
+
+    // Combine and sort by date
+    const ledger = [
+      ...invoices.map(inv => ({
+        id: inv.id,
+        date: inv.issueDate,
+        type: 'invoice' as const,
+        description: `Invoice #${inv.invoiceNumber}`,
+        amount: parseFloat(inv.total),
+        balance: 0 // Will be calculated
+      })),
+      ...studentPayments.map((pay: any) => ({
+        id: pay.id,
+        date: pay.paymentDate || pay.createdAt,
+        type: 'payment' as const,
+        description: `Payment #${pay.receiptNumber}`,
+        amount: -parseFloat(pay.amount),
+        balance: 0 // Will be calculated
+      }))
+    ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    // Calculate running balance
+    let runningBalance = 0;
+    ledger.forEach(entry => {
+      runningBalance += entry.amount;
+      entry.balance = runningBalance;
+    });
+
+    return ledger;
+  }
+
+  async createBillingSchedule(scheduleData: any): Promise<any> {
+    const [schedule] = await db.insert(billingSchedules).values(scheduleData).returning();
+    return schedule;
+  }
+
+  async generateRecurringInvoices(date?: string): Promise<Invoice[]> {
+    // This would generate invoices based on billing schedules
+    // For now, return empty array as placeholder
+    return [];
   }
 }
 

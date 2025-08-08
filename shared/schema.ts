@@ -106,7 +106,7 @@ export const enrollments = pgTable("enrollments", {
   isActive: boolean("is_active").default(true),
 });
 
-// Invoices  
+// Invoices
 export const invoices = pgTable("invoices", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   invoiceNumber: varchar("invoice_number").notNull().unique(),
@@ -125,7 +125,7 @@ export const invoices = pgTable("invoices", {
   balanceDue: decimal("balance_due", { precision: 10, scale: 2 }).notNull(),
   status: invoiceStatusEnum("status").default('draft'),
   isRecurring: boolean("is_recurring").default(false),
-  parentInvoiceId: varchar("parent_invoice_id").references(() => invoices.id), // For adjustments/corrections
+  parentInvoiceId: varchar("parent_invoice_id"), // For adjustments/corrections
   notes: text("notes"),
   createdBy: varchar("created_by").references(() => users.id).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
