@@ -29,6 +29,50 @@ export default function Layout({ children, selectedRole }: LayoutProps) {
               </nav>
             </div>
             <div className="flex items-center space-x-4">
+              {/* Primax Logo */}
+              <div className="flex items-center">
+                <svg 
+                  width="48" 
+                  height="32" 
+                  viewBox="0 0 300 200" 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  className="h-10 w-auto"
+                  data-testid="primax-logo"
+                >
+                  <defs>
+                    <linearGradient id="leftGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" style={{stopColor:'#FFD700', stopOpacity:1}} />
+                      <stop offset="50%" style={{stopColor:'#FFA500', stopOpacity:1}} />
+                      <stop offset="100%" style={{stopColor:'#FF6347', stopOpacity:1}} />
+                    </linearGradient>
+                    <linearGradient id="centerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" style={{stopColor:'#32CD32', stopOpacity:1}} />
+                      <stop offset="50%" style={{stopColor:'#00CED1', stopOpacity:1}} />
+                      <stop offset="100%" style={{stopColor:'#4169E1', stopOpacity:1}} />
+                    </linearGradient>
+                    <linearGradient id="rightGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" style={{stopColor:'#4169E1', stopOpacity:1}} />
+                      <stop offset="50%" style={{stopColor:'#8A2BE2', stopOpacity:1}} />
+                      <stop offset="100%" style={{stopColor:'#9932CC', stopOpacity:1}} />
+                    </linearGradient>
+                  </defs>
+                  
+                  {/* Left Triangle */}
+                  <polygon points="50,170 120,50 150,170" fill="url(#leftGradient)" />
+                  
+                  {/* Center Triangle */}
+                  <polygon points="120,50 190,170 150,170" fill="url(#centerGradient)" />
+                  
+                  {/* Right Triangle */}
+                  <polygon points="150,170 190,170 250,50" fill="url(#rightGradient)" />
+                  
+                  {/* White accent lines */}
+                  <polygon points="80,130 85,120 95,140 90,150" fill="white" opacity="0.3" />
+                  <polygon points="130,80 135,70 145,90 140,100" fill="white" opacity="0.3" />
+                  <polygon points="180,110 185,100 195,120 190,130" fill="white" opacity="0.3" />
+                </svg>
+              </div>
+              
               <div className="text-right">
                 <p className="text-sm font-medium text-gray-800">
                   {mockUser?.firstName} {mockUser?.lastName}
