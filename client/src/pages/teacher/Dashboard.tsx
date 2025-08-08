@@ -218,19 +218,19 @@ export default function TeacherDashboard() {
             <div className="flex items-center justify-between">
               <span className="text-gray-600">Base Rate (70%)</span>
               <span className="font-semibold text-gray-900" data-testid="text-base-earnings">
-                ₹{earnings?.baseAmount?.toLocaleString() || '0'}
+                Rs. {earnings?.baseAmount?.toLocaleString() || '0'}
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-gray-600">Extra Classes</span>
               <span className="font-semibold text-gray-900" data-testid="text-extra-earnings">
-                ₹{earnings?.extraClasses?.toLocaleString() || '0'}
+                Rs. {earnings?.extraClasses?.toLocaleString() || '0'}
               </span>
             </div>
             <div className="flex items-center justify-between border-t pt-2">
               <span className="text-gray-900 font-medium">Total Earned</span>
               <span className="font-bold text-blue-600 text-lg" data-testid="text-total-earnings">
-                ₹{earnings?.total?.toLocaleString() || '0'}
+                Rs. {earnings?.total?.toLocaleString() || '0'}
               </span>
             </div>
             <Link href="/earnings">

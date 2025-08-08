@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link } from "wouter";
 import type { Student } from "@shared/schema";
+import { formatPKR } from "@/lib/currency";
 
 export default function ParentPortal() {
   const [selectedChild, setSelectedChild] = useState("");
@@ -27,7 +28,7 @@ export default function ParentPortal() {
   const recentActivity = [
     {
       title: "Payment Received",
-      description: "Monthly fee payment of ₹9,000 processed",
+      description: "Monthly fee payment of Rs. 9,000 processed",
       time: "2 hours ago",
       type: "payment"
     },
@@ -90,7 +91,7 @@ export default function ParentPortal() {
                     <div>
                       <p className="text-blue-100">Fee Balance</p>
                       <p className="text-2xl font-bold" data-testid="text-fee-balance">
-                        ₹{childStats.feeBalance.toLocaleString()}
+                        {formatPKR(childStats.feeBalance)}
                       </p>
                       <p className="text-sm text-blue-100" data-testid="text-due-date">
                         Due: {childStats.dueDate.toLocaleDateString()}

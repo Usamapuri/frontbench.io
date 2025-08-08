@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { insertStudentSchema, type Subject } from "@shared/schema";
+import { formatPKR } from "@/lib/currency";
 
 interface EnrollmentFormData {
   firstName: string;
@@ -256,7 +257,7 @@ export default function Enrollment() {
                     />
                     <label htmlFor={subject.id} className="flex-1">
                       <div className="font-medium">{subject.name}</div>
-                      <div className="text-sm text-gray-600">₹{subject.baseFee}/month</div>
+                      <div className="text-sm text-gray-600">{formatPKR(subject.baseFee)}/month</div>
                     </label>
                   </div>
                 ))}

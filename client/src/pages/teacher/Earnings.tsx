@@ -127,7 +127,7 @@ export default function Earnings() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Base Rate (70%)</p>
                 <p className="text-2xl font-semibold text-gray-900" data-testid="stat-base-earnings">
-                  ₹{earnings?.baseAmount?.toLocaleString() || '0'}
+                  Rs. {earnings?.baseAmount?.toLocaleString() || '0'}
                 </p>
               </div>
             </div>
@@ -143,7 +143,7 @@ export default function Earnings() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Extra Classes</p>
                 <p className="text-2xl font-semibold text-gray-900" data-testid="stat-extra-earnings">
-                  ₹{earnings?.extraClasses?.toLocaleString() || '0'}
+                  Rs. {earnings?.extraClasses?.toLocaleString() || '0'}
                 </p>
               </div>
             </div>
@@ -159,7 +159,7 @@ export default function Earnings() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total Earned</p>
                 <p className="text-2xl font-semibold text-purple-600" data-testid="stat-total-earnings">
-                  ₹{earnings?.total?.toLocaleString() || '0'}
+                  Rs. {earnings?.total?.toLocaleString() || '0'}
                 </p>
               </div>
             </div>
@@ -176,7 +176,7 @@ export default function Earnings() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="amount">Amount (₹)</Label>
+              <Label htmlFor="amount">Amount (Rs. )</Label>
               <Input
                 id="amount"
                 type="number"
@@ -187,7 +187,7 @@ export default function Earnings() {
                 data-testid="input-request-amount"
               />
               <p className="text-xs text-gray-500 mt-1">
-                Available: ₹{earnings?.total?.toLocaleString() || '0'}
+                Available: Rs. {earnings?.total?.toLocaleString() || '0'}
               </p>
             </div>
 
@@ -223,19 +223,19 @@ export default function Earnings() {
             <div className="space-y-3">
               <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                 <span className="text-gray-600">Physics A-Level (24 students)</span>
-                <span className="font-semibold">₹12,000</span>
+                <span className="font-semibold">Rs. 12,000</span>
               </div>
               <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                 <span className="text-gray-600">Chemistry O-Level (18 students)</span>
-                <span className="font-semibold">₹9,000</span>
+                <span className="font-semibold">Rs. 9,000</span>
               </div>
               <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                 <span className="text-gray-600">Extra Sessions (5 hours)</span>
-                <span className="font-semibold">₹3,500</span>
+                <span className="font-semibold">Rs. 3,500</span>
               </div>
               <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg border-t border-blue-200">
                 <span className="font-semibold text-blue-800">Total This Month</span>
-                <span className="font-bold text-blue-800">₹{earnings?.total?.toLocaleString() || '0'}</span>
+                <span className="font-bold text-blue-800">Rs. {earnings?.total?.toLocaleString() || '0'}</span>
               </div>
             </div>
 
@@ -274,7 +274,7 @@ export default function Earnings() {
                     </td>
                     <td className="px-4 py-3">
                       <span className="font-semibold" data-testid={`text-amount-${request.id}`}>
-                        ₹{Number(request.amount).toLocaleString()}
+                        Rs. {Number(request.amount).toLocaleString()}
                       </span>
                     </td>
                     <td className="px-4 py-3">

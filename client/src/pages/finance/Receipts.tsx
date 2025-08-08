@@ -93,7 +93,7 @@ export default function Receipts() {
                       </td>
                       <td className="px-4 py-3">
                         <span className="font-semibold" data-testid={`text-amount-${payment.id}`}>
-                          ₹{Number(payment.amount).toLocaleString()}
+                          Rs. {Number(payment.amount).toLocaleString()}
                         </span>
                       </td>
                       <td className="px-4 py-3">
@@ -204,7 +204,7 @@ export default function Receipts() {
                   <div className="font-bold text-center">PAYMENT DETAILS</div>
                   <div className="flex justify-between">
                     <span>Amount Paid:</span>
-                    <span>₹{Number(selectedReceipt.amount).toLocaleString()}</span>
+                    <span>Rs. {Number(selectedReceipt.amount).toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Payment Mode:</span>
@@ -255,7 +255,7 @@ export default function Receipts() {
                       <p><span className="font-medium">Date:</span> {new Date(selectedReceipt.paymentDate).toLocaleDateString()}</p>
                       <p><span className="font-medium">Time:</span> {new Date(selectedReceipt.paymentDate).toLocaleTimeString()}</p>
                       <p><span className="font-medium">Method:</span> {selectedReceipt.paymentMethod.toUpperCase()}</p>
-                      <p><span className="font-medium">Amount:</span> ₹{Number(selectedReceipt.amount).toLocaleString()}</p>
+                      <p><span className="font-medium">Amount:</span> Rs. {Number(selectedReceipt.amount).toLocaleString()}</p>
                     </div>
                   </div>
                 </div>

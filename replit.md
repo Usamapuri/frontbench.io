@@ -2,6 +2,11 @@
 
 This is Primax School Management System, a comprehensive web application designed to replace paper processes and Google Sheets with a unified digital workspace. The system supports four distinct user roles - Finance/Front Desk, Teachers, Parents, and Management - each with tailored interfaces for their specific responsibilities. The application handles enrollment, attendance tracking, grade management, billing, payments, and financial reporting in one integrated platform.
 
+## Recent Changes
+- **August 8, 2025**: Added complete subject catalog for O Level and A Level courses with Pakistani Rupee pricing
+- **August 8, 2025**: Converted all currency from Indian Rupees (₹) to Pakistani Rupees (Rs.) across the entire system
+- **August 8, 2025**: Removed authentication system for development/demo purposes with role selection interface
+
 # User Preferences
 
 Preferred communication style: Simple, everyday language.

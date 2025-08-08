@@ -143,7 +143,7 @@ export default function CashDrawApprovals() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total Amount</p>
                 <p className="text-2xl font-semibold text-gray-900" data-testid="stat-total-amount">
-                  ₹{totalAmount.toLocaleString()}
+                  Rs. {totalAmount.toLocaleString()}
                 </p>
               </div>
             </div>
@@ -226,7 +226,7 @@ export default function CashDrawApprovals() {
                     </td>
                     <td className="px-4 py-3">
                       <span className="font-semibold text-gray-900" data-testid={`text-amount-${request.id}`}>
-                        ₹{Number(request.amount).toLocaleString()}
+                        Rs. {Number(request.amount).toLocaleString()}
                       </span>
                     </td>
                     <td className="px-4 py-3">
@@ -268,7 +268,7 @@ export default function CashDrawApprovals() {
                               <div className="space-y-4">
                                 <div className="bg-gray-50 p-4 rounded-lg">
                                   <p><strong>Teacher:</strong> {request.teacherName}</p>
-                                  <p><strong>Amount:</strong> ₹{Number(request.amount).toLocaleString()}</p>
+                                  <p><strong>Amount:</strong> Rs. {Number(request.amount).toLocaleString()}</p>
                                   <p><strong>Reason:</strong> {request.reason}</p>
                                 </div>
                                 <div>
@@ -316,7 +316,7 @@ export default function CashDrawApprovals() {
                               <div className="space-y-4">
                                 <div className="bg-gray-50 p-4 rounded-lg">
                                   <p><strong>Teacher:</strong> {request.teacherName}</p>
-                                  <p><strong>Amount:</strong> ₹{Number(request.amount).toLocaleString()}</p>
+                                  <p><strong>Amount:</strong> Rs. {Number(request.amount).toLocaleString()}</p>
                                   <p><strong>Reason:</strong> {request.reason}</p>
                                 </div>
                                 <div>

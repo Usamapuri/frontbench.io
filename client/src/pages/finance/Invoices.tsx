@@ -99,7 +99,7 @@ export default function Invoices() {
                     </td>
                     <td className="px-4 py-3">
                       <span className="font-semibold" data-testid={`text-amount-${invoice.id}`}>
-                        ₹{Number(invoice.total).toLocaleString()}
+                        Rs. {Number(invoice.total).toLocaleString()}
                       </span>
                     </td>
                     <td className="px-4 py-3">

@@ -275,7 +275,7 @@ export default function PayoutSummary() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total Payouts</p>
                 <p className="text-2xl font-semibold text-gray-900" data-testid="stat-total-payouts">
-                  ₹{totalPayouts.toLocaleString()}
+                  Rs. {totalPayouts.toLocaleString()}
                 </p>
               </div>
             </div>
@@ -393,17 +393,17 @@ export default function PayoutSummary() {
                     </td>
                     <td className="px-4 py-3">
                       <span className="font-semibold" data-testid={`base-amount-${payout.id}`}>
-                        ₹{payout.baseAmount.toLocaleString()}
+                        Rs. {payout.baseAmount.toLocaleString()}
                       </span>
                     </td>
                     <td className="px-4 py-3">
                       <span className="font-semibold text-green-600" data-testid={`extra-amount-${payout.id}`}>
-                        ₹{payout.extraAmount.toLocaleString()}
+                        Rs. {payout.extraAmount.toLocaleString()}
                       </span>
                     </td>
                     <td className="px-4 py-3">
                       <span className="font-bold text-blue-600" data-testid={`total-amount-${payout.id}`}>
-                        ₹{payout.totalAmount.toLocaleString()}
+                        Rs. {payout.totalAmount.toLocaleString()}
                       </span>
                     </td>
                     <td className="px-4 py-3">

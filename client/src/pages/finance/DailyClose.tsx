@@ -130,7 +130,7 @@ export default function DailyClose() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Expected Cash</p>
                 <p className="text-2xl font-semibold text-gray-900" data-testid="stat-expected-cash">
-                  ₹{expectedCash.toLocaleString()}
+                  Rs. {expectedCash.toLocaleString()}
                 </p>
               </div>
             </div>
@@ -146,7 +146,7 @@ export default function DailyClose() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Expected Bank</p>
                 <p className="text-2xl font-semibold text-gray-900" data-testid="stat-expected-bank">
-                  ₹{expectedBank.toLocaleString()}
+                  Rs. {expectedBank.toLocaleString()}
                 </p>
               </div>
             </div>
@@ -162,7 +162,7 @@ export default function DailyClose() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Expected Total</p>
                 <p className="text-2xl font-semibold text-gray-900" data-testid="stat-expected-total">
-                  ₹{expectedTotal.toLocaleString()}
+                  Rs. {expectedTotal.toLocaleString()}
                 </p>
               </div>
             </div>
@@ -181,13 +181,13 @@ export default function DailyClose() {
               <div>
                 <Label>Actual Cash</Label>
                 <div className="text-2xl font-semibold" data-testid="text-actual-cash">
-                  ₹{Number(dailyCloseRecord.totalCash).toLocaleString()}
+                  Rs. {Number(dailyCloseRecord.totalCash).toLocaleString()}
                 </div>
               </div>
               <div>
                 <Label>Actual Bank</Label>
                 <div className="text-2xl font-semibold" data-testid="text-actual-bank">
-                  ₹{Number(dailyCloseRecord.totalBank).toLocaleString()}
+                  Rs. {Number(dailyCloseRecord.totalBank).toLocaleString()}
                 </div>
               </div>
               <div>
@@ -196,7 +196,7 @@ export default function DailyClose() {
                   Number(dailyCloseRecord.variance) === 0 ? 'text-green-600' : 
                   Number(dailyCloseRecord.variance) > 0 ? 'text-blue-600' : 'text-red-600'
                 }`} data-testid="text-variance">
-                  ₹{Number(dailyCloseRecord.variance).toLocaleString()}
+                  Rs. {Number(dailyCloseRecord.variance).toLocaleString()}
                 </div>
               </div>
               <div>
@@ -233,7 +233,7 @@ export default function DailyClose() {
                   data-testid="input-total-cash"
                 />
                 <p className="text-sm text-gray-600 mt-1">
-                  Expected: ₹{expectedCash.toLocaleString()}
+                  Expected: Rs. {expectedCash.toLocaleString()}
                 </p>
               </div>
 
@@ -249,7 +249,7 @@ export default function DailyClose() {
                   data-testid="input-total-bank"
                 />
                 <p className="text-sm text-gray-600 mt-1">
-                  Expected: ₹{expectedBank.toLocaleString()}
+                  Expected: Rs. {expectedBank.toLocaleString()}
                 </p>
               </div>
             </div>
@@ -261,13 +261,13 @@ export default function DailyClose() {
                   <div>
                     <span className="text-gray-600">Actual Total:</span>
                     <div className="font-semibold" data-testid="text-summary-actual">
-                      ₹{actualTotal.toLocaleString()}
+                      Rs. {actualTotal.toLocaleString()}
                     </div>
                   </div>
                   <div>
                     <span className="text-gray-600">Expected:</span>
                     <div className="font-semibold" data-testid="text-summary-expected">
-                      ₹{expectedTotal.toLocaleString()}
+                      Rs. {expectedTotal.toLocaleString()}
                     </div>
                   </div>
                   <div>
@@ -276,7 +276,7 @@ export default function DailyClose() {
                       variance === 0 ? 'text-green-600' : 
                       variance > 0 ? 'text-blue-600' : 'text-red-600'
                     }`} data-testid="text-summary-variance">
-                      {variance > 0 ? '+' : ''}₹{variance.toLocaleString()}
+                      {variance > 0 ? '+' : ''}Rs. {variance.toLocaleString()}
                     </div>
                   </div>
                 </div>
@@ -347,7 +347,7 @@ export default function DailyClose() {
                     </td>
                     <td className="px-4 py-3">
                       <span className="font-semibold" data-testid={`text-amount-${payment.id}`}>
-                        ₹{Number(payment.amount).toLocaleString()}
+                        Rs. {Number(payment.amount).toLocaleString()}
                       </span>
                     </td>
                     <td className="px-4 py-3">

@@ -151,7 +151,7 @@ export default function Expenses() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total Expenses</p>
                 <p className="text-2xl font-semibold text-gray-900" data-testid="stat-total-expenses">
-                  ₹{totalExpenses.toLocaleString()}
+                  Rs. {totalExpenses.toLocaleString()}
                 </p>
               </div>
             </div>
@@ -167,7 +167,7 @@ export default function Expenses() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">This Month</p>
                 <p className="text-2xl font-semibold text-gray-900" data-testid="stat-monthly-expenses">
-                  ₹{expenses?.filter(e => {
+                  Rs. {expenses?.filter(e => {
                     const expenseDate = new Date(e.expenseDate);
                     const currentMonth = new Date();
                     return expenseDate.getMonth() === currentMonth.getMonth() &&
@@ -284,7 +284,7 @@ export default function Expenses() {
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="amount">Amount (₹) *</Label>
+                        <Label htmlFor="amount">Amount (Rs. ) *</Label>
                         <Input
                           id="amount"
                           type="number"
@@ -370,7 +370,7 @@ export default function Expenses() {
                     </td>
                     <td className="px-4 py-3">
                       <span className="font-semibold text-red-600" data-testid={`text-amount-${expense.id}`}>
-                        ₹{Number(expense.amount).toLocaleString()}
+                        Rs. {Number(expense.amount).toLocaleString()}
                       </span>
                     </td>
                     <td className="px-4 py-3">
@@ -417,7 +417,7 @@ export default function Expenses() {
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-medium">{category}</span>
                     <div className="text-right">
-                      <span className="text-sm font-semibold">₹{amount.toLocaleString()}</span>
+                      <span className="text-sm font-semibold">Rs. {amount.toLocaleString()}</span>
                       <span className="text-xs text-gray-500 ml-2">({percentage.toFixed(1)}%)</span>
                     </div>
                   </div>

@@ -67,7 +67,7 @@ export default function ManagementDashboard() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Monthly Revenue</p>
                 <p className="text-2xl font-semibold text-gray-900" data-testid="stat-monthly-revenue">
-                  ₹{currentMonthRevenue.toLocaleString()}
+                  Rs. {currentMonthRevenue.toLocaleString()}
                 </p>
               </div>
             </div>
@@ -83,7 +83,7 @@ export default function ManagementDashboard() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Monthly Expenses</p>
                 <p className="text-2xl font-semibold text-gray-900" data-testid="stat-monthly-expenses">
-                  ₹{currentMonthExpenses.toLocaleString()}
+                  Rs. {currentMonthExpenses.toLocaleString()}
                 </p>
               </div>
             </div>
@@ -99,7 +99,7 @@ export default function ManagementDashboard() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Net Profit</p>
                 <p className={`text-2xl font-semibold ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`} data-testid="stat-net-profit">
-                  ₹{netProfit.toLocaleString()}
+                  Rs. {netProfit.toLocaleString()}
                 </p>
               </div>
             </div>
@@ -133,7 +133,7 @@ export default function ManagementDashboard() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-gray-600">Current Month Revenue</span>
-                <span className="font-semibold text-green-600">₹{currentMonthRevenue.toLocaleString()}</span>
+                <span className="font-semibold text-green-600">Rs. {currentMonthRevenue.toLocaleString()}</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-3">
                 <div className="bg-green-600 h-3 rounded-full" style={{ width: '70%' }}></div>
@@ -141,7 +141,7 @@ export default function ManagementDashboard() {
               
               <div className="flex items-center justify-between">
                 <span className="text-gray-600">Current Month Expenses</span>
-                <span className="font-semibold text-red-600">₹{currentMonthExpenses.toLocaleString()}</span>
+                <span className="font-semibold text-red-600">Rs. {currentMonthExpenses.toLocaleString()}</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-3">
                 <div className="bg-red-600 h-3 rounded-full" style={{ width: '50%' }}></div>
@@ -151,7 +151,7 @@ export default function ManagementDashboard() {
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-gray-800">Net Profit</span>
                   <span className={`font-bold text-lg ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    ₹{netProfit.toLocaleString()}
+                    Rs. {netProfit.toLocaleString()}
                   </span>
                 </div>
               </div>
@@ -240,7 +240,7 @@ export default function ManagementDashboard() {
                 <span className="font-medium">Teacher Salaries</span>
               </div>
               <div className="text-right">
-                <p className="font-semibold">₹{(currentMonthExpenses * 0.6).toLocaleString()}</p>
+                <p className="font-semibold">Rs. {(currentMonthExpenses * 0.6).toLocaleString()}</p>
                 <p className="text-xs text-gray-500">60% of expenses</p>
               </div>
             </div>
@@ -253,7 +253,7 @@ export default function ManagementDashboard() {
                 <span className="font-medium">Utilities</span>
               </div>
               <div className="text-right">
-                <p className="font-semibold">₹{(currentMonthExpenses * 0.15).toLocaleString()}</p>
+                <p className="font-semibold">Rs. {(currentMonthExpenses * 0.15).toLocaleString()}</p>
                 <p className="text-xs text-gray-500">15% of expenses</p>
               </div>
             </div>
@@ -266,7 +266,7 @@ export default function ManagementDashboard() {
                 <span className="font-medium">Administrative</span>
               </div>
               <div className="text-right">
-                <p className="font-semibold">₹{(currentMonthExpenses * 0.25).toLocaleString()}</p>
+                <p className="font-semibold">Rs. {(currentMonthExpenses * 0.25).toLocaleString()}</p>
                 <p className="text-xs text-gray-500">25% of expenses</p>
               </div>
             </div>
@@ -286,7 +286,7 @@ export default function ManagementDashboard() {
                 <i className="fas fa-exclamation-triangle text-yellow-600 mr-3"></i>
                 <div>
                   <p className="text-sm font-medium text-yellow-800">High Outstanding Fees</p>
-                  <p className="text-xs text-yellow-600">₹45,200 in overdue payments require attention</p>
+                  <p className="text-xs text-yellow-600">Rs. 45,200 in overdue payments require attention</p>
                 </div>
               </div>
               <Button size="sm" variant="outline" className="text-yellow-600 border-yellow-300" data-testid="button-review-overdue">

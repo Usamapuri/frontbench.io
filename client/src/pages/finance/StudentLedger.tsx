@@ -163,7 +163,7 @@ export default function StudentLedger() {
                           className={`font-semibold ${outstandingFees > 0 ? 'text-red-600' : 'text-green-600'}`}
                           data-testid={`text-outstanding-fees-${student.id}`}
                         >
-                          ₹{outstandingFees.toLocaleString()}
+                          Rs. {outstandingFees.toLocaleString()}
                         </span>
                       </td>
                       <td className="px-4 py-3">

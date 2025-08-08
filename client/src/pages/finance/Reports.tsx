@@ -69,7 +69,7 @@ export default function Reports() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">This Month Revenue</p>
                 <p className="text-2xl font-semibold text-gray-900" data-testid="stat-current-revenue">
-                  ₹{currentMonthRevenue.toLocaleString()}
+                  Rs. {currentMonthRevenue.toLocaleString()}
                 </p>
               </div>
             </div>
@@ -101,7 +101,7 @@ export default function Reports() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Outstanding</p>
                 <p className="text-2xl font-semibold text-gray-900" data-testid="stat-outstanding">
-                  ₹{totalOutstanding.toLocaleString()}
+                  Rs. {totalOutstanding.toLocaleString()}
                 </p>
               </div>
             </div>
@@ -117,7 +117,7 @@ export default function Reports() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Overdue</p>
                 <p className="text-2xl font-semibold text-gray-900" data-testid="stat-overdue">
-                  ₹{overdueAmount.toLocaleString()}
+                  Rs. {overdueAmount.toLocaleString()}
                 </p>
               </div>
             </div>
@@ -212,15 +212,15 @@ export default function Reports() {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span>Student Fees</span>
-                      <span className="font-semibold">₹{currentMonthRevenue.toLocaleString()}</span>
+                      <span className="font-semibold">Rs. {currentMonthRevenue.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Late Fees</span>
-                      <span className="font-semibold">₹{(currentMonthRevenue * 0.02).toLocaleString()}</span>
+                      <span className="font-semibold">Rs. {(currentMonthRevenue * 0.02).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between border-t pt-2 font-semibold">
                       <span>Total Revenue</span>
-                      <span>₹{(currentMonthRevenue * 1.02).toLocaleString()}</span>
+                      <span>Rs. {(currentMonthRevenue * 1.02).toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
@@ -230,19 +230,19 @@ export default function Reports() {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span>Teacher Salaries</span>
-                      <span className="font-semibold">₹{(currentMonthRevenue * 0.6).toLocaleString()}</span>
+                      <span className="font-semibold">Rs. {(currentMonthRevenue * 0.6).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Utilities</span>
-                      <span className="font-semibold">₹{(currentMonthRevenue * 0.05).toLocaleString()}</span>
+                      <span className="font-semibold">Rs. {(currentMonthRevenue * 0.05).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Administrative</span>
-                      <span className="font-semibold">₹{(currentMonthRevenue * 0.1).toLocaleString()}</span>
+                      <span className="font-semibold">Rs. {(currentMonthRevenue * 0.1).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between border-t pt-2 font-semibold">
                       <span>Total Expenses</span>
-                      <span>₹{(currentMonthRevenue * 0.75).toLocaleString()}</span>
+                      <span>Rs. {(currentMonthRevenue * 0.75).toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
@@ -251,7 +251,7 @@ export default function Reports() {
                   <div className="flex justify-between items-center">
                     <h4 className="font-semibold text-blue-800">Net Profit</h4>
                     <span className="text-xl font-bold text-blue-800" data-testid="text-net-profit">
-                      ₹{(currentMonthRevenue * 0.27).toLocaleString()}
+                      Rs. {(currentMonthRevenue * 0.27).toLocaleString()}
                     </span>
                   </div>
                 </div>
@@ -292,25 +292,25 @@ export default function Reports() {
                     <tr data-testid="row-current">
                       <td className="px-4 py-3">Current (0-30 days)</td>
                       <td className="px-4 py-3">45</td>
-                      <td className="px-4 py-3 font-semibold">₹2,25,000</td>
+                      <td className="px-4 py-3 font-semibold">Rs. 2,25,000</td>
                       <td className="px-4 py-3">75%</td>
                     </tr>
                     <tr data-testid="row-30-60">
                       <td className="px-4 py-3">31-60 days</td>
                       <td className="px-4 py-3">12</td>
-                      <td className="px-4 py-3 font-semibold">₹54,000</td>
+                      <td className="px-4 py-3 font-semibold">Rs. 54,000</td>
                       <td className="px-4 py-3">18%</td>
                     </tr>
                     <tr data-testid="row-60-90">
                       <td className="px-4 py-3">61-90 days</td>
                       <td className="px-4 py-3">5</td>
-                      <td className="px-4 py-3 font-semibold">₹18,000</td>
+                      <td className="px-4 py-3 font-semibold">Rs. 18,000</td>
                       <td className="px-4 py-3">6%</td>
                     </tr>
                     <tr data-testid="row-90-plus">
                       <td className="px-4 py-3">90+ days</td>
                       <td className="px-4 py-3">2</td>
-                      <td className="px-4 py-3 font-semibold">₹3,000</td>
+                      <td className="px-4 py-3 font-semibold">Rs. 3,000</td>
                       <td className="px-4 py-3">1%</td>
                     </tr>
                   </tbody>
@@ -344,15 +344,15 @@ export default function Reports() {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span>Cash</span>
-                      <span className="font-semibold">₹{(currentMonthRevenue * 0.6).toLocaleString()}</span>
+                      <span className="font-semibold">Rs. {(currentMonthRevenue * 0.6).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Bank Transfer</span>
-                      <span className="font-semibold">₹{(currentMonthRevenue * 0.3).toLocaleString()}</span>
+                      <span className="font-semibold">Rs. {(currentMonthRevenue * 0.3).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Card</span>
-                      <span className="font-semibold">₹{(currentMonthRevenue * 0.1).toLocaleString()}</span>
+                      <span className="font-semibold">Rs. {(currentMonthRevenue * 0.1).toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
@@ -391,10 +391,10 @@ export default function Reports() {
                     {[1, 2, 3, 4, 5].map((day) => (
                       <tr key={day} data-testid={`row-collection-${day}`}>
                         <td className="px-4 py-3">{new Date(Date.now() - day * 24 * 60 * 60 * 1000).toLocaleDateString()}</td>
-                        <td className="px-4 py-3">₹{(15000 + day * 1000).toLocaleString()}</td>
-                        <td className="px-4 py-3">₹{(8000 + day * 500).toLocaleString()}</td>
-                        <td className="px-4 py-3">₹{(2000 + day * 200).toLocaleString()}</td>
-                        <td className="px-4 py-3 font-semibold">₹{(25000 + day * 1700).toLocaleString()}</td>
+                        <td className="px-4 py-3">Rs. {(15000 + day * 1000).toLocaleString()}</td>
+                        <td className="px-4 py-3">Rs. {(8000 + day * 500).toLocaleString()}</td>
+                        <td className="px-4 py-3">Rs. {(2000 + day * 200).toLocaleString()}</td>
+                        <td className="px-4 py-3 font-semibold">Rs. {(25000 + day * 1700).toLocaleString()}</td>
                       </tr>
                     ))}
                   </tbody>

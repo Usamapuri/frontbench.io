@@ -65,7 +65,7 @@ export default function FinanceDashboard() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Monthly Revenue</p>
                 <p className="text-2xl font-semibold text-gray-900" data-testid="stat-monthly-revenue">
-                  ₹{stats?.monthlyRevenue?.toLocaleString() || '0'}
+                  Rs. {stats?.monthlyRevenue?.toLocaleString() || '0'}
                 </p>
               </div>
             </div>
@@ -81,7 +81,7 @@ export default function FinanceDashboard() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Pending Fees</p>
                 <p className="text-2xl font-semibold text-gray-900" data-testid="stat-pending-fees">
-                  ₹{stats?.pendingFees?.toLocaleString() || '0'}
+                  Rs. {stats?.pendingFees?.toLocaleString() || '0'}
                 </p>
               </div>
             </div>
@@ -160,7 +160,7 @@ export default function FinanceDashboard() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-semibold text-green-600">₹{payment.amount}</p>
+                    <p className="text-sm font-semibold text-green-600">Rs. {payment.amount}</p>
                     <p className="text-xs text-gray-500">
                       {new Date(payment.paymentDate).toLocaleTimeString()}
                     </p>
@@ -196,7 +196,7 @@ export default function FinanceDashboard() {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-semibold text-gray-900">₹{request.amount}</p>
+                    <p className="text-sm font-semibold text-gray-900">Rs. {request.amount}</p>
                     <div className="flex space-x-2 mt-1">
                       <Button size="sm" className="px-2 py-1 text-xs" data-testid="button-approve-request">
                         Approve
