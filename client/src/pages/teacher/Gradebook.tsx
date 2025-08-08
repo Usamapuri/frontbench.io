@@ -92,18 +92,44 @@ export default function Gradebook() {
   });
 
   const handleCreateAssessment = () => {
-    if (!newAssessment.name || !newAssessment.totalMarks || !dialogSubject) {
+    console.log('Validation Debug:', {
+      name: newAssessment.name,
+      totalMarks: newAssessment.totalMarks,
+      dialogSubject: dialogSubject,
+      selectedSubject: selectedSubject,
+      date: newAssessment.date
+    });
+    
+    // Check if required fields are filled
+    const missingFields = [];
+    if (!newAssessment.name?.trim()) missingFields.push('Assessment Name');
+    if (!newAssessment.totalMarks?.trim()) missingFields.push('Total Marks');
+    if (!dialogSubject && !selectedSubject) missingFields.push('Subject');
+    
+    if (missingFields.length > 0) {
+      console.log('Validation failed - missing fields:', missingFields);
       toast({
         title: "Validation Error",
-        description: "Please fill in all required fields.",
+        description: `Please fill in: ${missingFields.join(', ')}`,
         variant: "destructive",
       });
       return;
     }
 
+    // Use dialogSubject if available, otherwise fall back to selectedSubject
+    const subjectToUse = dialogSubject || selectedSubject;
+    
+    console.log('Creating assessment with data:', {
+      name: newAssessment.name,
+      subjectId: subjectToUse,
+      totalMarks: parseInt(newAssessment.totalMarks),
+      assessmentDate: newAssessment.date,
+      description: newAssessment.description,
+    });
+
     createAssessmentMutation.mutate({
       name: newAssessment.name,
-      subjectId: dialogSubject,
+      subjectId: subjectToUse,
       totalMarks: parseInt(newAssessment.totalMarks),
       assessmentDate: newAssessment.date,
       description: newAssessment.description,
@@ -210,7 +236,13 @@ export default function Gradebook() {
                 <div className="space-y-4">
                   <div>
                     <Label htmlFor="assessmentSubject">Subject *</Label>
-                    <Select value={dialogSubject} onValueChange={setDialogSubject}>
+                    <Select 
+                      value={dialogSubject} 
+                      onValueChange={(value) => {
+                        console.log('Subject selected:', value);
+                        setDialogSubject(value);
+                      }}
+                    >
                       <SelectTrigger data-testid="select-assessment-subject">
                         <SelectValue placeholder="Choose a subject..." />
                       </SelectTrigger>
