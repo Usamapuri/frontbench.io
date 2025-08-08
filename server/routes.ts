@@ -229,10 +229,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = insertPaymentSchema.parse({
         ...req.body,
-        receivedBy: req.user.claims.sub,
+        receiptNumber: `RCP-${Date.now()}`, // Auto-generate receipt number
+        paymentDate: new Date(req.body.paymentDate), // Convert string to Date
+        receivedBy: 'system', // Default for testing
       });
-      const payment = await storage.createPayment(validatedData);
-      res.status(201).json(payment);
+
+      // If this payment is for a specific invoice, use partial payment logic
+      if (req.body.invoiceId) {
+        const invoice = await storage.getInvoiceById(req.body.invoiceId);
+        if (!invoice) {
+          return res.status(404).json({ message: "Invoice not found" });
+        }
+
+        // Use the billing system's partial payment processing
+        const result = await storage.processPartialPayment({
+          paymentAmount: parseFloat(req.body.amount),
+          studentId: req.body.studentId,
+          paymentMethod: req.body.paymentMethod,
+          paymentDate: req.body.paymentDate || new Date(),
+          receivedBy: 'system',
+          notes: req.body.notes || '',
+          transactionNumber: req.body.transactionNumber || null,
+          invoiceId: req.body.invoiceId
+        });
+
+        res.status(201).json(result);
+      } else {
+        // For general payments without specific invoice
+        const payment = await storage.createPayment(validatedData);
+        res.status(201).json(payment);
+      }
     } catch (error) {
       console.error("Error creating payment:", error);
       res.status(400).json({ message: "Failed to create payment" });

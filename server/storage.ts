@@ -226,6 +226,15 @@ export class DatabaseStorage implements IStorage {
       .limit(limit);
   }
 
+  async getInvoiceById(invoiceId: string): Promise<Invoice | null> {
+    const result = await db
+      .select()
+      .from(invoices)
+      .where(eq(invoices.id, invoiceId));
+    
+    return result.length > 0 ? result[0] : null;
+  }
+
   async getStudentInvoices(studentId: string): Promise<Invoice[]> {
     return await db
       .select()
@@ -251,6 +260,75 @@ export class DatabaseStorage implements IStorage {
   async createPayment(paymentData: any): Promise<Payment> {
     const [payment] = await db.insert(payments).values(paymentData).returning();
     return payment;
+  }
+
+  async processPartialPayment(paymentData: {
+    paymentAmount: number;
+    studentId: string;
+    paymentMethod: string;
+    paymentDate: string | Date;
+    receivedBy: string;
+    notes: string;
+    transactionNumber?: string | null;
+    invoiceId: string;
+  }): Promise<any> {
+    // Get the invoice to validate and update
+    const invoice = await this.getInvoiceById(paymentData.invoiceId);
+    if (!invoice) {
+      throw new Error('Invoice not found');
+    }
+
+    const currentBalance = parseFloat(invoice.balanceDue);
+    if (paymentData.paymentAmount > currentBalance) {
+      throw new Error('Payment amount cannot exceed invoice balance');
+    }
+
+    // Generate receipt number
+    const receiptNumber = `RCP-${Date.now()}`;
+
+    // Create payment record
+    const [payment] = await db.insert(payments).values({
+      receiptNumber: receiptNumber,
+      studentId: paymentData.studentId,
+      amount: paymentData.paymentAmount.toFixed(2),
+      paymentMethod: paymentData.paymentMethod,
+      paymentDate: paymentData.paymentDate,
+      receivedBy: paymentData.receivedBy || 'system',
+      notes: paymentData.notes,
+      transactionNumber: paymentData.transactionNumber,
+      status: 'completed'
+    }).returning();
+
+    // Create payment allocation
+    await db.insert(paymentAllocations).values({
+      paymentId: payment.id,
+      invoiceId: paymentData.invoiceId,
+      amount: paymentData.paymentAmount.toFixed(2)
+    });
+
+    // Update invoice balances
+    const newAmountPaid = parseFloat(invoice.amountPaid) + paymentData.paymentAmount;
+    const newBalanceDue = parseFloat(invoice.total) - newAmountPaid;
+    const newStatus = newBalanceDue <= 0 ? 'paid' : 'sent';
+
+    await db.update(invoices)
+      .set({
+        amountPaid: newAmountPaid.toFixed(2),
+        balanceDue: newBalanceDue.toFixed(2),
+        status: newStatus,
+        updatedAt: new Date()
+      })
+      .where(eq(invoices.id, paymentData.invoiceId));
+
+    return {
+      payment,
+      invoice: {
+        ...invoice,
+        amountPaid: newAmountPaid.toFixed(2),
+        balanceDue: newBalanceDue.toFixed(2),
+        status: newStatus
+      }
+    };
   }
 
   // Attendance

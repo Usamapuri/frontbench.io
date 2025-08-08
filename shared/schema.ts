@@ -558,6 +558,7 @@ export const insertInvoiceSchema = createInsertSchema(invoices).omit({
 export const insertPaymentSchema = createInsertSchema(payments).omit({
   id: true,
   createdAt: true,
+  receiptNumber: true, // Auto-generated
 });
 
 export const insertAttendanceSchema = createInsertSchema(attendance).omit({
