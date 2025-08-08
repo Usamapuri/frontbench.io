@@ -34,6 +34,7 @@ export default function DailyClose() {
       toast({
         title: "Success",
         description: "Daily close completed successfully!",
+        variant: "success" as any,
       });
       queryClient.invalidateQueries({ queryKey: ['/api/daily-close'] });
       setTotalCash("");

@@ -47,6 +47,7 @@ export default function Enrollment() {
       toast({
         title: "Success",
         description: "Student enrolled successfully!",
+        variant: "success" as any,
       });
       queryClient.invalidateQueries({ queryKey: ['/api/students'] });
       // Reset form

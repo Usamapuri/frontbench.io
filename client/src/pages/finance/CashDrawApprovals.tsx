@@ -32,8 +32,9 @@ export default function CashDrawApprovals() {
     },
     onSuccess: (_, variables) => {
       toast({
-        title: "Success",
+        title: "Success", 
         description: `Request ${variables.status} successfully!`,
+        variant: "success" as any,
       });
       queryClient.invalidateQueries({ queryKey: ['/api/cash-draw-requests'] });
       setSelectedRequest(null);
