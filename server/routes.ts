@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { billingService } from "./billing";
+import { isAuthenticated } from "./replitAuth";
 import { 
   insertStudentSchema, 
   insertInvoiceSchema, 
@@ -159,9 +160,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Teacher routes
-  app.get("/api/teacher/classes/today", async (req: any, res) => {
+  app.get("/api/teacher/classes/today", isAuthenticated, async (req: any, res) => {
     try {
-      const teacherId = req.user.claims.sub;
+      // For demo purposes, use a mock teacher ID
+      const teacherId = "demo-teacher-id";
       const classes = await storage.getTodayClasses(teacherId);
       res.json(classes);
     } catch (error) {
@@ -170,9 +172,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/teacher/earnings", async (req: any, res) => {
+  app.get("/api/teacher/earnings", isAuthenticated, async (req: any, res) => {
     try {
-      const teacherId = req.user.claims.sub;
+      // For demo purposes, use a mock teacher ID
+      const teacherId = "demo-teacher-id";
       const earnings = await storage.getTeacherEarnings(teacherId);
       res.json(earnings);
     } catch (error) {
@@ -193,11 +196,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Attendance routes
-  app.post("/api/attendance", async (req: any, res) => {
+  app.post("/api/attendance", isAuthenticated, async (req: any, res) => {
     try {
       const validatedData = insertAttendanceSchema.parse({
         ...req.body,
-        markedBy: req.user.claims.sub,
+        markedBy: "demo-teacher-id", // For demo purposes
       });
       const attendance = await storage.createAttendance(validatedData);
       res.status(201).json(attendance);
@@ -361,11 +364,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Grades routes
-  app.post("/api/assessments", async (req: any, res) => {
+  app.post("/api/assessments", isAuthenticated, async (req: any, res) => {
     try {
       const validatedData = insertAssessmentSchema.parse({
         ...req.body,
-        teacherId: req.user.claims.sub,
+        teacherId: "demo-teacher-id", // For demo purposes
       });
       const assessment = await storage.createAssessment(validatedData);
       res.status(201).json(assessment);
@@ -375,11 +378,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/grades", async (req: any, res) => {
+  app.post("/api/grades", isAuthenticated, async (req: any, res) => {
     try {
       const validatedData = insertGradeSchema.parse({
         ...req.body,
-        enteredBy: req.user.claims.sub,
+        enteredBy: "demo-teacher-id", // For demo purposes
       });
       const grade = await storage.createGrade(validatedData);
       res.status(201).json(grade);
@@ -410,11 +413,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/cash-draw-requests", async (req: any, res) => {
+  app.post("/api/cash-draw-requests", isAuthenticated, async (req: any, res) => {
     try {
       const requestData = {
         ...req.body,
-        teacherId: req.user.claims.sub,
+        teacherId: "demo-teacher-id", // For demo purposes
       };
       const request = await storage.createCashDrawRequest(requestData);
       res.status(201).json(request);
@@ -424,11 +427,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/cash-draw-requests/:id", async (req: any, res) => {
+  app.patch("/api/cash-draw-requests/:id", isAuthenticated, async (req: any, res) => {
     try {
       const updates = {
         ...req.body,
-        reviewedBy: req.user.claims.sub,
+        reviewedBy: "demo-finance-user", // For demo purposes
         reviewedAt: new Date(),
       };
       const request = await storage.updateCashDrawRequest(req.params.id, updates);
@@ -450,11 +453,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/daily-close", async (req: any, res) => {
+  app.post("/api/daily-close", isAuthenticated, async (req: any, res) => {
     try {
       const dailyCloseData = {
         ...req.body,
-        closedBy: req.user.claims.sub,
+        closedBy: "demo-finance-user", // For demo purposes
       };
       const dailyCloseRecord = await storage.createDailyClose(dailyCloseData);
       res.status(201).json(dailyCloseRecord);
@@ -476,11 +479,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/expenses", async (req: any, res) => {
+  app.post("/api/expenses", isAuthenticated, async (req: any, res) => {
     try {
       const expenseData = {
         ...req.body,
-        enteredBy: req.user.claims.sub,
+        enteredBy: "demo-finance-user", // For demo purposes
       };
       const expense = await storage.createExpense(expenseData);
       res.status(201).json(expense);
