@@ -73,6 +73,18 @@ export interface IStorage {
   
   // Cash Draw Requests
   getCashDrawRequests(): Promise<CashDrawRequest[]>;
+  
+  // Student Financial Data
+  getStudentFinancialSummary(studentId: string): Promise<{
+    totalOwed: number;
+    totalPaid: number;
+    outstandingBalance: number;
+    feeStatus: 'paid' | 'pending' | 'overdue' | 'partial';
+    lastPaymentDate?: Date;
+  }>;
+  
+  getStudentAttendancePercentage(studentId: string): Promise<number>;
+  getStudentAverageGrade(studentId: string): Promise<string>;
   createCashDrawRequest(request: any): Promise<CashDrawRequest>;
   updateCashDrawRequest(id: string, updates: any): Promise<CashDrawRequest>;
   
@@ -360,6 +372,108 @@ export class DatabaseStorage implements IStorage {
       extraClasses: 3500,
       total: 24500,
     };
+  }
+  
+  async getStudentFinancialSummary(studentId: string): Promise<{
+    totalOwed: number;
+    totalPaid: number;
+    outstandingBalance: number;
+    feeStatus: 'paid' | 'pending' | 'overdue' | 'partial';
+    lastPaymentDate?: Date;
+  }> {
+    // Get all invoices for this student
+    const studentInvoices = await db
+      .select()
+      .from(invoices)
+      .where(eq(invoices.studentId, studentId));
+    
+    // Get all payments for this student
+    const studentPayments = await db
+      .select()
+      .from(payments)
+      .where(eq(payments.studentId, studentId));
+    
+    const totalOwed = studentInvoices.reduce((sum, inv) => sum + parseFloat(inv.total), 0);
+    const totalPaid = studentPayments.reduce((sum, pay) => sum + parseFloat(pay.amount), 0);
+    const outstandingBalance = totalOwed - totalPaid;
+    
+    // Determine fee status
+    let feeStatus: 'paid' | 'pending' | 'overdue' | 'partial' = 'paid';
+    if (outstandingBalance > 0) {
+      // Check if any invoices are overdue
+      const now = new Date();
+      const hasOverdueInvoice = studentInvoices.some(inv => 
+        new Date(inv.dueDate) < now && inv.status !== 'paid'
+      );
+      
+      if (hasOverdueInvoice) {
+        feeStatus = 'overdue';
+      } else if (totalPaid > 0 && outstandingBalance > 0) {
+        feeStatus = 'partial';
+      } else {
+        feeStatus = 'pending';
+      }
+    }
+    
+    const lastPayment = studentPayments
+      .sort((a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime())[0];
+    
+    return {
+      totalOwed,
+      totalPaid,
+      outstandingBalance,
+      feeStatus,
+      lastPaymentDate: lastPayment?.paymentDate
+    };
+  }
+  
+  async getStudentAttendancePercentage(studentId: string): Promise<number> {
+    // Get all attendance records for this student in the current academic year
+    const attendanceRecords = await db
+      .select()
+      .from(attendance)
+      .where(eq(attendance.studentId, studentId));
+    
+    if (attendanceRecords.length === 0) return 0;
+    
+    const presentCount = attendanceRecords.filter(record => 
+      record.status === 'present' || record.status === 'late'
+    ).length;
+    
+    return Math.round((presentCount / attendanceRecords.length) * 100);
+  }
+  
+  async getStudentAverageGrade(studentId: string): Promise<string> {
+    // Get all grades for this student
+    const studentGrades = await db
+      .select()
+      .from(grades)
+      .innerJoin(assessments, eq(grades.assessmentId, assessments.id))
+      .where(eq(grades.studentId, studentId));
+    
+    if (studentGrades.length === 0) return 'N/A';
+    
+    // Calculate percentage average
+    const totalPercentage = studentGrades.reduce((sum, gradeRecord) => {
+      const { grades: grade, assessments: assessment } = gradeRecord;
+      const percentage = (grade.marksObtained / assessment.totalMarks) * 100;
+      return sum + percentage;
+    }, 0);
+    
+    const averagePercentage = totalPercentage / studentGrades.length;
+    
+    // Convert to grade
+    if (averagePercentage >= 95) return 'A+';
+    if (averagePercentage >= 90) return 'A';
+    if (averagePercentage >= 85) return 'A-';
+    if (averagePercentage >= 80) return 'B+';
+    if (averagePercentage >= 75) return 'B';
+    if (averagePercentage >= 70) return 'B-';
+    if (averagePercentage >= 65) return 'C+';
+    if (averagePercentage >= 60) return 'C';
+    if (averagePercentage >= 55) return 'C-';
+    if (averagePercentage >= 50) return 'D';
+    return 'F';
   }
 }
 

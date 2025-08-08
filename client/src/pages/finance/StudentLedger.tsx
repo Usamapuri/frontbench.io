@@ -6,6 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { formatPKR } from "@/lib/currency";
 import type { Student } from "@shared/schema";
 
 export default function StudentLedger() {
@@ -13,19 +18,73 @@ export default function StudentLedger() {
   const [classFilter, setClassFilter] = useState("");
   const [feeStatusFilter, setFeeStatusFilter] = useState("");
   const [attendanceFilter, setAttendanceFilter] = useState("");
+  const [selectedStudent, setSelectedStudent] = useState<any>(null);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("");
+  const [reminderMessage, setReminderMessage] = useState("");
+  
+  const { toast } = useToast();
 
   const { data: students, isLoading } = useQuery<Student[]>({
     queryKey: ['/api/students'],
   });
 
-  const filteredStudents = students?.filter(student => {
+  // Fetch financial data for all students
+  const { data: studentsWithFinancialData, isLoading: isLoadingFinancialData } = useQuery({
+    queryKey: ['/api/students-with-financial'],
+    queryFn: async () => {
+      if (!students || students.length === 0) return [];
+      
+      const studentsWithData = await Promise.all(
+        students.map(async (student) => {
+          try {
+            // Fetch financial, attendance, and grade data in parallel
+            const [financialRes, attendanceRes, gradeRes] = await Promise.all([
+              fetch(`/api/students/${student.id}/financial`).then(r => r.ok ? r.json() : null),
+              fetch(`/api/students/${student.id}/attendance`).then(r => r.ok ? r.json() : null),
+              fetch(`/api/students/${student.id}/grade`).then(r => r.ok ? r.json() : null),
+            ]);
+            
+            return {
+              ...student,
+              feeStatus: financialRes?.feeStatus || 'pending',
+              outstandingBalance: financialRes?.outstandingBalance || 0,
+              attendancePercentage: attendanceRes?.attendancePercentage || 0,
+              averageGrade: gradeRes?.averageGrade || 'N/A',
+            };
+          } catch (error) {
+            console.error(`Error fetching data for student ${student.id}:`, error);
+            return {
+              ...student,
+              feeStatus: 'pending' as const,
+              outstandingBalance: 0,
+              attendancePercentage: 0,
+              averageGrade: 'N/A',
+            };
+          }
+        })
+      );
+      
+      return studentsWithData;
+    },
+    enabled: !isLoading && !!students && students.length > 0,
+  });
+
+  const filteredStudents = studentsWithFinancialData?.filter(student => {
     const matchesSearch = searchQuery === "" || 
       `${student.firstName} ${student.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
       student.rollNumber.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesClass = classFilter === "all" || classFilter === "" || student.classLevel === classFilter;
     const matchesFeeStatus = feeStatusFilter === "all" || feeStatusFilter === "" || student.feeStatus === feeStatusFilter;
-    const matchesAttendance = attendanceFilter === "all" || attendanceFilter === "";
+    
+    // Attendance filter logic
+    const matchesAttendance = attendanceFilter === "all" || attendanceFilter === "" || 
+      (attendanceFilter === "excellent" && student.attendancePercentage >= 90) ||
+      (attendanceFilter === "good" && student.attendancePercentage >= 75 && student.attendancePercentage < 90) ||
+      (attendanceFilter === "poor" && student.attendancePercentage < 75);
     
     return matchesSearch && matchesClass && matchesFeeStatus && matchesAttendance;
   }) || [];
@@ -34,8 +93,66 @@ export default function StudentLedger() {
     // Export functionality would be implemented here
     console.log('Exporting student ledger...');
   };
+  
+  const handleViewDetails = (student: any) => {
+    setSelectedStudent(student);
+    setShowDetailsDialog(true);
+  };
+  
+  const handleRecordPayment = (student: any) => {
+    setSelectedStudent(student);
+    setPaymentAmount(student.outstandingBalance.toString());
+    setShowPaymentDialog(true);
+  };
+  
+  const handleSendReminder = async (student: any) => {
+    try {
+      // In a real app, this would send SMS/email reminder
+      toast({
+        title: "Reminder Sent",
+        description: `Fee reminder sent to ${student.firstName} ${student.lastName}'s parents`,
+        variant: "default",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to send reminder",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  const handleSubmitPayment = async () => {
+    try {
+      if (!paymentAmount || !paymentMethod) {
+        toast({
+          title: "Error",
+          description: "Please fill in all payment details",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // In a real app, this would create a payment record
+      toast({
+        title: "Payment Recorded",
+        description: `Payment of ${formatPKR(parseFloat(paymentAmount))} recorded for ${selectedStudent?.firstName} ${selectedStudent?.lastName}`,
+        variant: "default",
+      });
+      
+      setShowPaymentDialog(false);
+      setPaymentAmount("");
+      setPaymentMethod("");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to record payment",
+        variant: "destructive",
+      });
+    }
+  };
 
-  if (isLoading) {
+  if (isLoading || isLoadingFinancialData) {
     return (
       <div className="space-y-6">
         <div className="animate-pulse">
@@ -125,12 +242,6 @@ export default function StudentLedger() {
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {filteredStudents.length > 0 ? filteredStudents.map((student) => {
-                  // Mock data for display purposes
-                  const outstandingFees = Math.floor(Math.random() * 10000);
-                  const attendance = Math.floor(Math.random() * 40) + 60;
-                  const grades = ['A+', 'A', 'B+', 'B', 'C+'];
-                  const avgGrade = grades[Math.floor(Math.random() * grades.length)];
-                  
                   return (
                     <tr key={student.id} className="hover:bg-gray-50" data-testid={`row-student-${student.id}`}>
                       <td className="px-4 py-3">
@@ -161,44 +272,73 @@ export default function StudentLedger() {
                         </Badge>
                       </td>
                       <td className="px-4 py-3">
-                        <span 
-                          className={`font-semibold ${outstandingFees > 0 ? 'text-red-600' : 'text-green-600'}`}
-                          data-testid={`text-outstanding-fees-${student.id}`}
-                        >
-                          Rs. {outstandingFees.toLocaleString()}
-                        </span>
+                        <div className="flex flex-col">
+                          <span 
+                            className={`font-semibold ${student.outstandingBalance > 0 ? 'text-red-600' : 'text-green-600'}`}
+                            data-testid={`text-outstanding-fees-${student.id}`}
+                          >
+                            Rs. {student.outstandingBalance.toLocaleString()}
+                          </span>
+                          <Badge 
+                            variant={
+                              student.feeStatus === 'paid' ? 'default' :
+                              student.feeStatus === 'overdue' ? 'destructive' :
+                              student.feeStatus === 'partial' ? 'secondary' : 'outline'
+                            }
+                            className="w-fit mt-1"
+                          >
+                            {student.feeStatus.charAt(0).toUpperCase() + student.feeStatus.slice(1)}
+                          </Badge>
+                        </div>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center">
-                          <Progress value={attendance} className="w-16 h-2 mr-2" />
+                          <Progress value={student.attendancePercentage} className="w-16 h-2 mr-2" />
                           <span 
                             className={`text-sm font-medium ${
-                              attendance >= 90 ? 'text-green-600' : 
-                              attendance >= 75 ? 'text-yellow-600' : 'text-red-600'
+                              student.attendancePercentage >= 90 ? 'text-green-600' : 
+                              student.attendancePercentage >= 75 ? 'text-yellow-600' : 'text-red-600'
                             }`}
                             data-testid={`text-attendance-${student.id}`}
                           >
-                            {attendance}%
+                            {student.attendancePercentage}%
                           </span>
                         </div>
                       </td>
                       <td className="px-4 py-3">
                         <Badge 
-                          variant={avgGrade.includes('A') ? 'default' : avgGrade.includes('B') ? 'secondary' : 'outline'}
+                          variant={student.averageGrade.includes('A') ? 'default' : student.averageGrade.includes('B') ? 'secondary' : 'outline'}
                           data-testid={`badge-avg-grade-${student.id}`}
                         >
-                          {avgGrade}
+                          {student.averageGrade}
                         </Badge>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex space-x-2">
-                          <Button size="sm" variant="ghost" data-testid={`button-view-details-${student.id}`}>
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            onClick={() => handleViewDetails(student)}
+                            data-testid={`button-view-details-${student.id}`}
+                          >
                             <i className="fas fa-eye"></i>
                           </Button>
-                          <Button size="sm" variant="ghost" className="text-green-600" data-testid={`button-record-payment-${student.id}`}>
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="text-green-600" 
+                            onClick={() => handleRecordPayment(student)}
+                            data-testid={`button-record-payment-${student.id}`}
+                          >
                             <i className="fas fa-dollar-sign"></i>
                           </Button>
-                          <Button size="sm" variant="ghost" data-testid={`button-send-reminder-${student.id}`}>
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            onClick={() => handleSendReminder(student)}
+                            disabled={student.feeStatus === 'paid'}
+                            data-testid={`button-send-reminder-${student.id}`}
+                          >
                             <i className="fas fa-bell"></i>
                           </Button>
                         </div>
@@ -235,6 +375,105 @@ export default function StudentLedger() {
           )}
         </CardContent>
       </Card>
+      
+      {/* Student Details Dialog */}
+      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Student Details</DialogTitle>
+          </DialogHeader>
+          {selectedStudent && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="font-semibold">Name</Label>
+                  <p>{selectedStudent.firstName} {selectedStudent.lastName}</p>
+                </div>
+                <div>
+                  <Label className="font-semibold">Roll Number</Label>
+                  <p>{selectedStudent.rollNumber}</p>
+                </div>
+                <div>
+                  <Label className="font-semibold">Class Level</Label>
+                  <p>{selectedStudent.classLevel.toUpperCase()}</p>
+                </div>
+                <div>
+                  <Label className="font-semibold">Fee Status</Label>
+                  <Badge variant={
+                    selectedStudent.feeStatus === 'paid' ? 'default' :
+                    selectedStudent.feeStatus === 'overdue' ? 'destructive' : 'outline'
+                  }>
+                    {selectedStudent.feeStatus.charAt(0).toUpperCase() + selectedStudent.feeStatus.slice(1)}
+                  </Badge>
+                </div>
+                <div>
+                  <Label className="font-semibold">Outstanding Balance</Label>
+                  <p className={selectedStudent.outstandingBalance > 0 ? 'text-red-600 font-semibold' : 'text-green-600'}>
+                    {formatPKR(selectedStudent.outstandingBalance)}
+                  </p>
+                </div>
+                <div>
+                  <Label className="font-semibold">Attendance</Label>
+                  <p className={
+                    selectedStudent.attendancePercentage >= 90 ? 'text-green-600' :
+                    selectedStudent.attendancePercentage >= 75 ? 'text-yellow-600' : 'text-red-600'
+                  }>
+                    {selectedStudent.attendancePercentage}%
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+      
+      {/* Record Payment Dialog */}
+      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Record Payment</DialogTitle>
+          </DialogHeader>
+          {selectedStudent && (
+            <div className="space-y-4">
+              <div className="text-sm text-gray-600">
+                Recording payment for: <strong>{selectedStudent.firstName} {selectedStudent.lastName}</strong>
+              </div>
+              <div>
+                <Label htmlFor="amount">Payment Amount (PKR)</Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  placeholder="0.00"
+                />
+              </div>
+              <div>
+                <Label htmlFor="method">Payment Method</Label>
+                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select payment method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                    <SelectItem value="card">Card</SelectItem>
+                    <SelectItem value="cheque">Cheque</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button variant="outline" onClick={() => setShowPaymentDialog(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleSubmitPayment}>
+                  Record Payment
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

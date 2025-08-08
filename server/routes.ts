@@ -68,6 +68,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // New financial endpoints
+  app.get("/api/students/:id/financial", async (req, res) => {
+    try {
+      const financialSummary = await storage.getStudentFinancialSummary(req.params.id);
+      res.json(financialSummary);
+    } catch (error) {
+      console.error("Error fetching student financial data:", error);
+      res.status(500).json({ message: "Failed to fetch financial data" });
+    }
+  });
+
+  app.get("/api/students/:id/attendance", async (req, res) => {
+    try {
+      const attendancePercentage = await storage.getStudentAttendancePercentage(req.params.id);
+      res.json({ attendancePercentage });
+    } catch (error) {
+      console.error("Error fetching student attendance:", error);
+      res.status(500).json({ message: "Failed to fetch attendance data" });
+    }
+  });
+
+  app.get("/api/students/:id/grade", async (req, res) => {
+    try {
+      const averageGrade = await storage.getStudentAverageGrade(req.params.id);
+      res.json({ averageGrade });
+    } catch (error) {
+      console.error("Error fetching student grade:", error);
+      res.status(500).json({ message: "Failed to fetch grade data" });
+    }
+  });
+
   // Subjects routes
   app.get("/api/subjects", async (req, res) => {
     try {
