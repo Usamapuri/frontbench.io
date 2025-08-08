@@ -89,6 +89,33 @@ export default function Enrollment() {
           return false;
         }
         
+        // Validate Pakistani phone number format
+        if (formData.parentPhone) {
+          const phoneRegex = /^(\+92|0092|92|0)?(3[0-9]{2}|4[0-9]{2}|5[0-9]{2}|6[0-9]{2}|7[0-9]{2}|8[0-9]{2}|9[0-9]{2})[0-9]{7}$/;
+          const cleanPhone = formData.parentPhone.replace(/[\s\-]/g, '');
+          if (!phoneRegex.test(cleanPhone)) {
+            toast({
+              title: "Invalid Phone Number",
+              description: "Please enter a valid Pakistani phone number (e.g., +92 300 1234567)",
+              variant: "destructive",
+            });
+            return false;
+          }
+        }
+        
+        // Validate email format
+        if (formData.parentEmail) {
+          const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+          if (!emailRegex.test(formData.parentEmail)) {
+            toast({
+              title: "Invalid Email",
+              description: "Please enter a valid email address (e.g., parent@example.com)",
+              variant: "destructive",
+            });
+            return false;
+          }
+        }
+        
         return true;
       
       case 2:
@@ -271,6 +298,7 @@ export default function Enrollment() {
                     onChange={(e) => updateFormData('parentPhone', e.target.value)}
                     data-testid="input-parent-phone"
                   />
+                  <p className="text-xs text-gray-500 mt-1">Format: +92 300 1234567 (Pakistani mobile number)</p>
                 </div>
                 
                 <div className="md:col-span-2">
@@ -283,6 +311,7 @@ export default function Enrollment() {
                     onChange={(e) => updateFormData('parentEmail', e.target.value)}
                     data-testid="input-parent-email"
                   />
+                  <p className="text-xs text-gray-500 mt-1">Must be a valid email address (e.g., parent@example.com)</p>
                 </div>
               </div>
             </div>
