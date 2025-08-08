@@ -1051,19 +1051,6 @@ export default function Invoices() {
                         <Button 
                           size="sm" 
                           variant="ghost"
-                          onClick={() => {
-                            toast({
-                              title: "Invoice Details",
-                              description: `Invoice ${invoice.invoiceNumber} - Rs. ${Number(invoice.total).toLocaleString()}`,
-                            });
-                          }}
-                          data-testid={`button-view-invoice-${invoice.id}`}
-                        >
-                          <i className="fas fa-eye"></i>
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="ghost"
                           onClick={() => handleEditInvoice(invoice)}
                           data-testid={`button-edit-invoice-${invoice.id}`}
                         >
