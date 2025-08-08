@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,8 +9,10 @@ import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { PaymentProgressTracker } from "@/components/PaymentProgressTracker";
 import { useToast } from "@/hooks/use-toast";
 import { formatPKR } from "@/lib/currency";
+import { apiRequest } from "@/lib/queryClient";
 import type { Student } from "@shared/schema";
 
 export default function StudentLedger() {
@@ -21,12 +23,14 @@ export default function StudentLedger() {
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [showProgressTracker, setShowProgressTracker] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
   const [transactionNumber, setTransactionNumber] = useState("");
   const [reminderMessage, setReminderMessage] = useState("");
   
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: students, isLoading } = useQuery<Student[]>({
     queryKey: ['/api/students'],
@@ -125,42 +129,74 @@ export default function StudentLedger() {
     }
   };
   
-  const handleSubmitPayment = async () => {
-    try {
-      if (!paymentAmount || !paymentMethod) {
-        toast({
-          title: "Error",
-          description: "Please fill in all payment details",
-          variant: "destructive",
-        });
-        return;
-      }
-
-
-      
-      // In a real app, this would create a payment record with transaction number
-      const paymentDetails = {
-        amount: parseFloat(paymentAmount),
-        method: paymentMethod,
-        ...(paymentMethod === "bank_transfer" && { transactionNumber })
-      };
-      
+  // Payment mutation
+  const paymentMutation = useMutation({
+    mutationFn: async (paymentData: {
+      studentId: string;
+      amount: string;
+      paymentMethod: string;
+      transactionNumber?: string;
+      notes?: string;
+    }) => {
+      return apiRequest('/api/payments', 'POST', {
+        studentId: paymentData.studentId,
+        amount: paymentData.amount,
+        paymentMethod: paymentData.paymentMethod,
+        transactionNumber: paymentData.transactionNumber,
+        paymentDate: new Date().toISOString(),
+        notes: paymentData.notes || `Payment for ${selectedStudent?.firstName} ${selectedStudent?.lastName}`,
+      });
+    },
+    onSuccess: (data) => {
       toast({
-        title: "Payment Recorded",
-        description: `Payment of ${formatPKR(parseFloat(paymentAmount))} via ${paymentMethod === 'bank_transfer' ? 'Bank Transfer' : 'Cash'} recorded for ${selectedStudent?.firstName} ${selectedStudent?.lastName}`,
-        variant: "default",
+        title: "Payment recorded successfully",
+        description: `Payment of Rs. ${paymentAmount} recorded for ${selectedStudent?.firstName} ${selectedStudent?.lastName}`,
       });
       
-      setShowPaymentDialog(false);
+      // Refresh student data
+      queryClient.invalidateQueries({ queryKey: ['/api/students'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/students-with-financial'] });
+      
+      // Reset form
       setPaymentAmount("");
       setPaymentMethod("");
       setTransactionNumber("");
-    } catch (error) {
+      setShowPaymentDialog(false);
+    },
+    onError: (error: any) => {
       toast({
-        title: "Error",
-        description: "Failed to record payment",
+        title: "Payment failed",
+        description: error.message || "Failed to process payment",
         variant: "destructive",
       });
+    },
+  });
+
+  const handleSubmitPayment = async () => {
+    if (!selectedStudent || !paymentAmount || !paymentMethod) {
+      toast({
+        title: "Missing information",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Show progress tracker
+    setShowProgressTracker(true);
+    
+    try {
+      await paymentMutation.mutateAsync({
+        studentId: selectedStudent.id,
+        amount: paymentAmount,
+        paymentMethod: paymentMethod,
+        transactionNumber: transactionNumber || undefined,
+        notes: `Payment recorded via Student Ledger for ${selectedStudent.firstName} ${selectedStudent.lastName}`,
+      });
+    } catch (error) {
+      console.error('Payment error:', error);
+    } finally {
+      setShowProgressTracker(false);
     }
   };
 
@@ -502,6 +538,23 @@ export default function StudentLedger() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Payment Progress Tracker */}
+      <PaymentProgressTracker
+        isVisible={showProgressTracker}
+        paymentAmount={parseFloat(paymentAmount) || 0}
+        onComplete={() => {
+          setShowProgressTracker(false);
+        }}
+        onError={(error: string) => {
+          setShowProgressTracker(false);
+          toast({
+            title: "Payment cancelled",
+            description: error,
+            variant: "destructive",
+          });
+        }}
+      />
     </div>
   );
 }

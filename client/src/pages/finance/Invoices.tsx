@@ -1,13 +1,28 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PaymentProgressTracker } from "@/components/PaymentProgressTracker";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import type { Invoice } from "@shared/schema";
 
 export default function Invoices() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [showProgressTracker, setShowProgressTracker] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("");
+  const [transactionNumber, setTransactionNumber] = useState("");
+  
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: invoices, isLoading } = useQuery<Invoice[]>({
     queryKey: ['/api/invoices'],
@@ -27,6 +42,88 @@ export default function Invoices() {
         return 'bg-blue-100 text-blue-800';
       default:
         return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  // Payment mutation
+  const paymentMutation = useMutation({
+    mutationFn: async (paymentData: {
+      invoiceId: string;
+      studentId: string;
+      amount: string;
+      paymentMethod: string;
+      transactionNumber?: string;
+      notes?: string;
+    }) => {
+      return apiRequest('/api/payments', 'POST', {
+        studentId: paymentData.studentId,
+        invoiceId: paymentData.invoiceId,
+        amount: paymentData.amount,
+        paymentMethod: paymentData.paymentMethod,
+        transactionNumber: paymentData.transactionNumber,
+        paymentDate: new Date().toISOString(),
+        notes: paymentData.notes || `Payment for invoice ${selectedInvoice?.invoiceNumber}`,
+      });
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Payment recorded successfully",
+        description: `Payment of Rs. ${paymentAmount} recorded for invoice ${selectedInvoice?.invoiceNumber}`,
+      });
+      
+      // Refresh invoice data
+      queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/students-with-financial'] });
+      
+      // Reset form
+      setPaymentAmount("");
+      setPaymentMethod("");
+      setTransactionNumber("");
+      setShowPaymentDialog(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Payment failed",
+        description: error.message || "Failed to process payment",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleRecordPayment = (invoice: Invoice) => {
+    setSelectedInvoice(invoice);
+    setPaymentAmount(invoice.balanceDue || invoice.total);
+    setPaymentMethod("");
+    setTransactionNumber("");
+    setShowPaymentDialog(true);
+  };
+
+  const handleSubmitPayment = async () => {
+    if (!selectedInvoice || !paymentAmount || !paymentMethod) {
+      toast({
+        title: "Missing information",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Show progress tracker
+    setShowProgressTracker(true);
+    
+    try {
+      await paymentMutation.mutateAsync({
+        invoiceId: selectedInvoice.id,
+        studentId: selectedInvoice.studentId,
+        amount: paymentAmount,
+        paymentMethod: paymentMethod,
+        transactionNumber: transactionNumber || undefined,
+        notes: `Payment recorded via Invoices page for invoice ${selectedInvoice.invoiceNumber}`,
+      });
+    } catch (error) {
+      console.error('Payment error:', error);
+    } finally {
+      setShowProgressTracker(false);
     }
   };
 
@@ -118,7 +215,13 @@ export default function Invoices() {
                         <Button size="sm" variant="ghost" data-testid={`button-edit-invoice-${invoice.id}`}>
                           <i className="fas fa-edit"></i>
                         </Button>
-                        <Button size="sm" variant="ghost" className="text-green-600" data-testid={`button-record-payment-${invoice.id}`}>
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          className="text-green-600" 
+                          onClick={() => handleRecordPayment(invoice)}
+                          data-testid={`button-record-payment-${invoice.id}`}
+                        >
                           <i className="fas fa-dollar-sign"></i>
                         </Button>
                       </div>
@@ -137,6 +240,98 @@ export default function Invoices() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Payment Dialog */}
+      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Record Payment</DialogTitle>
+          </DialogHeader>
+          {selectedInvoice && (
+            <div className="space-y-4">
+              <div className="text-sm text-gray-600">
+                Recording payment for invoice: <strong>{selectedInvoice.invoiceNumber}</strong>
+                <br />
+                Current balance: <strong>Rs. {Number(selectedInvoice.balanceDue || selectedInvoice.total).toLocaleString()}</strong>
+              </div>
+              <div>
+                <Label htmlFor="amount">Payment Amount (PKR)</Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  placeholder="0.00"
+                  data-testid="input-payment-amount"
+                />
+              </div>
+              <div>
+                <Label htmlFor="method">Payment Method</Label>
+                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                  <SelectTrigger data-testid="select-payment-method">
+                    <SelectValue placeholder="Select payment method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Transaction Number for Bank Transfer */}
+              {paymentMethod === "bank_transfer" && (
+                <div>
+                  <Label htmlFor="transactionNumber">Transaction Number</Label>
+                  <Input
+                    id="transactionNumber"
+                    value={transactionNumber}
+                    onChange={(e) => setTransactionNumber(e.target.value)}
+                    placeholder="Enter bank transaction number"
+                    className="mt-1"
+                    data-testid="input-transaction-number"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Enter the bank transaction/reference number for this transfer
+                  </p>
+                </div>
+              )}
+              
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowPaymentDialog(false)}
+                  data-testid="button-cancel-payment"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleSubmitPayment}
+                  data-testid="button-submit-payment"
+                >
+                  Record Payment
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment Progress Tracker */}
+      <PaymentProgressTracker
+        isVisible={showProgressTracker}
+        paymentAmount={parseFloat(paymentAmount) || 0}
+        onComplete={() => {
+          setShowProgressTracker(false);
+        }}
+        onError={(error: string) => {
+          setShowProgressTracker(false);
+          toast({
+            title: "Payment cancelled",
+            description: error,
+            variant: "destructive",
+          });
+        }}
+      />
     </div>
   );
 }
