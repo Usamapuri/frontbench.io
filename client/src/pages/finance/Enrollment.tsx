@@ -71,8 +71,8 @@ export default function Enrollment() {
         
         if (missingFields.length > 0) {
           toast({
-            title: "Required Fields Missing",
-            description: `Please fill in all required fields: ${missingFields.join(', ')}`,
+            title: "Required Information Missing",
+            description: "Please fill out all required information before moving to the next step",
             variant: "destructive",
           });
           return false;
