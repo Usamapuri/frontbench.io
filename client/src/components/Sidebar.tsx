@@ -55,7 +55,48 @@ export default function Sidebar({ selectedRole }: SidebarProps) {
   return (
     <div className="w-64 bg-white shadow-lg flex flex-col">
       <div className="p-4 border-b">
-        <h2 className="text-xl font-bold text-gray-800">Primax</h2>
+        <div className="flex items-center">
+          <svg 
+            width="120" 
+            height="40" 
+            viewBox="0 0 300 200" 
+            xmlns="http://www.w3.org/2000/svg" 
+            className="h-8 w-auto"
+            data-testid="primax-sidebar-logo"
+          >
+            <defs>
+              <linearGradient id="leftGradientSidebar" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style={{stopColor:'#FFD700', stopOpacity:1}} />
+                <stop offset="50%" style={{stopColor:'#FFA500', stopOpacity:1}} />
+                <stop offset="100%" style={{stopColor:'#FF6347', stopOpacity:1}} />
+              </linearGradient>
+              <linearGradient id="centerGradientSidebar" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style={{stopColor:'#32CD32', stopOpacity:1}} />
+                <stop offset="50%" style={{stopColor:'#00CED1', stopOpacity:1}} />
+                <stop offset="100%" style={{stopColor:'#4169E1', stopOpacity:1}} />
+              </linearGradient>
+              <linearGradient id="rightGradientSidebar" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style={{stopColor:'#4169E1', stopOpacity:1}} />
+                <stop offset="50%" style={{stopColor:'#8A2BE2', stopOpacity:1}} />
+                <stop offset="100%" style={{stopColor:'#9932CC', stopOpacity:1}} />
+              </linearGradient>
+            </defs>
+            
+            {/* Left Triangle */}
+            <polygon points="50,170 120,50 150,170" fill="url(#leftGradientSidebar)" />
+            
+            {/* Center Triangle */}
+            <polygon points="120,50 190,170 150,170" fill="url(#centerGradientSidebar)" />
+            
+            {/* Right Triangle */}
+            <polygon points="150,170 190,170 250,50" fill="url(#rightGradientSidebar)" />
+            
+            {/* White accent lines */}
+            <polygon points="80,130 85,120 95,140 90,150" fill="white" opacity="0.3" />
+            <polygon points="130,80 135,70 145,90 140,100" fill="white" opacity="0.3" />
+            <polygon points="180,110 185,100 195,120 190,130" fill="white" opacity="0.3" />
+          </svg>
+        </div>
         <p className="text-sm text-gray-600 capitalize">{selectedRole} Panel</p>
       </div>
       
