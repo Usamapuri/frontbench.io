@@ -1,0 +1,88 @@
+import { useAuth } from "@/hooks/useAuth";
+import { Link, useLocation } from "wouter";
+import { cn } from "@/lib/utils";
+
+export default function Sidebar() {
+  const { user } = useAuth();
+  const [location] = useLocation();
+
+  const handleLogout = () => {
+    window.location.href = '/api/logout';
+  };
+
+  const getNavItems = () => {
+    switch (user?.role) {
+      case 'finance':
+        return [
+          { path: '/', icon: 'fas fa-tachometer-alt', label: 'Dashboard' },
+          { path: '/enrollment', icon: 'fas fa-user-plus', label: 'Enrollment' },
+          { path: '/invoices', icon: 'fas fa-file-invoice', label: 'Invoices' },
+          { path: '/receipts', icon: 'fas fa-receipt', label: 'Receipts' },
+          { path: '/students', icon: 'fas fa-users', label: 'Student Ledger' },
+          { path: '/daily-close', icon: 'fas fa-lock', label: 'Daily Close' },
+          { path: '/reports', icon: 'fas fa-chart-line', label: 'Reports' },
+          { path: '/approvals', icon: 'fas fa-check-circle', label: 'Cash Draw Approvals' },
+        ];
+      case 'teacher':
+        return [
+          { path: '/', icon: 'fas fa-home', label: 'Today' },
+          { path: '/attendance', icon: 'fas fa-calendar-check', label: 'Attendance' },
+          { path: '/gradebook', icon: 'fas fa-book', label: 'Gradebook' },
+          { path: '/earnings', icon: 'fas fa-dollar-sign', label: 'Earnings' },
+        ];
+      case 'parent':
+        return [
+          { path: '/', icon: 'fas fa-home', label: 'Portal Home' },
+          { path: '/attendance', icon: 'fas fa-calendar-alt', label: 'Attendance' },
+          { path: '/grades', icon: 'fas fa-graduation-cap', label: 'Grades' },
+        ];
+      case 'management':
+        return [
+          { path: '/', icon: 'fas fa-chart-pie', label: 'Overview' },
+          { path: '/expenses', icon: 'fas fa-receipt', label: 'Expenses' },
+          { path: '/payouts', icon: 'fas fa-money-bill', label: 'Payout Summary' },
+        ];
+      default:
+        return [];
+    }
+  };
+
+  const navItems = getNavItems();
+
+  return (
+    <div className="w-64 bg-white shadow-lg flex flex-col">
+      <div className="p-4 border-b">
+        <h2 className="text-xl font-bold text-gray-800">Primax</h2>
+        <p className="text-sm text-gray-600 capitalize">{user?.role} Panel</p>
+      </div>
+      
+      <nav className="flex-1 p-4 space-y-2">
+        {navItems.map((item) => (
+          <Link key={item.path} href={item.path}>
+            <a
+              className={cn(
+                "flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors min-h-[44px]",
+                location === item.path && "bg-blue-50 text-blue-700 border-r-2 border-blue-700"
+              )}
+              data-testid={`nav-${item.label.toLowerCase().replace(' ', '-')}`}
+            >
+              <i className={`${item.icon} w-5 mr-3`}></i>
+              {item.label}
+            </a>
+          </Link>
+        ))}
+      </nav>
+      
+      <div className="p-4 border-t">
+        <button 
+          onClick={handleLogout}
+          className="w-full flex items-center px-3 py-2 text-red-600 hover:bg-red-50 rounded-md transition-colors min-h-[44px]"
+          data-testid="button-logout"
+        >
+          <i className="fas fa-sign-out-alt w-5 mr-3"></i>
+          Sign Out
+        </button>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,373 @@
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import type { DailyClose } from "@shared/schema";
+
+export default function DailyClose() {
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [totalCash, setTotalCash] = useState("");
+  const [totalBank, setTotalBank] = useState("");
+  const [notes, setNotes] = useState("");
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const { data: dailyCloseRecord, isLoading } = useQuery<DailyClose | null>({
+    queryKey: ['/api/daily-close', selectedDate],
+  });
+
+  const { data: payments } = useQuery({
+    queryKey: ['/api/payments'],
+  });
+
+  const createDailyCloseMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return await apiRequest('POST', '/api/daily-close', data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Daily close completed successfully!",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/daily-close'] });
+      setTotalCash("");
+      setTotalBank("");
+      setNotes("");
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to complete daily close. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSubmit = () => {
+    const cash = parseFloat(totalCash) || 0;
+    const bank = parseFloat(totalBank) || 0;
+    const variance = cash + bank - (expectedTotal || 0);
+
+    createDailyCloseMutation.mutate({
+      closeDate: selectedDate,
+      totalCash: cash,
+      totalBank: bank,
+      variance,
+      notes,
+    });
+  };
+
+  // Calculate expected totals from payments
+  const todaysPayments = payments?.filter((payment: any) => 
+    new Date(payment.paymentDate).toDateString() === new Date(selectedDate).toDateString()
+  ) || [];
+
+  const expectedCash = todaysPayments
+    .filter((p: any) => p.paymentMethod === 'cash')
+    .reduce((sum: number, p: any) => sum + Number(p.amount), 0);
+
+  const expectedBank = todaysPayments
+    .filter((p: any) => ['bank_transfer', 'card'].includes(p.paymentMethod))
+    .reduce((sum: number, p: any) => sum + Number(p.amount), 0);
+
+  const expectedTotal = expectedCash + expectedBank;
+  const actualTotal = (parseFloat(totalCash) || 0) + (parseFloat(totalBank) || 0);
+  const variance = actualTotal - expectedTotal;
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
+          <div className="h-64 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Date Selection */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Daily Close</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center space-x-4">
+            <Label htmlFor="closeDate">Select Date:</Label>
+            <Input
+              id="closeDate"
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="w-48"
+              data-testid="input-close-date"
+            />
+            {dailyCloseRecord?.isLocked && (
+              <Badge variant="secondary" data-testid="badge-locked">
+                <i className="fas fa-lock mr-2"></i>
+                Locked
+              </Badge>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Today's Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <i className="fas fa-money-bill-wave text-green-600 text-xl"></i>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Expected Cash</p>
+                <p className="text-2xl font-semibold text-gray-900" data-testid="stat-expected-cash">
+                  ₹{expectedCash.toLocaleString()}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <i className="fas fa-university text-blue-600 text-xl"></i>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Expected Bank</p>
+                <p className="text-2xl font-semibold text-gray-900" data-testid="stat-expected-bank">
+                  ₹{expectedBank.toLocaleString()}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center">
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <i className="fas fa-calculator text-purple-600 text-xl"></i>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Expected Total</p>
+                <p className="text-2xl font-semibold text-gray-900" data-testid="stat-expected-total">
+                  ₹{expectedTotal.toLocaleString()}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Close Form or Locked View */}
+      {dailyCloseRecord?.isLocked ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Daily Close Record - Locked</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <Label>Actual Cash</Label>
+                <div className="text-2xl font-semibold" data-testid="text-actual-cash">
+                  ₹{Number(dailyCloseRecord.totalCash).toLocaleString()}
+                </div>
+              </div>
+              <div>
+                <Label>Actual Bank</Label>
+                <div className="text-2xl font-semibold" data-testid="text-actual-bank">
+                  ₹{Number(dailyCloseRecord.totalBank).toLocaleString()}
+                </div>
+              </div>
+              <div>
+                <Label>Variance</Label>
+                <div className={`text-2xl font-semibold ${
+                  Number(dailyCloseRecord.variance) === 0 ? 'text-green-600' : 
+                  Number(dailyCloseRecord.variance) > 0 ? 'text-blue-600' : 'text-red-600'
+                }`} data-testid="text-variance">
+                  ₹{Number(dailyCloseRecord.variance).toLocaleString()}
+                </div>
+              </div>
+              <div>
+                <Label>Closed By</Label>
+                <div className="text-lg" data-testid="text-closed-by">
+                  Staff Member
+                </div>
+              </div>
+            </div>
+            {dailyCloseRecord.notes && (
+              <div>
+                <Label>Notes</Label>
+                <p className="text-gray-700" data-testid="text-notes">{dailyCloseRecord.notes}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>Record Daily Close</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <Label htmlFor="totalCash">Actual Cash Total *</Label>
+                <Input
+                  id="totalCash"
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={totalCash}
+                  onChange={(e) => setTotalCash(e.target.value)}
+                  data-testid="input-total-cash"
+                />
+                <p className="text-sm text-gray-600 mt-1">
+                  Expected: ₹{expectedCash.toLocaleString()}
+                </p>
+              </div>
+
+              <div>
+                <Label htmlFor="totalBank">Actual Bank Total *</Label>
+                <Input
+                  id="totalBank"
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={totalBank}
+                  onChange={(e) => setTotalBank(e.target.value)}
+                  data-testid="input-total-bank"
+                />
+                <p className="text-sm text-gray-600 mt-1">
+                  Expected: ₹{expectedBank.toLocaleString()}
+                </p>
+              </div>
+            </div>
+
+            {(totalCash || totalBank) && (
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-medium text-gray-800 mb-2">Summary</h4>
+                <div className="grid grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-600">Actual Total:</span>
+                    <div className="font-semibold" data-testid="text-summary-actual">
+                      ₹{actualTotal.toLocaleString()}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Expected:</span>
+                    <div className="font-semibold" data-testid="text-summary-expected">
+                      ₹{expectedTotal.toLocaleString()}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Variance:</span>
+                    <div className={`font-semibold ${
+                      variance === 0 ? 'text-green-600' : 
+                      variance > 0 ? 'text-blue-600' : 'text-red-600'
+                    }`} data-testid="text-summary-variance">
+                      {variance > 0 ? '+' : ''}₹{variance.toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div>
+              <Label htmlFor="notes">Notes (Optional)</Label>
+              <Textarea
+                id="notes"
+                placeholder="Add any notes about discrepancies or special circumstances..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={3}
+                data-testid="textarea-notes"
+              />
+            </div>
+
+            <div className="flex justify-end space-x-3">
+              <Button
+                variant="outline"
+                disabled={!totalCash && !totalBank}
+                data-testid="button-save-draft"
+              >
+                Save as Draft
+              </Button>
+              <Button
+                onClick={handleSubmit}
+                disabled={!totalCash || !totalBank || createDailyCloseMutation.isPending}
+                data-testid="button-lock-day"
+              >
+                {createDailyCloseMutation.isPending ? 'Processing...' : 'Lock Day & Generate PDF'}
+                <i className="fas fa-lock ml-2"></i>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Today's Transactions */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Today's Transactions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left font-medium text-gray-700">Time</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-700">Receipt #</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-700">Student</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-700">Amount</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-700">Method</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {todaysPayments.length > 0 ? todaysPayments.map((payment: any) => (
+                  <tr key={payment.id} data-testid={`row-payment-${payment.id}`}>
+                    <td className="px-4 py-3" data-testid={`text-time-${payment.id}`}>
+                      {new Date(payment.paymentDate).toLocaleTimeString()}
+                    </td>
+                    <td className="px-4 py-3" data-testid={`text-receipt-${payment.id}`}>
+                      {payment.receiptNumber}
+                    </td>
+                    <td className="px-4 py-3" data-testid={`text-student-${payment.id}`}>
+                      Student Name
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="font-semibold" data-testid={`text-amount-${payment.id}`}>
+                        ₹{Number(payment.amount).toLocaleString()}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge data-testid={`badge-method-${payment.id}`}>
+                        {payment.paymentMethod.toUpperCase()}
+                      </Badge>
+                    </td>
+                  </tr>
+                )) : (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
+                      No transactions for this date
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
