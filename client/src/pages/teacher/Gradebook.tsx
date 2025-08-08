@@ -177,96 +177,110 @@ export default function Gradebook() {
             </Select>
           </div>
 
-          {selectedSubject && (
-            <div className="flex justify-between items-center">
-              <div>
-                <Label htmlFor="assessment">Select Assessment</Label>
-                <Select value={selectedAssessment} onValueChange={setSelectedAssessment}>
-                  <SelectTrigger className="w-64" data-testid="select-assessment">
-                    <SelectValue placeholder="Choose an assessment..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {assessments?.map((assessment) => (
-                      <SelectItem key={assessment.id} value={assessment.id}>
-                        {assessment.name} ({assessment.totalMarks} marks)
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button data-testid="button-create-assessment">
-                    <i className="fas fa-plus mr-2"></i>
-                    Create Assessment
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Create New Assessment</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="assessmentName">Assessment Name *</Label>
-                      <Input
-                        id="assessmentName"
-                        placeholder="e.g., Quiz 1, Midterm Exam"
-                        value={newAssessment.name}
-                        onChange={(e) => setNewAssessment(prev => ({ ...prev, name: e.target.value }))}
-                        data-testid="input-assessment-name"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="totalMarks">Total Marks *</Label>
-                      <Input
-                        id="totalMarks"
-                        type="number"
-                        placeholder="100"
-                        value={newAssessment.totalMarks}
-                        onChange={(e) => setNewAssessment(prev => ({ ...prev, totalMarks: e.target.value }))}
-                        data-testid="input-total-marks"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="assessmentDate">Assessment Date</Label>
-                      <Input
-                        id="assessmentDate"
-                        type="date"
-                        value={newAssessment.date}
-                        onChange={(e) => setNewAssessment(prev => ({ ...prev, date: e.target.value }))}
-                        data-testid="input-assessment-date"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="description">Description</Label>
-                      <Textarea
-                        id="description"
-                        placeholder="Optional description..."
-                        value={newAssessment.description}
-                        onChange={(e) => setNewAssessment(prev => ({ ...prev, description: e.target.value }))}
-                        data-testid="textarea-description"
-                      />
-                    </div>
-
-                    <div className="flex justify-end space-x-2">
-                      <Button variant="outline">Cancel</Button>
-                      <Button 
-                        onClick={handleCreateAssessment}
-                        disabled={createAssessmentMutation.isPending}
-                        data-testid="button-save-assessment"
-                      >
-                        {createAssessmentMutation.isPending ? 'Creating...' : 'Create Assessment'}
-                      </Button>
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
+          <div className="flex justify-between items-center">
+            <div>
+              <Label htmlFor="assessment">Select Assessment</Label>
+              <Select value={selectedAssessment} onValueChange={setSelectedAssessment}>
+                <SelectTrigger className="w-64" data-testid="select-assessment">
+                  <SelectValue placeholder="Choose an assessment..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {selectedSubject && assessments?.map((assessment) => (
+                    <SelectItem key={assessment.id} value={assessment.id}>
+                      {assessment.name} ({assessment.totalMarks} marks)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          )}
+
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button data-testid="button-create-assessment">
+                  <i className="fas fa-plus mr-2"></i>
+                  Create Assessment
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Create New Assessment</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="assessmentSubject">Subject *</Label>
+                    <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+                      <SelectTrigger data-testid="select-assessment-subject">
+                        <SelectValue placeholder="Choose a subject..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {subjects?.map((subject: any) => (
+                          <SelectItem key={subject.id} value={subject.id}>
+                            {subject.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="assessmentName">Assessment Name *</Label>
+                    <Input
+                      id="assessmentName"
+                      placeholder="e.g., Quiz 1, Midterm Exam"
+                      value={newAssessment.name}
+                      onChange={(e) => setNewAssessment(prev => ({ ...prev, name: e.target.value }))}
+                      data-testid="input-assessment-name"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="totalMarks">Total Marks *</Label>
+                    <Input
+                      id="totalMarks"
+                      type="number"
+                      placeholder="100"
+                      value={newAssessment.totalMarks}
+                      onChange={(e) => setNewAssessment(prev => ({ ...prev, totalMarks: e.target.value }))}
+                      data-testid="input-total-marks"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="assessmentDate">Assessment Date</Label>
+                    <Input
+                      id="assessmentDate"
+                      type="date"
+                      value={newAssessment.date}
+                      onChange={(e) => setNewAssessment(prev => ({ ...prev, date: e.target.value }))}
+                      data-testid="input-assessment-date"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      placeholder="Optional description..."
+                      value={newAssessment.description}
+                      onChange={(e) => setNewAssessment(prev => ({ ...prev, description: e.target.value }))}
+                      data-testid="textarea-description"
+                    />
+                  </div>
+
+                  <div className="flex justify-end space-x-2">
+                    <Button variant="outline">Cancel</Button>
+                    <Button 
+                      onClick={handleCreateAssessment}
+                      disabled={createAssessmentMutation.isPending}
+                      data-testid="button-save-assessment"
+                    >
+                      {createAssessmentMutation.isPending ? 'Creating...' : 'Create Assessment'}
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
         </CardContent>
       </Card>
 

@@ -289,8 +289,8 @@ export class DatabaseStorage implements IStorage {
         studentId: enrollments.studentId,
         subjectId: enrollments.subjectId,
         subjectName: subjects.name,
-        tuitionFee: subjects.tuitionFee,
-        enrollmentDate: enrollments.enrollmentDate,
+        tuitionFee: subjects.monthlyFee,
+        enrollmentDate: enrollments.enrolledAt,
         isActive: enrollments.isActive,
       })
       .from(enrollments)
