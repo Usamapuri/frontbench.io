@@ -23,9 +23,11 @@ export default function StudentLedger() {
       `${student.firstName} ${student.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
       student.rollNumber.toLowerCase().includes(searchQuery.toLowerCase());
     
-    const matchesClass = classFilter === "" || student.classLevel === classFilter;
+    const matchesClass = classFilter === "all" || classFilter === "" || student.classLevel === classFilter;
+    const matchesFeeStatus = feeStatusFilter === "all" || feeStatusFilter === "" || student.feeStatus === feeStatusFilter;
+    const matchesAttendance = attendanceFilter === "all" || attendanceFilter === "";
     
-    return matchesSearch && matchesClass;
+    return matchesSearch && matchesClass && matchesFeeStatus && matchesAttendance;
   }) || [];
 
   const handleExport = () => {
@@ -77,7 +79,7 @@ export default function StudentLedger() {
                 <SelectValue placeholder="All Classes" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Classes</SelectItem>
+                <SelectItem value="all">All Classes</SelectItem>
                 <SelectItem value="o-level">O-Level</SelectItem>
                 <SelectItem value="a-level">A-Level</SelectItem>
               </SelectContent>
@@ -88,7 +90,7 @@ export default function StudentLedger() {
                 <SelectValue placeholder="All Fee Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Fee Status</SelectItem>
+                <SelectItem value="all">All Fee Status</SelectItem>
                 <SelectItem value="paid">Paid</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="overdue">Overdue</SelectItem>
@@ -100,7 +102,7 @@ export default function StudentLedger() {
                 <SelectValue placeholder="All Attendance" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Attendance</SelectItem>
+                <SelectItem value="all">All Attendance</SelectItem>
                 <SelectItem value="excellent">90%+</SelectItem>
                 <SelectItem value="good">75-89%</SelectItem>
                 <SelectItem value="poor">&lt;75%</SelectItem>
