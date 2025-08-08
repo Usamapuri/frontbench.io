@@ -136,14 +136,7 @@ export default function StudentLedger() {
         return;
       }
 
-      if (paymentMethod === "bank_transfer" && !transactionNumber.trim()) {
-        toast({
-          title: "Error",
-          description: "Transaction number is required for bank transfers",
-          variant: "destructive",
-        });
-        return;
-      }
+
       
       // In a real app, this would create a payment record with transaction number
       const paymentDetails = {
@@ -483,7 +476,7 @@ export default function StudentLedger() {
               {/* Transaction Number for Bank Transfer */}
               {paymentMethod === "bank_transfer" && (
                 <div>
-                  <Label htmlFor="transactionNumber">Transaction Number *</Label>
+                  <Label htmlFor="transactionNumber">Transaction Number (Optional)</Label>
                   <Input
                     id="transactionNumber"
                     value={transactionNumber}
@@ -492,7 +485,7 @@ export default function StudentLedger() {
                     className="mt-1"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Please enter the bank transaction/reference number for this transfer
+                    Enter the bank transaction/reference number for this transfer (if available)
                   </p>
                 </div>
               )}
