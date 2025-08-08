@@ -246,7 +246,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           paymentAmount: parseFloat(req.body.amount),
           studentId: req.body.studentId,
           paymentMethod: req.body.paymentMethod,
-          paymentDate: req.body.paymentDate || new Date(),
+          paymentDate: req.body.paymentDate ? new Date(req.body.paymentDate) : new Date(),
           receivedBy: 'system',
           notes: req.body.notes || '',
           transactionNumber: req.body.transactionNumber || null,

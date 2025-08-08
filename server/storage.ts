@@ -292,7 +292,7 @@ export class DatabaseStorage implements IStorage {
       studentId: paymentData.studentId,
       amount: paymentData.paymentAmount.toFixed(2),
       paymentMethod: paymentData.paymentMethod,
-      paymentDate: paymentData.paymentDate,
+      paymentDate: typeof paymentData.paymentDate === 'string' ? new Date(paymentData.paymentDate) : paymentData.paymentDate,
       receivedBy: paymentData.receivedBy || 'system',
       notes: paymentData.notes,
       transactionNumber: paymentData.transactionNumber,
@@ -307,7 +307,7 @@ export class DatabaseStorage implements IStorage {
     });
 
     // Update invoice balances
-    const newAmountPaid = parseFloat(invoice.amountPaid) + paymentData.paymentAmount;
+    const newAmountPaid = parseFloat(invoice.amountPaid || '0') + paymentData.paymentAmount;
     const newBalanceDue = parseFloat(invoice.total) - newAmountPaid;
     const newStatus = newBalanceDue <= 0 ? 'paid' : 'sent';
 
