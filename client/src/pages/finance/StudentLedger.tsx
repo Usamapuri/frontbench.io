@@ -104,11 +104,25 @@ export default function StudentLedger() {
     setShowDetailsDialog(true);
   };
   
-  const handleRecordPayment = (student: any) => {
+  const handleRecordPayment = async (student: any) => {
     setSelectedStudent(student);
     setPaymentAmount(student.outstandingBalance.toString());
     setPaymentMethod("");
     setTransactionNumber("");
+    
+    // Fetch the student's outstanding invoices to get the first one to apply payment to
+    try {
+      const response = await fetch(`/api/students/${student.id}/financial`);
+      const financialData = await response.json();
+      
+      // Store the first outstanding invoice ID if available
+      if (financialData.outstandingInvoices && financialData.outstandingInvoices.length > 0) {
+        student.firstInvoiceId = financialData.outstandingInvoices[0].id;
+      }
+    } catch (error) {
+      console.error('Error fetching student financial data:', error);
+    }
+    
     setShowPaymentDialog(true);
   };
   
@@ -138,14 +152,16 @@ export default function StudentLedger() {
       transactionNumber?: string;
       notes?: string;
     }) => {
-      return apiRequest('/api/payments', 'POST', {
+      const response = await apiRequest('POST', '/api/payments', {
         studentId: paymentData.studentId,
+        invoiceId: selectedStudent?.firstInvoiceId, // Link to specific invoice if available
         amount: paymentData.amount,
         paymentMethod: paymentData.paymentMethod,
         transactionNumber: paymentData.transactionNumber,
         paymentDate: new Date().toISOString(),
         notes: paymentData.notes || `Payment for ${selectedStudent?.firstName} ${selectedStudent?.lastName}`,
       });
+      return response.json();
     },
     onSuccess: (data) => {
       toast({

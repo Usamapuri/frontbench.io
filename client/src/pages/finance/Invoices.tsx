@@ -55,7 +55,7 @@ export default function Invoices() {
       transactionNumber?: string;
       notes?: string;
     }) => {
-      return apiRequest('/api/payments', 'POST', {
+      const response = await apiRequest('POST', '/api/payments', {
         studentId: paymentData.studentId,
         invoiceId: paymentData.invoiceId,
         amount: paymentData.amount,
@@ -64,6 +64,7 @@ export default function Invoices() {
         paymentDate: new Date().toISOString(),
         notes: paymentData.notes || `Payment for invoice ${selectedInvoice?.invoiceNumber}`,
       });
+      return response.json();
     },
     onSuccess: (data) => {
       toast({
