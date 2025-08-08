@@ -262,7 +262,10 @@ export default function Gradebook() {
                       id="assessmentName"
                       placeholder="e.g., Quiz 1, Midterm Exam"
                       value={newAssessment.name}
-                      onChange={(e) => setNewAssessment(prev => ({ ...prev, name: e.target.value }))}
+                      onChange={(e) => {
+                        console.log('Assessment name changed:', e.target.value);
+                        setNewAssessment(prev => ({ ...prev, name: e.target.value }));
+                      }}
                       data-testid="input-assessment-name"
                     />
                   </div>
@@ -274,7 +277,10 @@ export default function Gradebook() {
                       type="number"
                       placeholder="100"
                       value={newAssessment.totalMarks}
-                      onChange={(e) => setNewAssessment(prev => ({ ...prev, totalMarks: e.target.value }))}
+                      onChange={(e) => {
+                        console.log('Total marks changed:', e.target.value);
+                        setNewAssessment(prev => ({ ...prev, totalMarks: e.target.value }));
+                      }}
                       data-testid="input-total-marks"
                     />
                   </div>
