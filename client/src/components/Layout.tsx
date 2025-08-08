@@ -1,42 +1,43 @@
-import { useAuth } from "@/hooks/useAuth";
 import Sidebar from "./Sidebar";
 
 interface LayoutProps {
   children: React.ReactNode;
+  selectedRole?: string | null;
 }
 
-export default function Layout({ children }: LayoutProps) {
-  const { user } = useAuth();
+export default function Layout({ children, selectedRole }: LayoutProps) {
+  const mockUser = {
+    role: selectedRole,
+    firstName: 'Demo',
+    lastName: 'User',
+    profileImageUrl: null
+  };
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar />
+      <Sidebar selectedRole={selectedRole} />
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
         <header className="bg-white shadow-sm border-b px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-semibold text-gray-800">
-                {getRoleTitle(user?.role)}
+                {getRoleTitle(mockUser?.role)}
               </h1>
               <nav className="text-sm text-gray-600">
-                Home {'>'} {user?.role} {'>'} Dashboard
+                Home {'>'} {mockUser?.role} {'>'} Dashboard
               </nav>
             </div>
             <div className="flex items-center space-x-4">
               <div className="text-right">
                 <p className="text-sm font-medium text-gray-800">
-                  {user?.firstName} {user?.lastName}
+                  {mockUser?.firstName} {mockUser?.lastName}
                 </p>
-                <p className="text-xs text-gray-600 capitalize">{user?.role}</p>
+                <p className="text-xs text-gray-600 capitalize">{mockUser?.role}</p>
               </div>
-              {user?.profileImageUrl && (
-                <img 
-                  src={user.profileImageUrl} 
-                  alt="Profile" 
-                  className="w-10 h-10 rounded-full object-cover"
-                />
-              )}
+              <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
+                <span className="text-sm font-medium text-gray-600">DU</span>
+              </div>
             </div>
           </div>
         </header>
@@ -50,7 +51,7 @@ export default function Layout({ children }: LayoutProps) {
   );
 }
 
-function getRoleTitle(role?: string): string {
+function getRoleTitle(role?: string | null): string {
   switch (role) {
     case 'finance':
       return 'Finance Dashboard';

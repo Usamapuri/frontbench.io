@@ -1,20 +1,23 @@
-import { useAuth } from "@/hooks/useAuth";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 
-export default function Sidebar() {
-  const { user } = useAuth();
+interface SidebarProps {
+  selectedRole?: string | null;
+}
+
+export default function Sidebar({ selectedRole }: SidebarProps) {
   const [location] = useLocation();
 
-  const handleLogout = () => {
-    window.location.href = '/api/logout';
+  const handleBackToRoleSelection = () => {
+    localStorage.removeItem('selectedRole');
+    window.location.href = '/';
   };
 
   const getNavItems = () => {
-    switch (user?.role) {
+    switch (selectedRole) {
       case 'finance':
         return [
-          { path: '/', icon: 'fas fa-tachometer-alt', label: 'Dashboard' },
+          { path: '/dashboard', icon: 'fas fa-tachometer-alt', label: 'Dashboard' },
           { path: '/enrollment', icon: 'fas fa-user-plus', label: 'Enrollment' },
           { path: '/invoices', icon: 'fas fa-file-invoice', label: 'Invoices' },
           { path: '/receipts', icon: 'fas fa-receipt', label: 'Receipts' },
@@ -25,20 +28,20 @@ export default function Sidebar() {
         ];
       case 'teacher':
         return [
-          { path: '/', icon: 'fas fa-home', label: 'Today' },
+          { path: '/dashboard', icon: 'fas fa-home', label: 'Today' },
           { path: '/attendance', icon: 'fas fa-calendar-check', label: 'Attendance' },
           { path: '/gradebook', icon: 'fas fa-book', label: 'Gradebook' },
           { path: '/earnings', icon: 'fas fa-dollar-sign', label: 'Earnings' },
         ];
       case 'parent':
         return [
-          { path: '/', icon: 'fas fa-home', label: 'Portal Home' },
+          { path: '/dashboard', icon: 'fas fa-home', label: 'Portal Home' },
           { path: '/attendance', icon: 'fas fa-calendar-alt', label: 'Attendance' },
           { path: '/grades', icon: 'fas fa-graduation-cap', label: 'Grades' },
         ];
       case 'management':
         return [
-          { path: '/', icon: 'fas fa-chart-pie', label: 'Overview' },
+          { path: '/dashboard', icon: 'fas fa-chart-pie', label: 'Overview' },
           { path: '/expenses', icon: 'fas fa-receipt', label: 'Expenses' },
           { path: '/payouts', icon: 'fas fa-money-bill', label: 'Payout Summary' },
         ];
@@ -53,7 +56,7 @@ export default function Sidebar() {
     <div className="w-64 bg-white shadow-lg flex flex-col">
       <div className="p-4 border-b">
         <h2 className="text-xl font-bold text-gray-800">Primax</h2>
-        <p className="text-sm text-gray-600 capitalize">{user?.role} Panel</p>
+        <p className="text-sm text-gray-600 capitalize">{selectedRole} Panel</p>
       </div>
       
       <nav className="flex-1 p-4 space-y-2">
@@ -75,12 +78,12 @@ export default function Sidebar() {
       
       <div className="p-4 border-t">
         <button 
-          onClick={handleLogout}
-          className="w-full flex items-center px-3 py-2 text-red-600 hover:bg-red-50 rounded-md transition-colors min-h-[44px]"
-          data-testid="button-logout"
+          onClick={handleBackToRoleSelection}
+          className="w-full flex items-center px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors min-h-[44px]"
+          data-testid="button-back-to-roles"
         >
-          <i className="fas fa-sign-out-alt w-5 mr-3"></i>
-          Sign Out
+          <i className="fas fa-arrow-left w-5 mr-3"></i>
+          Change Role
         </button>
       </div>
     </div>
