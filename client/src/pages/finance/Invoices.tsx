@@ -17,6 +17,12 @@ export default function Invoices() {
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [showCreateInvoiceDialog, setShowCreateInvoiceDialog] = useState(false);
+  
+  // Advanced filtering states
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [dateRangeFilter, setDateRangeFilter] = useState("all");
+  const [amountRangeFilter, setAmountRangeFilter] = useState("all");
+  const [studentFilter, setStudentFilter] = useState("all");
 
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
@@ -50,9 +56,85 @@ export default function Invoices() {
     return student ? `${student.firstName} ${student.lastName}` : 'Unknown Student';
   };
 
-  const filteredInvoices = invoices?.filter(invoice =>
-    invoice.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase())
-  ) || [];
+  // Enhanced filtering logic
+  const filteredInvoices = invoices?.filter(invoice => {
+    // Text search across invoice number, student name, and notes
+    const studentName = getStudentName(invoice.studentId).toLowerCase();
+    const searchTerms = searchQuery.toLowerCase();
+    const matchesSearch = !searchQuery || 
+      invoice.invoiceNumber?.toLowerCase().includes(searchTerms) ||
+      studentName.includes(searchTerms) ||
+      invoice.notes?.toLowerCase().includes(searchTerms);
+
+    // Status filter
+    const matchesStatus = !statusFilter || statusFilter === "all" || invoice.status === statusFilter;
+
+    // Student filter
+    const matchesStudent = !studentFilter || studentFilter === "all" || invoice.studentId === studentFilter;
+
+    // Date range filter
+    const matchesDateRange = !dateRangeFilter || dateRangeFilter === "all" || (() => {
+      const invoiceDate = new Date(invoice.issueDate);
+      const today = new Date();
+      
+      switch (dateRangeFilter) {
+        case 'today':
+          return invoiceDate.toDateString() === today.toDateString();
+        case 'this-week':
+          const weekStart = new Date(today);
+          weekStart.setDate(today.getDate() - today.getDay());
+          return invoiceDate >= weekStart;
+        case 'this-month':
+          return invoiceDate.getMonth() === today.getMonth() && 
+                 invoiceDate.getFullYear() === today.getFullYear();
+        case 'last-30-days':
+          const thirtyDaysAgo = new Date(today);
+          thirtyDaysAgo.setDate(today.getDate() - 30);
+          return invoiceDate >= thirtyDaysAgo;
+        default:
+          return true;
+      }
+    })();
+
+    // Amount range filter
+    const matchesAmountRange = !amountRangeFilter || amountRangeFilter === "all" || (() => {
+      const amount = parseFloat(invoice.total);
+      
+      switch (amountRangeFilter) {
+        case 'under-10k':
+          return amount < 10000;
+        case '10k-25k':
+          return amount >= 10000 && amount <= 25000;
+        case '25k-50k':
+          return amount >= 25000 && amount <= 50000;
+        case 'over-50k':
+          return amount > 50000;
+        default:
+          return true;
+      }
+    })();
+
+    return matchesSearch && matchesStatus && matchesStudent && matchesDateRange && matchesAmountRange;
+  }) || [];
+
+  // Clear all filters function
+  const clearAllFilters = () => {
+    setSearchQuery("");
+    setStatusFilter("all");
+    setDateRangeFilter("all");
+    setAmountRangeFilter("all");
+    setStudentFilter("all");
+  };
+
+  // Get filter count for display
+  const getFilterCount = () => {
+    let count = 0;
+    if (statusFilter && statusFilter !== "all") count++;
+    if (dateRangeFilter && dateRangeFilter !== "all") count++;
+    if (amountRangeFilter && amountRangeFilter !== "all") count++;
+    if (studentFilter && studentFilter !== "all") count++;
+    return count;
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -333,26 +415,127 @@ export default function Invoices() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-4">
             <CardTitle>Invoices</CardTitle>
-            <div className="flex space-x-3">
-              <div className="relative">
-                <Input
-                  placeholder="Search invoices..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                  data-testid="input-search-invoices"
-                />
-                <i className="fas fa-search absolute left-3 top-3 text-gray-400"></i>
-              </div>
-              <Button 
-                onClick={() => setShowCreateInvoiceDialog(true)}
-                data-testid="button-create-invoice"
-              >
-                <i className="fas fa-plus mr-2"></i>
-                Create Invoice
-              </Button>
+            <Button 
+              onClick={() => setShowCreateInvoiceDialog(true)}
+              data-testid="button-create-invoice"
+            >
+              <i className="fas fa-plus mr-2"></i>
+              Create Invoice
+            </Button>
+          </div>
+          
+          {/* Enhanced Search and Filters */}
+          <div className="space-y-4">
+            {/* Search Bar */}
+            <div className="relative">
+              <Input
+                placeholder="Search invoices, students, or notes..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 w-full"
+                data-testid="input-search-invoices"
+              />
+              <i className="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+              {searchQuery && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="absolute right-2 top-2 h-6 w-6 p-0"
+                  onClick={() => setSearchQuery("")}
+                >
+                  <i className="fas fa-times text-gray-400"></i>
+                </Button>
+              )}
+            </div>
+
+            {/* Filter Controls */}
+            <div className="flex flex-wrap gap-3 items-center">
+              {/* Status Filter */}
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-32" data-testid="select-status-filter">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="sent">Sent</SelectItem>
+                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="partial">Partial</SelectItem>
+                  <SelectItem value="overdue">Overdue</SelectItem>
+                  <SelectItem value="draft">Draft</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Student Filter */}
+              <Select value={studentFilter} onValueChange={setStudentFilter}>
+                <SelectTrigger className="w-48" data-testid="select-student-filter">
+                  <SelectValue placeholder="Student" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Students</SelectItem>
+                  {students.map((student: any) => (
+                    <SelectItem key={student.id} value={student.id}>
+                      {student.firstName} {student.lastName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Date Range Filter */}
+              <Select value={dateRangeFilter} onValueChange={setDateRangeFilter}>
+                <SelectTrigger className="w-40" data-testid="select-date-filter">
+                  <SelectValue placeholder="Date Range" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Dates</SelectItem>
+                  <SelectItem value="today">Today</SelectItem>
+                  <SelectItem value="this-week">This Week</SelectItem>
+                  <SelectItem value="this-month">This Month</SelectItem>
+                  <SelectItem value="last-30-days">Last 30 Days</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Amount Range Filter */}
+              <Select value={amountRangeFilter} onValueChange={setAmountRangeFilter}>
+                <SelectTrigger className="w-40" data-testid="select-amount-filter">
+                  <SelectValue placeholder="Amount" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Amounts</SelectItem>
+                  <SelectItem value="under-10k">Under Rs. 10K</SelectItem>
+                  <SelectItem value="10k-25k">Rs. 10K - 25K</SelectItem>
+                  <SelectItem value="25k-50k">Rs. 25K - 50K</SelectItem>
+                  <SelectItem value="over-50k">Over Rs. 50K</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Clear Filters */}
+              {getFilterCount() > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearAllFilters}
+                  data-testid="button-clear-filters"
+                >
+                  <i className="fas fa-times mr-1"></i>
+                  Clear Filters ({getFilterCount()})
+                </Button>
+              )}
+            </div>
+
+            {/* Results Count */}
+            <div className="flex justify-between items-center text-sm text-gray-600">
+              <span data-testid="text-results-count">
+                Showing {filteredInvoices.length} of {invoices?.length || 0} invoices
+              </span>
+              
+              {(searchQuery || getFilterCount() > 0) && (
+                <span className="text-blue-600" data-testid="text-active-filters">
+                  <i className="fas fa-filter mr-1"></i>
+                  Filters active
+                </span>
+              )}
             </div>
           </div>
         </CardHeader>
@@ -372,7 +555,20 @@ export default function Invoices() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {filteredInvoices.length > 0 ? filteredInvoices.map((invoice) => (
+                {isLoading ? (
+                  // Loading state
+                  Array.from({ length: 5 }).map((_, index) => (
+                    <tr key={index} className="animate-pulse">
+                      <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-24"></div></td>
+                      <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-32"></div></td>
+                      <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-20"></div></td>
+                      <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-20"></div></td>
+                      <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-16"></div></td>
+                      <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-12"></div></td>
+                      <td className="px-4 py-3"><div className="h-6 bg-gray-200 rounded w-20"></div></td>
+                    </tr>
+                  ))
+                ) : filteredInvoices.length > 0 ? filteredInvoices.map((invoice) => (
                   <tr key={invoice.id} className="hover:bg-gray-50" data-testid={`row-invoice-${invoice.id}`}>
                     <td className="px-4 py-3">
                       <button 
@@ -442,9 +638,27 @@ export default function Invoices() {
                   </tr>
                 )) : (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
-                      <i className="fas fa-file-invoice text-4xl mb-4"></i>
-                      <p>No invoices found</p>
+                    <td colSpan={7} className="px-4 py-12 text-center text-gray-500">
+                      <div className="flex flex-col items-center space-y-2">
+                        <i className="fas fa-search text-gray-300 text-3xl"></i>
+                        <p className="font-medium">No invoices found</p>
+                        <p className="text-sm">
+                          {searchQuery || getFilterCount() > 0 
+                            ? "Try adjusting your search or filters" 
+                            : "No invoices have been created yet"}
+                        </p>
+                        {(searchQuery || getFilterCount() > 0) && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={clearAllFilters}
+                            className="mt-2"
+                          >
+                            <i className="fas fa-times mr-1"></i>
+                            Clear All Filters
+                          </Button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 )}

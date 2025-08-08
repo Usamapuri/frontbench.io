@@ -3,6 +3,12 @@
 This is Primax School Management System, a comprehensive web application designed to replace paper processes and Google Sheets with a unified digital workspace. The system supports four distinct user roles - Finance/Front Desk, Teachers, Parents, and Management - each with tailored interfaces for their specific responsibilities. The application handles enrollment, attendance tracking, grade management, billing, payments, and financial reporting in one integrated platform.
 
 ## Recent Changes
+- **August 8, 2025**: Enhanced Invoices page with dynamic search and filtering capabilities:
+  - Comprehensive search across invoice numbers, student names, and notes
+  - Multi-criteria filtering: Status, Student, Date Range, and Amount Range
+  - Real-time filter count display and clear filters functionality
+  - Enhanced empty states with contextual messaging and clear filter actions
+  - Loading states with skeleton placeholders for better user experience
 - **August 8, 2025**: Implemented comprehensive tuition billing system with advanced features:
   - Monthly invoice generation on 1st of each month for all active students
   - Advance payment processing with automatic credit allocation to future invoices
