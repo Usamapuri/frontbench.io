@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PaymentProgressTracker } from "@/components/PaymentProgressTracker";
+
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Invoice } from "@shared/schema";
@@ -17,7 +17,7 @@ export default function Invoices() {
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [showCreateInvoiceDialog, setShowCreateInvoiceDialog] = useState(false);
-  const [showProgressTracker, setShowProgressTracker] = useState(false);
+
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
   const [transactionNumber, setTransactionNumber] = useState("");
@@ -32,7 +32,7 @@ export default function Invoices() {
     queryKey: ['/api/invoices'],
   });
 
-  const { data: students } = useQuery({
+  const { data: students = [] } = useQuery({
     queryKey: ['/api/students'],
   });
 
@@ -117,9 +117,6 @@ export default function Invoices() {
       return;
     }
 
-    // Show progress tracker
-    setShowProgressTracker(true);
-    
     try {
       await paymentMutation.mutateAsync({
         invoiceId: selectedInvoice.id,
@@ -131,8 +128,6 @@ export default function Invoices() {
       });
     } catch (error) {
       console.error('Payment error:', error);
-    } finally {
-      setShowProgressTracker(false);
     }
   };
 
@@ -406,22 +401,7 @@ export default function Invoices() {
         </DialogContent>
       </Dialog>
 
-      {/* Payment Progress Tracker */}
-      <PaymentProgressTracker
-        isVisible={showProgressTracker}
-        paymentAmount={parseFloat(paymentAmount) || 0}
-        onComplete={() => {
-          setShowProgressTracker(false);
-        }}
-        onError={(error: string) => {
-          setShowProgressTracker(false);
-          toast({
-            title: "Payment cancelled",
-            description: error,
-            variant: "destructive",
-          });
-        }}
-      />
+
 
       {/* Create Invoice Dialog */}
       <Dialog open={showCreateInvoiceDialog} onOpenChange={setShowCreateInvoiceDialog}>

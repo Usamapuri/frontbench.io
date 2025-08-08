@@ -9,7 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { PaymentProgressTracker } from "@/components/PaymentProgressTracker";
+
 import { useToast } from "@/hooks/use-toast";
 import { formatPKR } from "@/lib/currency";
 import { apiRequest } from "@/lib/queryClient";
@@ -23,7 +23,7 @@ export default function StudentLedger() {
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
-  const [showProgressTracker, setShowProgressTracker] = useState(false);
+
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
   const [transactionNumber, setTransactionNumber] = useState("");
@@ -198,9 +198,6 @@ export default function StudentLedger() {
       return;
     }
 
-    // Show progress tracker
-    setShowProgressTracker(true);
-    
     try {
       await paymentMutation.mutateAsync({
         studentId: selectedStudent.id,
@@ -211,8 +208,6 @@ export default function StudentLedger() {
       });
     } catch (error) {
       console.error('Payment error:', error);
-    } finally {
-      setShowProgressTracker(false);
     }
   };
 
@@ -555,22 +550,7 @@ export default function StudentLedger() {
         </DialogContent>
       </Dialog>
 
-      {/* Payment Progress Tracker */}
-      <PaymentProgressTracker
-        isVisible={showProgressTracker}
-        paymentAmount={parseFloat(paymentAmount) || 0}
-        onComplete={() => {
-          setShowProgressTracker(false);
-        }}
-        onError={(error: string) => {
-          setShowProgressTracker(false);
-          toast({
-            title: "Payment cancelled",
-            description: error,
-            variant: "destructive",
-          });
-        }}
-      />
+
     </div>
   );
 }
