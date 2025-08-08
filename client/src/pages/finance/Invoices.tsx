@@ -285,40 +285,286 @@ export default function Invoices() {
     });
   };
 
-  // Handle invoice PDF view/printing
+  // Handle invoice PDF view with format options
   const handleViewInvoicePDF = (invoice: Invoice) => {
+    // Create format selection dialog first
+    const formatChoice = window.confirm("Choose Invoice Format:\n\nOK = Full PDF Format (A4)\nCancel = Thermal Receipt Format");
+    
+    if (formatChoice) {
+      generatePDFInvoice(invoice);
+    } else {
+      generateThermalInvoice(invoice);
+    }
+  };
+
+  // Generate full PDF invoice format
+  const generatePDFInvoice = (invoice: Invoice) => {
     const studentName = getStudentName(invoice.studentId);
-    const invoiceHTML = `
+    const currentDate = new Date().toLocaleDateString();
+    
+    const pdfHTML = `
       <html>
         <head>
-          <title>Invoice ${invoice.invoiceNumber}</title>
+          <title>Invoice ${invoice.invoiceNumber} - Primax Educational Institution</title>
           <style>
-            body { font-family: Arial, sans-serif; margin: 40px; }
-            .header { text-align: center; margin-bottom: 30px; }
-            .invoice-details { margin: 20px 0; }
-            .amount { font-size: 24px; font-weight: bold; color: #2563eb; }
-            .footer { margin-top: 40px; text-align: center; color: #666; }
+            @page { 
+              size: A4; 
+              margin: 20mm; 
+            }
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+            }
+            body { 
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+              line-height: 1.6;
+              color: #333;
+              background: white;
+            }
+            .invoice-container {
+              max-width: 800px;
+              margin: 0 auto;
+              background: white;
+              border: 2px solid #e2e8f0;
+              border-radius: 12px;
+              overflow: hidden;
+            }
+            .header {
+              background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+              color: white;
+              padding: 30px 40px;
+              text-align: center;
+              position: relative;
+            }
+            .header::after {
+              content: '';
+              position: absolute;
+              bottom: -10px;
+              left: 50%;
+              transform: translateX(-50%);
+              width: 0;
+              height: 0;
+              border-left: 20px solid transparent;
+              border-right: 20px solid transparent;
+              border-top: 20px solid #1e40af;
+            }
+            .school-name {
+              font-size: 28px;
+              font-weight: 800;
+              margin-bottom: 8px;
+              text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .school-subtitle {
+              font-size: 16px;
+              opacity: 0.9;
+              font-weight: 300;
+            }
+            .invoice-title {
+              background: #f8fafc;
+              padding: 25px 40px;
+              border-bottom: 3px solid #e2e8f0;
+            }
+            .invoice-number {
+              font-size: 32px;
+              font-weight: 700;
+              color: #1e40af;
+              margin-bottom: 10px;
+            }
+            .invoice-date {
+              color: #64748b;
+              font-size: 14px;
+            }
+            .content {
+              padding: 40px;
+            }
+            .section {
+              margin-bottom: 30px;
+            }
+            .section-title {
+              font-size: 18px;
+              font-weight: 600;
+              color: #1e40af;
+              border-bottom: 2px solid #e2e8f0;
+              padding-bottom: 8px;
+              margin-bottom: 20px;
+            }
+            .detail-grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 20px;
+              margin-bottom: 30px;
+            }
+            .detail-item {
+              display: flex;
+              flex-direction: column;
+            }
+            .detail-label {
+              font-size: 12px;
+              color: #64748b;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+              margin-bottom: 5px;
+              font-weight: 500;
+            }
+            .detail-value {
+              font-size: 16px;
+              font-weight: 600;
+              color: #1e293b;
+            }
+            .amount-section {
+              background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+              padding: 30px;
+              border-radius: 10px;
+              border: 2px solid #cbd5e1;
+              text-align: center;
+              margin: 30px 0;
+            }
+            .total-amount {
+              font-size: 48px;
+              font-weight: 800;
+              color: #1e40af;
+              margin-bottom: 10px;
+              text-shadow: 0 2px 4px rgba(30, 64, 175, 0.1);
+            }
+            .amount-label {
+              font-size: 16px;
+              color: #64748b;
+              text-transform: uppercase;
+              letter-spacing: 1px;
+            }
+            .payment-details {
+              background: #fefce8;
+              border: 2px solid #fbbf24;
+              border-radius: 10px;
+              padding: 20px;
+              margin: 30px 0;
+            }
+            .payment-title {
+              color: #92400e;
+              font-weight: 600;
+              margin-bottom: 15px;
+              display: flex;
+              align-items: center;
+            }
+            .payment-title::before {
+              content: '⚠';
+              margin-right: 10px;
+              font-size: 20px;
+            }
+            .payment-grid {
+              display: grid;
+              grid-template-columns: repeat(2, 1fr);
+              gap: 15px;
+            }
+            .footer {
+              background: #f8fafc;
+              padding: 30px 40px;
+              text-align: center;
+              border-top: 3px solid #e2e8f0;
+              color: #64748b;
+            }
+            .footer-note {
+              font-size: 14px;
+              margin-bottom: 10px;
+            }
+            .footer-signature {
+              font-size: 12px;
+              opacity: 0.8;
+            }
+            .status-badge {
+              display: inline-block;
+              padding: 8px 16px;
+              border-radius: 20px;
+              font-size: 12px;
+              font-weight: 600;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+            }
+            .status-sent { background: #dbeafe; color: #1d4ed8; }
+            .status-paid { background: #dcfce7; color: #16a34a; }
+            .status-overdue { background: #fee2e2; color: #dc2626; }
+            .status-partial { background: #fef3c7; color: #d97706; }
+            @media print {
+              body { -webkit-print-color-adjust: exact; }
+              .invoice-container { border: none; }
+            }
           </style>
         </head>
         <body>
-          <div class="header">
-            <h1>PRIMAX EDUCATIONAL INSTITUTION</h1>
-            <h2>INVOICE</h2>
-          </div>
-          <div class="invoice-details">
-            <p><strong>Invoice Number:</strong> ${invoice.invoiceNumber}</p>
-            <p><strong>Student:</strong> ${studentName}</p>
-            <p><strong>Issue Date:</strong> ${new Date(invoice.issueDate).toLocaleDateString()}</p>
-            <p><strong>Due Date:</strong> ${new Date(invoice.dueDate).toLocaleDateString()}</p>
-            <p><strong>Notes:</strong> ${invoice.notes || 'Monthly tuition fees'}</p>
-            <br>
-            <p class="amount"><strong>Amount Due: Rs. ${Number(invoice.balanceDue || invoice.total).toLocaleString()}</strong></p>
-            <p><strong>Total Amount:</strong> Rs. ${Number(invoice.total).toLocaleString()}</p>
-            <p><strong>Amount Paid:</strong> Rs. ${Number(invoice.amountPaid || 0).toLocaleString()}</p>
-          </div>
-          <div class="footer">
-            <p>Please pay by the due date to avoid late fees</p>
-            <p>Thank you for choosing Primax Educational Institution</p>
+          <div class="invoice-container">
+            <div class="header">
+              <div class="school-name">PRIMAX EDUCATIONAL INSTITUTION</div>
+              <div class="school-subtitle">Excellence in Education Since 2010</div>
+            </div>
+            
+            <div class="invoice-title">
+              <div class="invoice-number">INVOICE #${invoice.invoiceNumber}</div>
+              <div class="invoice-date">Generated on ${currentDate}</div>
+            </div>
+            
+            <div class="content">
+              <div class="section">
+                <div class="section-title">Student & Invoice Details</div>
+                <div class="detail-grid">
+                  <div class="detail-item">
+                    <div class="detail-label">Student Name</div>
+                    <div class="detail-value">${studentName}</div>
+                  </div>
+                  <div class="detail-item">
+                    <div class="detail-label">Invoice Status</div>
+                    <div class="detail-value">
+                      <span class="status-badge status-${invoice.status || 'sent'}">${(invoice.status || 'sent').toUpperCase()}</span>
+                    </div>
+                  </div>
+                  <div class="detail-item">
+                    <div class="detail-label">Issue Date</div>
+                    <div class="detail-value">${new Date(invoice.issueDate).toLocaleDateString('en-GB')}</div>
+                  </div>
+                  <div class="detail-item">
+                    <div class="detail-label">Due Date</div>
+                    <div class="detail-value">${new Date(invoice.dueDate).toLocaleDateString('en-GB')}</div>
+                  </div>
+                </div>
+                
+                ${invoice.notes ? `
+                <div class="detail-item">
+                  <div class="detail-label">Description</div>
+                  <div class="detail-value">${invoice.notes}</div>
+                </div>
+                ` : ''}
+              </div>
+              
+              <div class="amount-section">
+                <div class="total-amount">Rs. ${Number(invoice.balanceDue || invoice.total).toLocaleString()}</div>
+                <div class="amount-label">Amount Due</div>
+              </div>
+              
+              <div class="payment-details">
+                <div class="payment-title">Payment Information</div>
+                <div class="payment-grid">
+                  <div class="detail-item">
+                    <div class="detail-label">Total Amount</div>
+                    <div class="detail-value">Rs. ${Number(invoice.total).toLocaleString()}</div>
+                  </div>
+                  <div class="detail-item">
+                    <div class="detail-label">Amount Paid</div>
+                    <div class="detail-value">Rs. ${Number(invoice.amountPaid || 0).toLocaleString()}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="footer">
+              <div class="footer-note">
+                <strong>Payment Instructions:</strong> Please pay by the due date to avoid late fees.<br>
+                Contact our finance office for payment methods and assistance.
+              </div>
+              <div class="footer-signature">
+                Thank you for choosing Primax Educational Institution<br>
+                Generated on ${currentDate} | This is a computer-generated invoice
+              </div>
+            </div>
           </div>
         </body>
       </html>
@@ -326,14 +572,213 @@ export default function Invoices() {
     
     const printWindow = window.open('', '_blank');
     if (printWindow) {
-      printWindow.document.write(invoiceHTML);
+      printWindow.document.write(pdfHTML);
       printWindow.document.close();
       printWindow.focus();
-      
-      // Auto-trigger print dialog
-      setTimeout(() => {
-        printWindow.print();
-      }, 500);
+      setTimeout(() => printWindow.print(), 500);
+    }
+  };
+
+  // Generate thermal receipt format
+  const generateThermalInvoice = (invoice: Invoice) => {
+    const studentName = getStudentName(invoice.studentId);
+    const currentDate = new Date().toLocaleDateString();
+    const currentTime = new Date().toLocaleTimeString();
+    
+    const thermalHTML = `
+      <html>
+        <head>
+          <title>Invoice ${invoice.invoiceNumber} - Thermal</title>
+          <style>
+            @page { 
+              size: 80mm auto;
+              margin: 2mm;
+            }
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+            }
+            body { 
+              font-family: 'Courier New', monospace;
+              font-size: 11px;
+              line-height: 1.2;
+              color: #000;
+              width: 76mm;
+              margin: 0 auto;
+              background: white;
+            }
+            .receipt {
+              padding: 4mm;
+            }
+            .header {
+              text-align: center;
+              border-bottom: 1px dashed #000;
+              padding-bottom: 4mm;
+              margin-bottom: 4mm;
+            }
+            .school-name {
+              font-size: 14px;
+              font-weight: bold;
+              margin-bottom: 2mm;
+            }
+            .school-address {
+              font-size: 9px;
+              margin-bottom: 2mm;
+            }
+            .doc-type {
+              font-size: 12px;
+              font-weight: bold;
+              margin-top: 2mm;
+            }
+            .section {
+              margin-bottom: 3mm;
+              padding-bottom: 2mm;
+            }
+            .divider {
+              border-bottom: 1px dashed #000;
+              margin: 2mm 0;
+            }
+            .row {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 1mm;
+            }
+            .label {
+              font-weight: bold;
+            }
+            .value {
+              text-align: right;
+            }
+            .invoice-num {
+              font-size: 13px;
+              font-weight: bold;
+              text-align: center;
+              margin: 2mm 0;
+            }
+            .student-name {
+              text-align: center;
+              font-weight: bold;
+              margin: 2mm 0;
+              text-transform: uppercase;
+            }
+            .amount-section {
+              background: #f0f0f0;
+              padding: 2mm;
+              text-align: center;
+              margin: 3mm 0;
+            }
+            .total-amount {
+              font-size: 16px;
+              font-weight: bold;
+            }
+            .amount-label {
+              font-size: 10px;
+              margin-top: 1mm;
+            }
+            .footer {
+              text-align: center;
+              font-size: 8px;
+              margin-top: 4mm;
+              padding-top: 2mm;
+              border-top: 1px dashed #000;
+            }
+            .status {
+              text-align: center;
+              font-weight: bold;
+              padding: 1mm;
+              margin: 2mm 0;
+              border: 1px solid #000;
+            }
+            .datetime {
+              text-align: center;
+              font-size: 9px;
+              margin-bottom: 2mm;
+            }
+            @media print {
+              body { -webkit-print-color-adjust: exact; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="receipt">
+            <div class="header">
+              <div class="school-name">PRIMAX EDUCATIONAL</div>
+              <div class="school-name">INSTITUTION</div>
+              <div class="school-address">Excellence in Education</div>
+              <div class="doc-type">INVOICE</div>
+            </div>
+            
+            <div class="invoice-num">#${invoice.invoiceNumber}</div>
+            
+            <div class="datetime">${currentDate} ${currentTime}</div>
+            
+            <div class="divider"></div>
+            
+            <div class="student-name">${studentName}</div>
+            
+            <div class="divider"></div>
+            
+            <div class="section">
+              <div class="row">
+                <span class="label">Issue Date:</span>
+                <span class="value">${new Date(invoice.issueDate).toLocaleDateString('en-GB')}</span>
+              </div>
+              <div class="row">
+                <span class="label">Due Date:</span>
+                <span class="value">${new Date(invoice.dueDate).toLocaleDateString('en-GB')}</span>
+              </div>
+              <div class="row">
+                <span class="label">Status:</span>
+                <span class="value">${(invoice.status || 'SENT').toUpperCase()}</span>
+              </div>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <div class="section">
+              ${invoice.notes ? `
+              <div class="row" style="margin-bottom: 2mm;">
+                <span style="font-size: 9px;">${invoice.notes}</span>
+              </div>
+              <div class="divider"></div>
+              ` : ''}
+              
+              <div class="row">
+                <span class="label">Total Amount:</span>
+                <span class="value">Rs. ${Number(invoice.total).toLocaleString()}</span>
+              </div>
+              <div class="row">
+                <span class="label">Amount Paid:</span>
+                <span class="value">Rs. ${Number(invoice.amountPaid || 0).toLocaleString()}</span>
+              </div>
+            </div>
+            
+            <div class="amount-section">
+              <div class="total-amount">Rs. ${Number(invoice.balanceDue || invoice.total).toLocaleString()}</div>
+              <div class="amount-label">AMOUNT DUE</div>
+            </div>
+            
+            <div class="status">
+              ${(invoice.status || 'SENT').toUpperCase()}
+            </div>
+            
+            <div class="footer">
+              <div>Pay by due date to avoid late fees</div>
+              <div style="margin-top: 2mm;">Thank you!</div>
+              <div style="margin-top: 2mm;">Generated: ${currentDate}</div>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+    
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(thermalHTML);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => printWindow.print(), 500);
     }
   };
 
