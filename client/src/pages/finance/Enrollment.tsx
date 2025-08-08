@@ -298,7 +298,6 @@ export default function Enrollment() {
                     onChange={(e) => updateFormData('parentPhone', e.target.value)}
                     data-testid="input-parent-phone"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Format: +92 300 1234567 (Pakistani mobile number)</p>
                 </div>
                 
                 <div className="md:col-span-2">
@@ -311,7 +310,6 @@ export default function Enrollment() {
                     onChange={(e) => updateFormData('parentEmail', e.target.value)}
                     data-testid="input-parent-email"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Must be a valid email address (e.g., parent@example.com)</p>
                 </div>
               </div>
             </div>
