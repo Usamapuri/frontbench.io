@@ -16,16 +16,24 @@ export default function Invoices() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [showCreateInvoiceDialog, setShowCreateInvoiceDialog] = useState(false);
   const [showProgressTracker, setShowProgressTracker] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
   const [transactionNumber, setTransactionNumber] = useState("");
+  const [selectedStudentId, setSelectedStudentId] = useState("");
+  const [invoiceAmount, setInvoiceAmount] = useState("");
+  const [invoiceNotes, setInvoiceNotes] = useState("");
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: invoices, isLoading } = useQuery<Invoice[]>({
     queryKey: ['/api/invoices'],
+  });
+
+  const { data: students } = useQuery({
+    queryKey: ['/api/students'],
   });
 
   const filteredInvoices = invoices?.filter(invoice =>
@@ -128,6 +136,64 @@ export default function Invoices() {
     }
   };
 
+  // Create invoice mutation
+  const createInvoiceMutation = useMutation({
+    mutationFn: async (invoiceData: {
+      studentId: string;
+      amount: string;
+      notes: string;
+    }) => {
+      return apiRequest('POST', '/api/invoices', {
+        studentId: invoiceData.studentId,
+        type: 'custom',
+        subtotal: invoiceData.amount,
+        total: invoiceData.amount,
+        notes: invoiceData.notes,
+        issueDate: new Date().toISOString(),
+        dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
+      });
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Invoice created successfully",
+        description: `Invoice created for Rs. ${invoiceAmount}`,
+      });
+      
+      // Refresh invoice data
+      queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
+      
+      // Reset form
+      setSelectedStudentId("");
+      setInvoiceAmount("");
+      setInvoiceNotes("");
+      setShowCreateInvoiceDialog(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to create invoice",
+        description: error.message || "Failed to create invoice",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleCreateInvoice = async () => {
+    if (!selectedStudentId || !invoiceAmount) {
+      toast({
+        title: "Missing information",
+        description: "Please select a student and enter amount",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    await createInvoiceMutation.mutateAsync({
+      studentId: selectedStudentId,
+      amount: invoiceAmount,
+      notes: invoiceNotes || "Custom invoice",
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -156,7 +222,10 @@ export default function Invoices() {
                 />
                 <i className="fas fa-search absolute left-3 top-3 text-gray-400"></i>
               </div>
-              <Button data-testid="button-create-invoice">
+              <Button 
+                onClick={() => setShowCreateInvoiceDialog(true)}
+                data-testid="button-create-invoice"
+              >
                 <i className="fas fa-plus mr-2"></i>
                 Create Invoice
               </Button>
@@ -210,10 +279,30 @@ export default function Invoices() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex space-x-2">
-                        <Button size="sm" variant="ghost" data-testid={`button-view-invoice-${invoice.id}`}>
+                        <Button 
+                          size="sm" 
+                          variant="ghost"
+                          onClick={() => {
+                            toast({
+                              title: "Invoice Details",
+                              description: `Invoice ${invoice.invoiceNumber} - Rs. ${Number(invoice.total).toLocaleString()}`,
+                            });
+                          }}
+                          data-testid={`button-view-invoice-${invoice.id}`}
+                        >
                           <i className="fas fa-eye"></i>
                         </Button>
-                        <Button size="sm" variant="ghost" data-testid={`button-edit-invoice-${invoice.id}`}>
+                        <Button 
+                          size="sm" 
+                          variant="ghost"
+                          onClick={() => {
+                            toast({
+                              title: "Edit Invoice",
+                              description: "Invoice editing functionality coming soon",
+                            });
+                          }}
+                          data-testid={`button-edit-invoice-${invoice.id}`}
+                        >
                           <i className="fas fa-edit"></i>
                         </Button>
                         <Button 
@@ -333,6 +422,72 @@ export default function Invoices() {
           });
         }}
       />
+
+      {/* Create Invoice Dialog */}
+      <Dialog open={showCreateInvoiceDialog} onOpenChange={setShowCreateInvoiceDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Invoice</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="student">Select Student</Label>
+              <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
+                <SelectTrigger data-testid="select-student">
+                  <SelectValue placeholder="Select a student" />
+                </SelectTrigger>
+                <SelectContent>
+                  {students?.map((student: any) => (
+                    <SelectItem key={student.id} value={student.id}>
+                      {student.firstName} {student.lastName} (Roll #{student.rollNumber})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label htmlFor="amount">Invoice Amount (PKR)</Label>
+              <Input
+                id="amount"
+                type="number"
+                value={invoiceAmount}
+                onChange={(e) => setInvoiceAmount(e.target.value)}
+                placeholder="0.00"
+                data-testid="input-invoice-amount"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="notes">Notes (Optional)</Label>
+              <Input
+                id="notes"
+                value={invoiceNotes}
+                onChange={(e) => setInvoiceNotes(e.target.value)}
+                placeholder="Invoice description or notes"
+                data-testid="input-invoice-notes"
+              />
+            </div>
+            
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowCreateInvoiceDialog(false)}
+                data-testid="button-cancel-invoice"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleCreateInvoice}
+                disabled={createInvoiceMutation.isPending}
+                data-testid="button-submit-invoice"
+              >
+                {createInvoiceMutation.isPending ? "Creating..." : "Create Invoice"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

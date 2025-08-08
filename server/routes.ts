@@ -49,6 +49,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = insertStudentSchema.parse(req.body);
       const student = await storage.createStudent(validatedData);
+      
+      // Automatically create an invoice for the new student
+      try {
+        // Get subject enrollments for this student
+        const enrollments = await storage.getEnrollmentsByStudent(student.id);
+        
+        if (enrollments.length > 0) {
+          // Calculate total tuition from enrollments
+          let totalTuition = 0;
+          let subjects = [];
+          
+          for (const enrollment of enrollments) {
+            const subject = await storage.getSubjectById(enrollment.subjectId);
+            if (subject) {
+              totalTuition += parseFloat(subject.fee);
+              subjects.push(subject.name);
+            }
+          }
+          
+          if (totalTuition > 0) {
+            // Create initial invoice for new student
+            await storage.createInvoice({
+              studentId: student.id,
+              invoiceNumber: `INV-${Date.now()}`,
+              type: 'monthly',
+              billingPeriodStart: new Date().toISOString(),
+              billingPeriodEnd: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString(),
+              issueDate: new Date().toISOString(),
+              dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+              subtotal: totalTuition.toFixed(2),
+              total: totalTuition.toFixed(2),
+              amountPaid: '0.00',
+              balanceDue: totalTuition.toFixed(2),
+              status: 'sent',
+              notes: `Initial invoice for ${subjects.join(', ')}`,
+              createdBy: 'system'
+            });
+          }
+        }
+      } catch (invoiceError) {
+        console.error("Error creating initial invoice:", invoiceError);
+        // Don't fail student creation if invoice creation fails
+      }
+      
       res.status(201).json(student);
     } catch (error) {
       console.error("Error creating student:", error);
@@ -227,13 +271,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/payments", async (req: any, res) => {
     try {
-      const validatedData = insertPaymentSchema.parse({
-        ...req.body,
-        receiptNumber: `RCP-${Date.now()}`, // Auto-generate receipt number
-        paymentDate: new Date(req.body.paymentDate), // Convert string to Date
-        receivedBy: 'system', // Default for testing
-      });
-
       // If this payment is for a specific invoice, use partial payment logic
       if (req.body.invoiceId) {
         const invoice = await storage.getInvoiceById(req.body.invoiceId);
@@ -255,8 +292,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         res.status(201).json(result);
       } else {
-        // For general payments without specific invoice
+        // For general payments without specific invoice, create payment with auto-generated receipt
+        const validatedData = insertPaymentSchema.parse({
+          ...req.body,
+          receiptNumber: `RCP-${Date.now()}`,
+          paymentDate: new Date(req.body.paymentDate),
+          receivedBy: 'system',
+        });
+        
         const payment = await storage.createPayment(validatedData);
+        
+        // Try to apply as advance payment to outstanding invoices
+        try {
+          const outstandingInvoices = await storage.getInvoicesByStudent(req.body.studentId);
+          const unpaidInvoices = outstandingInvoices.filter(inv => parseFloat(inv.balanceDue) > 0);
+          
+          if (unpaidInvoices.length > 0) {
+            // Apply payment to oldest invoice first
+            const targetInvoice = unpaidInvoices.sort((a, b) => 
+              new Date(a.issueDate).getTime() - new Date(b.issueDate).getTime()
+            )[0];
+            
+            const paymentAmount = parseFloat(req.body.amount);
+            const invoiceBalance = parseFloat(targetInvoice.balanceDue);
+            const allocationAmount = Math.min(paymentAmount, invoiceBalance);
+            
+            // Create payment allocation
+            await storage.createPaymentAllocation({
+              paymentId: payment.id,
+              invoiceId: targetInvoice.id,
+              amount: allocationAmount.toFixed(2),
+            });
+            
+            // Update invoice
+            const newAmountPaid = parseFloat(targetInvoice.amountPaid) + allocationAmount;
+            const newBalanceDue = parseFloat(targetInvoice.total) - newAmountPaid;
+            
+            await storage.updateInvoice(targetInvoice.id, {
+              amountPaid: newAmountPaid.toFixed(2),
+              balanceDue: newBalanceDue.toFixed(2),
+              status: newBalanceDue <= 0 ? 'paid' : 'partial',
+            });
+          }
+        } catch (allocationError) {
+          console.error("Error allocating payment:", allocationError);
+          // Payment still created successfully, allocation just failed
+        }
+        
         res.status(201).json(payment);
       }
     } catch (error) {
