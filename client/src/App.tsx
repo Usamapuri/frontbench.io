@@ -38,58 +38,67 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={RoleSelector} />
-      <Route path="/dashboard">
-        {() => (
-          <Layout selectedRole={selectedRole}>
-            <Switch>
-              {/* Finance Routes */}
-              {selectedRole === 'finance' && (
-                <>
-                  <Route path="/dashboard" component={FinanceDashboard} />
-                  <Route path="/enrollment" component={Enrollment} />
-                  <Route path="/students" component={StudentLedger} />
-                  <Route path="/invoices" component={Invoices} />
-                  <Route path="/receipts" component={Receipts} />
-                  <Route path="/daily-close" component={DailyClose} />
-                  <Route path="/approvals" component={CashDrawApprovals} />
-                  <Route path="/reports" component={Reports} />
-                </>
-              )}
-              
-              {/* Teacher Routes */}
-              {selectedRole === 'teacher' && (
-                <>
-                  <Route path="/dashboard" component={TeacherDashboard} />
-                  <Route path="/attendance" component={Attendance} />
-                  <Route path="/gradebook" component={Gradebook} />
-                  <Route path="/earnings" component={Earnings} />
-                </>
-              )}
-              
-              {/* Parent Routes */}
-              {selectedRole === 'parent' && (
-                <>
-                  <Route path="/dashboard" component={ParentPortal} />
-                  <Route path="/attendance" component={AttendanceCalendar} />
-                  <Route path="/grades" component={ParentGrades} />
-                </>
-              )}
-              
-              {/* Management Routes */}
-              {selectedRole === 'management' && (
-                <>
-                  <Route path="/dashboard" component={ManagementDashboard} />
-                  <Route path="/expenses" component={Expenses} />
-                  <Route path="/payouts" component={PayoutSummary} />
-                </>
-              )}
-              
-              <Route component={NotFound} />
-            </Switch>
-          </Layout>
-        )}
+      
+      {/* All dashboard routes wrapped in Layout */}
+      <Route path="/:rest*">
+        {(params) => {
+          // If no role selected, redirect to home
+          if (!selectedRole) {
+            window.location.href = '/';
+            return null;
+          }
+          
+          return (
+            <Layout selectedRole={selectedRole}>
+              <Switch>
+                {/* Finance Routes */}
+                {selectedRole === 'finance' && (
+                  <>
+                    <Route path="/dashboard" component={FinanceDashboard} />
+                    <Route path="/enrollment" component={Enrollment} />
+                    <Route path="/students" component={StudentLedger} />
+                    <Route path="/invoices" component={Invoices} />
+                    <Route path="/receipts" component={Receipts} />
+                    <Route path="/daily-close" component={DailyClose} />
+                    <Route path="/approvals" component={CashDrawApprovals} />
+                    <Route path="/reports" component={Reports} />
+                  </>
+                )}
+                
+                {/* Teacher Routes */}
+                {selectedRole === 'teacher' && (
+                  <>
+                    <Route path="/dashboard" component={TeacherDashboard} />
+                    <Route path="/attendance" component={Attendance} />
+                    <Route path="/gradebook" component={Gradebook} />
+                    <Route path="/earnings" component={Earnings} />
+                  </>
+                )}
+                
+                {/* Parent Routes */}
+                {selectedRole === 'parent' && (
+                  <>
+                    <Route path="/dashboard" component={ParentPortal} />
+                    <Route path="/attendance" component={AttendanceCalendar} />
+                    <Route path="/grades" component={ParentGrades} />
+                  </>
+                )}
+                
+                {/* Management Routes */}
+                {selectedRole === 'management' && (
+                  <>
+                    <Route path="/dashboard" component={ManagementDashboard} />
+                    <Route path="/expenses" component={Expenses} />
+                    <Route path="/payouts" component={PayoutSummary} />
+                  </>
+                )}
+                
+                <Route component={NotFound} />
+              </Switch>
+            </Layout>
+          );
+        }}
       </Route>
-      <Route component={NotFound} />
     </Switch>
   );
 }
