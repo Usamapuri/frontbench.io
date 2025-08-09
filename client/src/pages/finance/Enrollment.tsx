@@ -374,6 +374,17 @@ export default function Enrollment() {
                   <input
                     type="checkbox"
                     id="sibling-discount"
+                    checked={formData.discountPercentage === "10"}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        updateFormData('discountPercentage', "10");
+                        // Uncheck referral discount
+                        const referralCheckbox = document.getElementById('referral-discount') as HTMLInputElement;
+                        if (referralCheckbox) referralCheckbox.checked = false;
+                      } else {
+                        updateFormData('discountPercentage', "0");
+                      }
+                    }}
                     className="w-4 h-4 text-blue-600"
                     data-testid="checkbox-sibling-discount"
                   />
@@ -387,6 +398,17 @@ export default function Enrollment() {
                   <input
                     type="checkbox"
                     id="referral-discount"
+                    checked={formData.discountPercentage === "5"}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        updateFormData('discountPercentage', "5");
+                        // Uncheck sibling discount
+                        const siblingCheckbox = document.getElementById('sibling-discount') as HTMLInputElement;
+                        if (siblingCheckbox) siblingCheckbox.checked = false;
+                      } else {
+                        updateFormData('discountPercentage', "0");
+                      }
+                    }}
                     className="w-4 h-4 text-blue-600"
                     data-testid="checkbox-referral-discount"
                   />
@@ -395,6 +417,36 @@ export default function Enrollment() {
                     <div className="text-sm text-gray-600">For students referred by existing families</div>
                   </label>
                 </div>
+
+                <div className="p-3 border rounded-lg">
+                  <Label htmlFor="custom-discount">Custom Discount (%)</Label>
+                  <Input
+                    id="custom-discount"
+                    type="number"
+                    min="0"
+                    max="100"
+                    placeholder="Enter custom discount percentage"
+                    value={formData.discountPercentage && !["5", "10"].includes(formData.discountPercentage) ? formData.discountPercentage : ""}
+                    onChange={(e) => {
+                      updateFormData('discountPercentage', e.target.value);
+                      // Uncheck preset discounts
+                      const siblingCheckbox = document.getElementById('sibling-discount') as HTMLInputElement;
+                      const referralCheckbox = document.getElementById('referral-discount') as HTMLInputElement;
+                      if (siblingCheckbox) siblingCheckbox.checked = false;
+                      if (referralCheckbox) referralCheckbox.checked = false;
+                    }}
+                    data-testid="input-custom-discount"
+                  />
+                  <div className="text-sm text-gray-600 mt-1">Leave blank for no custom discount</div>
+                </div>
+
+                {formData.discountPercentage && parseFloat(formData.discountPercentage) > 0 && (
+                  <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="text-sm font-medium text-green-800">
+                      {parseFloat(formData.discountPercentage)}% discount will be applied to the invoice
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -411,7 +463,65 @@ export default function Enrollment() {
                 <div><strong>Parent:</strong> {formData.parentName}</div>
                 <div><strong>Contact:</strong> {formData.parentPhone}</div>
                 <div><strong>Subjects:</strong> {formData.selectedSubjects?.length || 0} selected</div>
+                {formData.discountPercentage && parseFloat(formData.discountPercentage) > 0 && (
+                  <div><strong>Discount:</strong> {formData.discountPercentage}% will be applied</div>
+                )}
               </div>
+
+              {/* Calculate and show fee breakdown */}
+              {subjects && formData.selectedSubjects && formData.selectedSubjects.length > 0 && (
+                <div className="p-4 border rounded-lg">
+                  <h4 className="font-medium text-gray-800 mb-3">Fee Breakdown</h4>
+                  {formData.selectedSubjects.map(subjectId => {
+                    const subject = subjects.find(s => s.id === subjectId);
+                    return subject ? (
+                      <div key={subject.id} className="flex justify-between text-sm">
+                        <span>{subject.name}</span>
+                        <span>{formatPKR(subject.baseFee)}</span>
+                      </div>
+                    ) : null;
+                  })}
+                  
+                  {formData.selectedSubjects.length > 0 && (
+                    <>
+                      <hr className="my-2" />
+                      <div className="flex justify-between text-sm">
+                        <span>Subtotal</span>
+                        <span>{formatPKR(
+                          formData.selectedSubjects.reduce((total, subjectId) => {
+                            const subject = subjects.find(s => s.id === subjectId);
+                            return total + (subject ? parseFloat(subject.baseFee) : 0);
+                          }, 0)
+                        )}</span>
+                      </div>
+                      
+                      {formData.discountPercentage && parseFloat(formData.discountPercentage) > 0 && (
+                        <>
+                          <div className="flex justify-between text-sm text-green-600">
+                            <span>Discount ({formData.discountPercentage}%)</span>
+                            <span>-{formatPKR(
+                              formData.selectedSubjects.reduce((total, subjectId) => {
+                                const subject = subjects.find(s => s.id === subjectId);
+                                return total + (subject ? parseFloat(subject.baseFee) : 0);
+                              }, 0) * (parseFloat(formData.discountPercentage) / 100)
+                            )}</span>
+                          </div>
+                          <hr className="my-2" />
+                          <div className="flex justify-between font-medium">
+                            <span>Total Amount</span>
+                            <span>{formatPKR(
+                              formData.selectedSubjects.reduce((total, subjectId) => {
+                                const subject = subjects.find(s => s.id === subjectId);
+                                return total + (subject ? parseFloat(subject.baseFee) : 0);
+                              }, 0) * (1 - parseFloat(formData.discountPercentage) / 100)
+                            )}</span>
+                          </div>
+                        </>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           )}
           
