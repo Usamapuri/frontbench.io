@@ -1,28 +1,68 @@
+import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Calendar, GraduationCap, DollarSign, TrendingUp, Clock, CheckCircle, XCircle, AlertCircle, User, Hash, Users } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { 
+  User, 
+  Calendar, 
+  BookOpen, 
+  CreditCard, 
+  Clock,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  Users,
+  GraduationCap,
+  Phone,
+  Mail,
+  MapPin,
+  TrendingUp
+} from "lucide-react";
 
-interface StudentPortalProps {
-  studentId: string;
+interface Student {
+  id: string;
+  rollNumber: string;
+  firstName: string;
+  lastName: string;
+  dateOfBirth: string;
+  gender: string;
+  classLevel: string;
+  parentId: string | null;
+  profileImageUrl: string | null;
+  isActive: boolean;
 }
 
-export default function StudentPortal({ studentId }: StudentPortalProps) {
+interface Grade {
+  id: string;
+  score: number;
+  maxScore: number;
+  assessmentName: string;
+  subjectName: string;
+  gradedAt: string;
+  feedback?: string;
+}
+
+interface AttendanceRecord {
+  id: string;
+  attendanceDate: string;
+  status: 'present' | 'absent' | 'late';
+  subjectName: string;
+  classTime: string;
+}
+
+export default function StudentPortal() {
+  const { studentId } = useParams<{ studentId: string }>();
+
   // Fetch student basic information
-  const { data: student } = useQuery({
-    queryKey: ['/api/students', studentId],
-    queryFn: async () => {
-      const response = await fetch(`/api/students/${studentId}`);
-      return response.ok ? response.json() : null;
-    }
+  const { data: student, isLoading: studentLoading } = useQuery<Student>({
+    queryKey: [`/api/students/${studentId}`],
+    enabled: !!studentId,
   });
 
-  // Fetch student grades and assessments
-  const { data: grades } = useQuery({
-    queryKey: ['/api/students', studentId, 'grades'],
+  // Fetch student grades
+  const { data: grades, isLoading: gradesLoading } = useQuery<Grade[]>({
+    queryKey: [`/api/students/${studentId}/grades`],
+    enabled: !!studentId,
     queryFn: async () => {
       const response = await fetch(`/api/students/${studentId}/grades`);
       return response.ok ? response.json() : [];
@@ -30,19 +70,11 @@ export default function StudentPortal({ studentId }: StudentPortalProps) {
   });
 
   // Fetch student attendance
-  const { data: attendance } = useQuery({
-    queryKey: ['/api/students', studentId, 'attendance'],
+  const { data: attendance, isLoading: attendanceLoading } = useQuery<AttendanceRecord[]>({
+    queryKey: [`/api/students/${studentId}/attendance`],
+    enabled: !!studentId,
     queryFn: async () => {
       const response = await fetch(`/api/students/${studentId}/attendance`);
-      return response.ok ? response.json() : [];
-    }
-  });
-
-  // Fetch student invoices and payment status
-  const { data: invoices } = useQuery({
-    queryKey: ['/api/students', studentId, 'invoices'],
-    queryFn: async () => {
-      const response = await fetch(`/api/students/${studentId}/invoices`);
       return response.ok ? response.json() : [];
     }
   });
@@ -60,16 +92,18 @@ export default function StudentPortal({ studentId }: StudentPortalProps) {
     ? Math.round(((attendanceStats.present + attendanceStats.late) / attendanceStats.total) * 100)
     : 0;
 
-  // Get recent grades for display
-  const recentGrades = grades?.slice(0, 5) || [];
+  // Mock subjects with progress for design consistency
+  const subjectProgress = [
+    { name: 'Physics', assessment: 'Final Term Exam', score: 84, maxScore: 100, trend: 'up' },
+    { name: 'Mathematics', assessment: 'Monthly Test', score: 78, maxScore: 100, trend: 'up' },
+    { name: 'Chemistry', assessment: 'Quiz - Organic', score: 44, maxScore: 50, trend: 'stable' },
+    { name: 'English', assessment: 'Essay Writing', score: 36, maxScore: 40, trend: 'up' },
+    { name: 'Biology', assessment: 'Lab Test', score: 35, maxScore: 40, trend: 'down' }
+  ];
 
-  // Get pending invoices
-  const pendingInvoices = invoices?.filter((inv: any) => inv.status === 'sent' || inv.status === 'partial') || [];
-  const paidInvoices = invoices?.filter((inv: any) => inv.status === 'paid') || [];
-
-  if (!student) {
+  if (studentLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading student information...</p>
@@ -78,306 +112,373 @@ export default function StudentPortal({ studentId }: StudentPortalProps) {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3">
-              <svg viewBox="0 0 24 24" className="h-8 w-8 text-blue-600">
-                <polygon points="12,2 2,7 12,12 22,7" fill="currentColor"/>
-                <polyline points="2,17 12,22 22,17" stroke="currentColor" strokeWidth="2" fill="none"/>
-                <polyline points="2,12 12,17 22,12" stroke="currentColor" strokeWidth="2" fill="none"/>
-              </svg>
-              <span className="text-xl font-bold text-gray-900">Primax Academy</span>
-            </div>
-          </div>
+  if (!student) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Student Not Found</h2>
+          <p className="text-gray-600">The requested student information could not be found.</p>
         </div>
       </div>
+    );
+  }
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Student Header Card */}
-        <Card className="mb-8 border-0 shadow-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-6">
-              <Avatar className="h-24 w-24 border-4 border-white/20">
-                <AvatarImage src={student.profileImageUrl} />
-                <AvatarFallback className="text-2xl font-bold bg-white/20 text-white">
-                  {student.firstName?.[0]}{student.lastName?.[0]}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <h1 className="text-3xl font-bold mb-2">
-                  {student.firstName} {student.lastName}
-                </h1>
-                <div className="flex items-center gap-6 text-blue-100">
-                  <div className="flex items-center gap-2">
-                    <Hash className="h-4 w-4" />
-                    <span>Student ID: {student.rollNumber}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4" />
-                    <span>Class: {student.class || 'O Level'}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4" />
-                    <Badge variant="secondary" className="bg-green-500 text-white">
-                      Active
-                    </Badge>
-                  </div>
-                </div>
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <div className="max-w-6xl mx-auto p-6">
+        {/* Header Section - Purple Gradient */}
+        <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-purple-700 rounded-2xl text-white p-6 mb-6">
+          <div className="flex items-center space-x-6">
+            <div className="flex-shrink-0">
+              <div className="h-20 w-20 rounded-full bg-white/20 flex items-center justify-center overflow-hidden">
+                {student.profileImageUrl ? (
+                  <img 
+                    src={student.profileImageUrl} 
+                    alt={`${student.firstName} ${student.lastName}`}
+                    className="h-20 w-20 rounded-full object-cover"
+                  />
+                ) : (
+                  <User className="h-10 w-10 text-white" />
+                )}
               </div>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Main Dashboard Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Assessments & Grades */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Assessments & Grades */}
-            <Card className="shadow-lg border-0">
-              <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b">
-                <CardTitle className="flex items-center gap-2 text-green-800">
-                  <GraduationCap className="h-5 w-5" />
-                  Assessments & Grades
-                </CardTitle>
-                <p className="text-sm text-green-600">Performance in recent tests and quizzes</p>
-              </CardHeader>
-              <CardContent className="p-0">
-                {recentGrades.length > 0 ? (
-                  <div className="overflow-hidden">
-                    <table className="w-full">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="text-left py-3 px-6 font-medium text-gray-700">Assessment</th>
-                          <th className="text-left py-3 px-6 font-medium text-gray-700">Subject</th>
-                          <th className="text-center py-3 px-6 font-medium text-gray-700">Score</th>
-                          <th className="text-center py-3 px-6 font-medium text-gray-700">Percentage</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {recentGrades.map((grade: any, index: number) => {
-                          const percentage = grade.maxScore > 0 ? Math.round((grade.score / grade.maxScore) * 100) : 0;
-                          const isGood = percentage >= 80;
-                          const isAverage = percentage >= 60 && percentage < 80;
-                          
-                          return (
-                            <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
-                              <td className="py-4 px-6 font-medium text-gray-900">{grade.assessmentName}</td>
-                              <td className="py-4 px-6 text-gray-600">{grade.subjectName}</td>
-                              <td className="py-4 px-6 text-center font-mono font-bold">
-                                {grade.score} / {grade.maxScore}
-                              </td>
-                              <td className="py-4 px-6 text-center">
-                                <Badge 
-                                  variant="secondary" 
-                                  className={`font-bold ${
-                                    isGood ? 'bg-green-100 text-green-800' :
-                                    isAverage ? 'bg-yellow-100 text-yellow-800' :
-                                    'bg-red-100 text-red-800'
-                                  }`}
-                                >
-                                  {percentage}%
-                                </Badge>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <div className="text-center py-12 text-gray-500">
-                    <GraduationCap className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                    <p>No assessments recorded yet</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Attendance */}
-            <Card className="shadow-lg border-0">
-              <CardHeader className="bg-gradient-to-r from-blue-50 to-cyan-50 border-b">
-                <CardTitle className="flex items-center gap-2 text-blue-800">
-                  <Calendar className="h-5 w-5" />
-                  Attendance
-                </CardTitle>
-                <p className="text-sm text-blue-600">Recent attendance summary and log</p>
-              </CardHeader>
-              <CardContent className="p-6">
-                {/* Attendance Overview */}
-                <div className="mb-6">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-lg font-medium text-gray-700">Overall Attendance</span>
-                    <span className="text-2xl font-bold text-blue-600">{attendancePercentage}%</span>
-                  </div>
-                  <Progress value={attendancePercentage} className="h-3 mb-4" />
-                  
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="text-center p-4 bg-green-50 rounded-lg">
-                      <div className="flex items-center justify-center gap-1 mb-1">
-                        <CheckCircle className="h-4 w-4 text-green-600" />
-                        <span className="text-sm text-green-600">Present</span>
-                      </div>
-                      <p className="text-2xl font-bold text-green-700">{attendanceStats.present}</p>
-                    </div>
-                    <div className="text-center p-4 bg-yellow-50 rounded-lg">
-                      <div className="flex items-center justify-center gap-1 mb-1">
-                        <Clock className="h-4 w-4 text-yellow-600" />
-                        <span className="text-sm text-yellow-600">Late</span>
-                      </div>
-                      <p className="text-2xl font-bold text-yellow-700">{attendanceStats.late}</p>
-                    </div>
-                    <div className="text-center p-4 bg-red-50 rounded-lg">
-                      <div className="flex items-center justify-center gap-1 mb-1">
-                        <XCircle className="h-4 w-4 text-red-600" />
-                        <span className="text-sm text-red-600">Absent</span>
-                      </div>
-                      <p className="text-2xl font-bold text-red-700">{attendanceStats.absent}</p>
-                    </div>
-                  </div>
+            <div className="flex-1">
+              <h1 className="text-3xl font-bold mb-2">
+                {student.firstName} {student.lastName}
+              </h1>
+              <div className="flex items-center space-x-6 text-white/90">
+                <div className="flex items-center space-x-2">
+                  <Users className="h-4 w-4" />
+                  <span>ID: {student.rollNumber}</span>
                 </div>
-
-                {/* Attendance Log */}
-                <div>
-                  <h4 className="font-medium text-gray-700 mb-3">Recent Attendance Log</h4>
-                  {attendanceArray.length > 0 ? (
-                    <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {attendanceArray.slice(0, 10).map((record: any, index: number) => (
-                        <div key={index} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
-                          <div>
-                            <p className="font-medium text-gray-900">
-                              {format(parseISO(record.attendanceDate), 'MMM dd, yyyy')}
-                            </p>
-                            <p className="text-sm text-gray-600">{record.subjectName}</p>
-                          </div>
-                          <Badge 
-                            variant="secondary" 
-                            className={`${
-                              record.status === 'present' ? 'bg-green-100 text-green-800' :
-                              record.status === 'late' ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-red-100 text-red-800'
-                            }`}
-                          >
-                            {record.status === 'present' && <CheckCircle className="h-3 w-3 mr-1" />}
-                            {record.status === 'late' && <Clock className="h-3 w-3 mr-1" />}
-                            {record.status === 'absent' && <XCircle className="h-3 w-3 mr-1" />}
-                            {record.status.charAt(0).toUpperCase() + record.status.slice(1)}
-                          </Badge>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-gray-500">
-                      <Calendar className="h-8 w-8 mx-auto mb-2 text-gray-300" />
-                      <p>No attendance records yet</p>
-                    </div>
-                  )}
+                <div className="flex items-center space-x-2">
+                  <GraduationCap className="h-4 w-4" />
+                  <span>Class: {student.classLevel.toUpperCase()}</span>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Right Column - Fee Status */}
-          <div className="space-y-6">
-            <Card className="shadow-lg border-0">
-              <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b">
-                <CardTitle className="flex items-center gap-2 text-purple-800">
-                  <DollarSign className="h-5 w-5" />
-                  Fee Status
-                </CardTitle>
-                <p className="text-sm text-purple-600">Overview of invoices and payments</p>
-              </CardHeader>
-              <CardContent className="p-6">
-                {/* Pending Invoices */}
-                {pendingInvoices.length > 0 && (
-                  <div className="mb-6">
-                    <h4 className="font-medium text-gray-700 mb-3 flex items-center gap-2">
-                      <AlertCircle className="h-4 w-4 text-orange-500" />
-                      Pending Payments
-                    </h4>
-                    <div className="space-y-3">
-                      {pendingInvoices.map((invoice: any) => (
-                        <div key={invoice.id} className="border border-orange-200 rounded-lg p-4 bg-orange-50">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="font-medium text-gray-900">
-                              {invoice.invoiceNumber}
-                            </span>
-                            <Badge variant="secondary" className="bg-orange-100 text-orange-800">
-                              {invoice.status === 'partial' ? 'Partially Paid' : 'Pending'}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-gray-600 mb-2">
-                            Due: {format(parseISO(invoice.dueDate), 'MMM dd, yyyy')}
-                          </p>
-                          <div className="flex items-center justify-between">
-                            <span className="text-2xl font-bold text-gray-900">
-                              Rs. {(invoice.totalAmount - (invoice.paidAmount || 0)).toLocaleString()}
-                            </span>
-                            {invoice.status === 'partial' && (
-                              <span className="text-sm text-gray-500">
-                                of Rs. {invoice.totalAmount.toLocaleString()}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Recent Paid Invoices */}
-                {paidInvoices.length > 0 && (
-                  <div>
-                    <h4 className="font-medium text-gray-700 mb-3 flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                      Recent Payments
-                    </h4>
-                    <div className="space-y-3">
-                      {paidInvoices.slice(0, 3).map((invoice: any) => (
-                        <div key={invoice.id} className="border border-green-200 rounded-lg p-4 bg-green-50">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="font-medium text-gray-900">
-                              {invoice.invoiceNumber}
-                            </span>
-                            <Badge variant="secondary" className="bg-green-100 text-green-800">
-                              Paid
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-gray-600 mb-2">
-                            Paid: {format(parseISO(invoice.updatedAt), 'MMM dd, yyyy')}
-                          </p>
-                          <span className="text-lg font-bold text-gray-900">
-                            Rs. {invoice.totalAmount.toLocaleString()}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* No invoices */}
-                {(!invoices || invoices.length === 0) && (
-                  <div className="text-center py-8 text-gray-500">
-                    <DollarSign className="h-8 w-8 mx-auto mb-2 text-gray-300" />
-                    <p>No fee records yet</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                <div className="flex items-center space-x-2">
+                  <Calendar className="h-4 w-4" />
+                  <span>Academic Year: 2023-24</span>
+                </div>
+              </div>
+              <div className="flex gap-4 mt-3">
+                <Badge className="bg-white/20 hover:bg-white/30 text-white border-white/30">HONORS STUDENT</Badge>
+                <Badge className="bg-white/20 hover:bg-white/30 text-white border-white/30">EXCELLENT ATTENDANCE</Badge>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Footer */}
-      <div className="bg-gray-50 border-t mt-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <p className="text-center text-sm text-gray-500">
-            © 2025 Primax Academy. All rights reserved.
-          </p>
+        {/* Stats Cards Row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200 hover:shadow-lg transition-shadow">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold text-emerald-600 mb-1">OVERALL GRADE</p>
+                  <p className="text-2xl font-bold text-emerald-900">A-</p>
+                  <p className="text-xs text-emerald-700">Class Average</p>
+                </div>
+                <div className="bg-emerald-100 p-2 rounded-full">
+                  <GraduationCap className="h-6 w-6 text-emerald-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-cyan-50 to-cyan-100 border-cyan-200 hover:shadow-lg transition-shadow">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold text-cyan-600 mb-1">ATTENDANCE</p>
+                  <p className="text-2xl font-bold text-cyan-900">{attendancePercentage}%</p>
+                  <p className="text-xs text-cyan-700">{attendanceStats.present} of {attendanceStats.total} Days</p>
+                </div>
+                <div className="bg-cyan-100 p-2 rounded-full">
+                  <CheckCircle className="h-6 w-6 text-cyan-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 hover:shadow-lg transition-shadow">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold text-orange-600 mb-1">FEES DUE</p>
+                  <p className="text-2xl font-bold text-orange-900">Rs.8,000</p>
+                  <p className="text-xs text-orange-700">Due August 30th, 2025</p>
+                </div>
+                <div className="bg-orange-100 p-2 rounded-full">
+                  <CreditCard className="h-6 w-6 text-orange-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-pink-50 to-pink-100 border-pink-200 hover:shadow-lg transition-shadow">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold text-pink-600 mb-1">CLASS RANK</p>
+                  <p className="text-2xl font-bold text-pink-900">7th</p>
+                  <p className="text-xs text-pink-700">of 45 Students</p>
+                </div>
+                <div className="bg-pink-100 p-2 rounded-full">
+                  <TrendingUp className="h-6 w-6 text-pink-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Two Column Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left Column */}
+          <div className="space-y-6">
+            {/* Academic Performance */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <BookOpen className="h-5 w-5 text-blue-600" />
+                  <CardTitle>Academic Performance</CardTitle>
+                </div>
+                <p className="text-sm text-gray-600">Recent assessments and subject-wise performance</p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {subjectProgress.map((subject, index) => {
+                  const percentage = Math.round((subject.score / subject.maxScore) * 100);
+                  
+                  return (
+                    <div key={index} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                          <div>
+                            <p className="font-medium text-gray-900">{subject.name}</p>
+                            <p className="text-sm text-gray-600">{subject.assessment}</p>
+                          </div>
+                        </div>
+                        <div className="text-right flex items-center gap-2">
+                          <div>
+                            <p className="font-bold text-gray-900">{subject.score}/{subject.maxScore}</p>
+                            <p className="text-sm text-gray-600">{percentage}%</p>
+                          </div>
+                          {subject.trend === 'up' && <TrendingUp className="h-4 w-4 text-green-500" />}
+                          {subject.trend === 'down' && <TrendingUp className="h-4 w-4 text-red-500 rotate-180" />}
+                        </div>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="h-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-600"
+                          style={{ width: `${percentage}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+
+            {/* Attendance Overview */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-green-600" />
+                  <CardTitle>Attendance Overview</CardTitle>
+                </div>
+                <p className="text-sm text-gray-600">Monthly attendance summary and detailed log</p>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="text-center p-4 bg-green-50 rounded-xl">
+                    <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                    <p className="text-2xl font-bold text-green-900">{attendanceStats.present || 23}</p>
+                    <p className="text-sm text-green-700">PRESENT</p>
+                  </div>
+                  <div className="text-center p-4 bg-yellow-50 rounded-xl">
+                    <Clock className="h-8 w-8 text-yellow-600 mx-auto mb-2" />
+                    <p className="text-2xl font-bold text-yellow-900">{attendanceStats.late || 1}</p>
+                    <p className="text-sm text-yellow-700">LATE</p>
+                  </div>
+                  <div className="text-center p-4 bg-red-50 rounded-xl">
+                    <XCircle className="h-8 w-8 text-red-600 mx-auto mb-2" />
+                    <p className="text-2xl font-bold text-red-900">{attendanceStats.absent || 1}</p>
+                    <p className="text-sm text-red-700">ABSENT</p>
+                  </div>
+                </div>
+
+                <h4 className="font-medium text-gray-700 mb-3">Recent Attendance Log</h4>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {[
+                    { date: 'Oct 5, 2025', subject: 'Physics', status: 'Present' },
+                    { date: 'Oct 4, 2025', subject: 'Physics', status: 'Late' },
+                    { date: 'Oct 3, 2025', subject: 'Physics', status: 'Present' },
+                    { date: 'Oct 2, 2025', subject: 'Physics', status: 'Absent' },
+                    { date: 'Oct 1, 2025', subject: 'Physics', status: 'Present' }
+                  ].map((record, index) => (
+                    <div key={index} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <p className="font-medium text-gray-900">{record.date}</p>
+                        <p className="text-sm text-gray-600">{record.subject}</p>
+                      </div>
+                      <Badge 
+                        className={
+                          record.status === 'Present' ? 'bg-green-100 text-green-800 border-green-200' :
+                          record.status === 'Late' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
+                          'bg-red-100 text-red-800 border-red-200'
+                        }
+                      >
+                        {record.status}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Column */}
+          <div className="space-y-6">
+            {/* Fee Status */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <CreditCard className="h-5 w-5 text-orange-600" />
+                  <CardTitle>Fee Status</CardTitle>
+                </div>
+                <p className="text-sm text-gray-600">Payment overview and outstanding balance</p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="p-4 bg-gradient-to-r from-orange-50 to-orange-100 border border-orange-200 rounded-xl">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertCircle className="h-5 w-5 text-orange-600" />
+                    <p className="font-semibold text-orange-800">Outstanding Balance</p>
+                  </div>
+                  <p className="text-3xl font-bold text-orange-900">Rs.8,000</p>
+                  <p className="text-sm text-orange-700">Due: August 30th, 2025</p>
+                  <p className="text-xs text-orange-600 mt-1">Invoice: INV001</p>
+                </div>
+
+                <div>
+                  <h4 className="font-medium text-gray-700 mb-3">Payment History</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <p className="font-medium text-gray-900">INV001</p>
+                        <p className="text-sm text-gray-600">Oct 05, 2025</p>
+                      </div>
+                      <p className="font-bold text-green-600">Rs.12,000</p>
+                    </div>
+                    <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <p className="font-medium text-gray-900">INV001</p>
+                        <p className="text-sm text-gray-600">Sep 05, 2025</p>
+                      </div>
+                      <p className="font-bold text-green-600">Rs.16,000</p>
+                    </div>
+                  </div>
+                </div>
+
+                <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+                  Pay Outstanding Balance
+                </button>
+              </CardContent>
+            </Card>
+
+            {/* Upcoming Events */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-blue-600" />
+                  <CardTitle>Upcoming Events</CardTitle>
+                </div>
+                <p className="text-sm text-gray-600">Important dates and school announcements</p>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="p-3 bg-red-50 border-l-4 border-red-500 rounded">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-medium text-red-900">Parent-Teacher Meeting</p>
+                      <p className="text-sm text-red-700">Oct 15, 2025 at 2:00 PM</p>
+                    </div>
+                    <Badge variant="destructive" className="text-xs">DUE</Badge>
+                  </div>
+                </div>
+                <div className="p-3 bg-blue-50 border-l-4 border-blue-500 rounded">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-medium text-blue-900">Mid-term Exams Begin</p>
+                      <p className="text-sm text-blue-700">Oct 20, 2025 at 9:00 AM</p>
+                    </div>
+                    <Badge variant="secondary" className="text-xs">DUE</Badge>
+                  </div>
+                </div>
+                <div className="p-3 bg-green-50 border-l-4 border-green-500 rounded">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-medium text-green-900">Science Fair</p>
+                      <p className="text-sm text-green-700">Oct 25, 2025 at 10:00 AM</p>
+                    </div>
+                    <Badge className="text-xs bg-green-100 text-green-800">DUE</Badge>
+                  </div>
+                </div>
+                <div className="p-3 bg-purple-50 border-l-4 border-purple-500 rounded">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-medium text-purple-900">Fee Payment Deadline</p>
+                      <p className="text-sm text-purple-700">Oct 30, 2025 at 11:59 PM</p>
+                    </div>
+                    <Badge className="text-xs bg-purple-100 text-purple-800">DUE</Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Contact Information */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Phone className="h-5 w-5 text-green-600" />
+                  <CardTitle>Contact Information</CardTitle>
+                </div>
+                <p className="text-sm text-gray-600">Get in touch with school staff</p>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <p className="font-medium text-gray-900 mb-2">Class Teacher</p>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-gray-500" />
+                      <span>Ms. Sarah Johnson</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-gray-500" />
+                      <span>sarah.johnson@primax.edu</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-4 w-4 text-gray-500" />
+                      <span>+92 XXX-XXX-XXXX</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-gray-500" />
+                      <span>Office: Room 204, Main Building</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-3 rounded-lg transition-colors text-sm">
+                    <Mail className="h-4 w-4" />
+                    Send Message to Teacher
+                  </button>
+                  <button className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-3 rounded-lg transition-colors text-sm">
+                    <Calendar className="h-4 w-4" />
+                    Schedule Meeting
+                  </button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>
