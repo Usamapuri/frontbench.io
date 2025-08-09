@@ -18,7 +18,8 @@ import {
   Phone,
   Mail,
   MapPin,
-  TrendingUp
+  TrendingUp,
+  DollarSign
 } from "lucide-react";
 
 interface Student {
