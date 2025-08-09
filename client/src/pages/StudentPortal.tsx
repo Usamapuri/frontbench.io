@@ -50,8 +50,13 @@ interface AttendanceRecord {
   classTime: string;
 }
 
-export default function StudentPortal() {
-  const { studentId } = useParams<{ studentId: string }>();
+interface StudentPortalProps {
+  studentId?: string;
+}
+
+export default function StudentPortal(props: StudentPortalProps = {}) {
+  const { studentId: urlStudentId } = useParams<{ studentId: string }>();
+  const studentId = props.studentId || urlStudentId;
 
   // Fetch student basic information
   const { data: student, isLoading: studentLoading } = useQuery<Student>({
