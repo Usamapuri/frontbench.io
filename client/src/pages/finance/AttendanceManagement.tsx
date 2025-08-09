@@ -81,6 +81,14 @@ export default function AttendanceManagement() {
     }
   }, [existingAttendance]);
 
+  // Check if attendance has been taken for a class
+  const getClassAttendanceStatus = (classId: string) => {
+    if (classId === selectedClass && existingAttendance && existingAttendance.length > 0) {
+      return 'taken';
+    }
+    return 'not-taken';
+  };
+
   const submitAttendanceMutation = useMutation({
     mutationFn: async () => {
       const promises = attendanceRecords.map(record => 
@@ -227,7 +235,7 @@ export default function AttendanceManagement() {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <School className="h-5 w-5" />
-                Attendance Management
+                Attendance
                 <span className="text-sm font-normal text-gray-500">(Front Desk)</span>
               </CardTitle>
               <p className="text-gray-600 mt-1 flex items-center gap-2">
@@ -326,7 +334,15 @@ export default function AttendanceManagement() {
                         <CardContent className="pt-4">
                           <div className="flex items-center justify-between">
                             <div>
-                              <h4 className="font-medium text-gray-900">{classItem.subject}</h4>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-medium text-gray-900">{classItem.subject}</h4>
+                                {/* Show attendance status */}
+                                {existingAttendance && existingAttendance.length > 0 && selectedClass === classItem.id && (
+                                  <Badge variant="secondary" className="bg-green-100 text-green-800">
+                                    ✓ Taken
+                                  </Badge>
+                                )}
+                              </div>
                               <p className="text-sm text-gray-600">
                                 {classItem.startTime} - {classItem.endTime}
                               </p>

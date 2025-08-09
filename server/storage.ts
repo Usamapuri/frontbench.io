@@ -226,12 +226,12 @@ export class DatabaseStorage implements IStorage {
         startTime: classes.startTime,
         endTime: classes.endTime,
         subject: subjects.name,
-        teacherName: users.replit_username,
+        teacherName: sql<string>`COALESCE(${users.firstName} || ' ' || ${users.lastName}, 'Demo Teacher')`,
         teacherId: classes.teacherId,
       })
       .from(classes)
       .innerJoin(subjects, eq(classes.subjectId, subjects.id))
-      .innerJoin(users, eq(classes.teacherId, users.replit_id))
+      .leftJoin(users, eq(classes.teacherId, users.id))
       .where(
         and(
           eq(classes.dayOfWeek, dayOfWeek),
@@ -465,19 +465,27 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(attendance.attendanceDate));
   }
 
-  async getAttendanceByClassAndDate(classId: string, date: string): Promise<Attendance[]> {
-    const targetDate = new Date(date);
-    const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
-    const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
-
+  async getAttendanceByClassAndDate(classId: string, date: string): Promise<any[]> {
     return await db
-      .select()
+      .select({
+        id: attendance.id,
+        studentId: attendance.studentId,
+        status: attendance.status,
+        markedBy: attendance.markedBy,
+        markedAt: attendance.markedAt,
+        notes: attendance.notes,
+        student: {
+          firstName: students.firstName,
+          lastName: students.lastName,
+          rollNumber: students.rollNumber,
+        }
+      })
       .from(attendance)
+      .innerJoin(students, eq(attendance.studentId, students.id))
       .where(
         and(
           eq(attendance.classId, classId),
-          gte(attendance.date, startOfDay),
-          lte(attendance.date, endOfDay)
+          eq(attendance.attendanceDate, date)
         )
       );
   }
