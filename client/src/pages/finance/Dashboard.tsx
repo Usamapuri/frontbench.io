@@ -5,6 +5,22 @@ import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
 import type { DashboardStats, Transaction, CashDrawRequest } from "@/types";
 
+function formatRelativeTime(date: string | Date): string {
+  const now = new Date();
+  const targetDate = new Date(date);
+  const diffInMs = now.getTime() - targetDate.getTime();
+  const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+  const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+
+  if (diffInMinutes < 1) return 'Just now';
+  if (diffInMinutes < 60) return `${diffInMinutes} minutes ago`;
+  if (diffInHours < 24) return `${diffInHours} hours ago`;
+  if (diffInDays < 7) return `${diffInDays} days ago`;
+  
+  return targetDate.toLocaleDateString();
+}
+
 export default function FinanceDashboard() {
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ['/api/dashboard/stats'],
@@ -192,7 +208,7 @@ export default function FinanceDashboard() {
                     <p className="text-sm font-medium text-gray-900">{request.teacherName}</p>
                     <p className="text-xs text-gray-600">{request.reason}</p>
                     <p className="text-xs text-gray-500">
-                      {new Date(request.requestedAt).toRelativeTimeString()}
+                      {formatRelativeTime(request.requestedAt)}
                     </p>
                   </div>
                   <div className="text-right">
