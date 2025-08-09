@@ -53,6 +53,18 @@ function Router() {
             return null;
           }
           
+          // Special handling for parent role - no layout/sidebar needed
+          if (selectedRole === 'parent') {
+            return (
+              <Switch>
+                <Route path="/dashboard">
+                  {() => <StudentPortal studentId="4067f9d8-8deb-44c5-acaf-9067a0ccca21" />}
+                </Route>
+                <Route component={NotFound} />
+              </Switch>
+            );
+          }
+
           return (
             <Layout selectedRole={selectedRole}>
               <Switch>
@@ -79,15 +91,6 @@ function Router() {
                     <Route path="/attendance" component={Attendance} />
                     <Route path="/gradebook" component={Gradebook} />
                     <Route path="/earnings" component={Earnings} />
-                  </>
-                )}
-                
-                {/* Parent Routes - Simplified single-page portal */}
-                {selectedRole === 'parent' && (
-                  <>
-                    <Route path="/dashboard">
-                      {() => <StudentPortal studentId="4067f9d8-8deb-44c5-acaf-9067a0ccca21" />}
-                    </Route>
                   </>
                 )}
                 
