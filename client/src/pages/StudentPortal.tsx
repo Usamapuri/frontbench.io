@@ -48,12 +48,13 @@ export default function StudentPortal({ studentId }: StudentPortalProps) {
   });
 
   // Calculate attendance statistics
-  const attendanceStats = attendance ? {
-    total: attendance.length,
-    present: attendance.filter((a: any) => a.status === 'present').length,
-    late: attendance.filter((a: any) => a.status === 'late').length,
-    absent: attendance.filter((a: any) => a.status === 'absent').length,
-  } : { total: 0, present: 0, late: 0, absent: 0 };
+  const attendanceArray = Array.isArray(attendance) ? attendance : [];
+  const attendanceStats = {
+    total: attendanceArray.length,
+    present: attendanceArray.filter((a: any) => a.status === 'present').length,
+    late: attendanceArray.filter((a: any) => a.status === 'late').length,
+    absent: attendanceArray.filter((a: any) => a.status === 'absent').length,
+  };
 
   const attendancePercentage = attendanceStats.total > 0 
     ? Math.round(((attendanceStats.present + attendanceStats.late) / attendanceStats.total) * 100)
@@ -243,9 +244,9 @@ export default function StudentPortal({ studentId }: StudentPortalProps) {
                 {/* Attendance Log */}
                 <div>
                   <h4 className="font-medium text-gray-700 mb-3">Recent Attendance Log</h4>
-                  {attendance && attendance.length > 0 ? (
+                  {attendanceArray.length > 0 ? (
                     <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {attendance.slice(0, 10).map((record: any, index: number) => (
+                      {attendanceArray.slice(0, 10).map((record: any, index: number) => (
                         <div key={index} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
                           <div>
                             <p className="font-medium text-gray-900">

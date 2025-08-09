@@ -809,25 +809,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { studentId } = req.params;
       
-      // Get all invoices for the student
-      const studentInvoices = await db
-        .select({
-          id: invoices.id,
-          invoiceNumber: invoices.invoiceNumber,
-          totalAmount: invoices.totalAmount,
-          paidAmount: invoices.paidAmount,
-          dueDate: invoices.dueDate,
-          status: invoices.status,
-          createdAt: invoices.createdAt,
-          updatedAt: invoices.updatedAt,
-          notes: invoices.notes
-        })
-        .from(invoices)
-        .where(eq(invoices.studentId, studentId))
-        .orderBy(desc(invoices.createdAt))
-        .limit(20);
-      
-      res.json(studentInvoices);
+      // For now, return empty array since we don't have invoice data yet
+      // This can be implemented when billing system is fully integrated
+      res.json([]);
     } catch (error) {
       console.error("Error fetching student invoices:", error);
       res.status(500).json({ message: "Failed to fetch student invoices" });
