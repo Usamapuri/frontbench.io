@@ -286,21 +286,97 @@ export default function Invoices() {
   };
 
   // Handle invoice PDF view with format options
-  const handleViewInvoicePDF = (invoice: Invoice) => {
+  const handleViewInvoicePDF = async (invoice: Invoice) => {
     // Create format selection dialog first
     const formatChoice = window.confirm("Choose Invoice Format:\n\nOK = Full PDF Format (A4)\nCancel = Thermal Receipt Format");
     
     if (formatChoice) {
-      generatePDFInvoice(invoice);
+      await generatePDFInvoice(invoice);
     } else {
-      generateThermalInvoice(invoice);
+      await generateThermalInvoice(invoice);
     }
   };
 
-  // Generate full PDF invoice format
-  const generatePDFInvoice = (invoice: Invoice) => {
+  // Generate full PDF invoice format with detailed line items
+  const generatePDFInvoice = async (invoice: Invoice) => {
     const studentName = getStudentName(invoice.studentId);
     const currentDate = new Date().toLocaleDateString();
+    
+    // Fetch enrollment data to show detailed line items
+    let lineItemsHTML = '';
+    let subtotalAmount = 0;
+    
+    try {
+      // Get student's enrollments to show individual subject fees
+      const enrollmentsResponse = await fetch(`/api/enrollments/student/${invoice.studentId}`);
+      const enrollments = enrollmentsResponse.ok ? await enrollmentsResponse.json() : [];
+      
+      // Get subjects data to show individual fees
+      const subjectsResponse = await fetch('/api/subjects');
+      const subjects = subjectsResponse.ok ? await subjectsResponse.json() : [];
+      
+      // Build line items for subjects
+      for (const enrollment of enrollments) {
+        const subject = subjects.find((s: any) => s.id === enrollment.subjectId);
+        if (subject) {
+          const fee = parseFloat(subject.baseFee);
+          subtotalAmount += fee;
+          lineItemsHTML += `
+            <div class="line-item">
+              <div class="item-description">${subject.name} - Monthly Tuition</div>
+              <div class="item-amount">Rs. ${fee.toLocaleString()}</div>
+            </div>`;
+        }
+      }
+      
+      // Parse add-ons from invoice notes (add-ons are mentioned in notes)
+      const addOnMatches = invoice.notes?.match(/(Registration Fees|Resource Pack|Online Access)/g) || [];
+      const addOnAmounts = { 'Registration Fees': 5000, 'Resource Pack': 4000, 'Online Access': 6900 };
+      
+      for (const addOn of addOnMatches) {
+        const amount = addOnAmounts[addOn as keyof typeof addOnAmounts];
+        if (amount) {
+          subtotalAmount += amount;
+          lineItemsHTML += `
+            <div class="line-item addon-item">
+              <div class="item-description">${addOn} (One-time fee)</div>
+              <div class="item-amount">Rs. ${amount.toLocaleString()}</div>
+            </div>`;
+        }
+      }
+      
+      // Show discount as negative line item
+      const discountAmount = parseFloat(invoice.discountAmount || '0');
+      if (discountAmount > 0) {
+        const discountText = invoice.notes?.includes('%') 
+          ? invoice.notes.match(/(\d+)% discount/)?.[0] || 'Discount'
+          : `Rs. ${discountAmount.toLocaleString()} Discount`;
+          
+        lineItemsHTML += `
+          <div class="line-item discount-item">
+            <div class="item-description">${discountText}</div>
+            <div class="item-amount discount">-Rs. ${discountAmount.toLocaleString()}</div>
+          </div>`;
+      }
+      
+    } catch (error) {
+      console.error('Error fetching enrollment data:', error);
+      // Fallback to basic display
+      lineItemsHTML = `
+        <div class="line-item">
+          <div class="item-description">Tuition Fees</div>
+          <div class="item-amount">Rs. ${Number(invoice.subtotal || invoice.total).toLocaleString()}</div>
+        </div>`;
+      
+      const discountAmount = parseFloat(invoice.discountAmount || '0');
+      if (discountAmount > 0) {
+        lineItemsHTML += `
+          <div class="line-item discount-item">
+            <div class="item-description">Discount Applied</div>
+            <div class="item-amount discount">-Rs. ${discountAmount.toLocaleString()}</div>
+          </div>`;
+      }
+    }
     
     const pdfHTML = `
       <html>
@@ -485,6 +561,77 @@ export default function Invoices() {
             .status-paid { background: #dcfce7; color: #16a34a; }
             .status-overdue { background: #fee2e2; color: #dc2626; }
             .status-partial { background: #fef3c7; color: #d97706; }
+            
+            /* Line Items Styles */
+            .line-items-section {
+              margin: 30px 40px;
+              border: 2px solid #e2e8f0;
+              border-radius: 10px;
+              overflow: hidden;
+            }
+            .line-items-header {
+              background: #f8fafc;
+              padding: 15px 20px;
+              border-bottom: 2px solid #e2e8f0;
+              font-weight: 600;
+              color: #374151;
+              display: flex;
+              justify-content: space-between;
+            }
+            .line-item {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              padding: 12px 20px;
+              border-bottom: 1px solid #f1f5f9;
+            }
+            .line-item:last-child {
+              border-bottom: none;
+            }
+            .item-description {
+              font-size: 14px;
+              color: #374151;
+            }
+            .item-amount {
+              font-size: 14px;
+              font-weight: 600;
+              color: #111827;
+            }
+            .addon-item {
+              background: #f0f9ff;
+            }
+            .addon-item .item-description {
+              color: #1e40af;
+            }
+            .discount-item {
+              background: #f0fdf4;
+            }
+            .discount-item .item-description {
+              color: #16a34a;
+            }
+            .discount {
+              color: #16a34a !important;
+            }
+            .totals-section {
+              background: #f8fafc;
+              padding: 20px;
+              border-top: 2px solid #e2e8f0;
+            }
+            .total-line {
+              display: flex;
+              justify-content: space-between;
+              padding: 8px 0;
+              font-size: 16px;
+            }
+            .final-total {
+              border-top: 2px solid #1e40af;
+              margin-top: 10px;
+              padding-top: 10px;
+              font-weight: 700;
+              font-size: 18px;
+              color: #1e40af;
+            }
+            
             @media print {
               body { -webkit-print-color-adjust: exact; }
               .invoice-container { border: none; }
@@ -535,23 +682,33 @@ export default function Invoices() {
                 ` : ''}
               </div>
               
+              <!-- Detailed Line Items Section -->
+              <div class="line-items-section">
+                <div class="line-items-header">
+                  <span>ITEM DESCRIPTION</span>
+                  <span>AMOUNT</span>
+                </div>
+                ${lineItemsHTML}
+                
+                <div class="totals-section">
+                  <div class="total-line">
+                    <span>TOTAL AMOUNT:</span>
+                    <span><strong>Rs. ${Number(invoice.total).toLocaleString()}</strong></span>
+                  </div>
+                  <div class="total-line">
+                    <span>Amount Paid:</span>
+                    <span>Rs. ${Number(invoice.amountPaid || 0).toLocaleString()}</span>
+                  </div>
+                  <div class="total-line final-total">
+                    <span>BALANCE DUE:</span>
+                    <span>Rs. ${Number(invoice.balanceDue || invoice.total).toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+              
               <div class="amount-section">
                 <div class="total-amount">Rs. ${Number(invoice.balanceDue || invoice.total).toLocaleString()}</div>
                 <div class="amount-label">Amount Due</div>
-              </div>
-              
-              <div class="payment-details">
-                <div class="payment-title">Payment Information</div>
-                <div class="payment-grid">
-                  <div class="detail-item">
-                    <div class="detail-label">Total Amount</div>
-                    <div class="detail-value">Rs. ${Number(invoice.total).toLocaleString()}</div>
-                  </div>
-                  <div class="detail-item">
-                    <div class="detail-label">Amount Paid</div>
-                    <div class="detail-value">Rs. ${Number(invoice.amountPaid || 0).toLocaleString()}</div>
-                  </div>
-                </div>
               </div>
             </div>
             
@@ -579,11 +736,84 @@ export default function Invoices() {
     }
   };
 
-  // Generate thermal receipt format
-  const generateThermalInvoice = (invoice: Invoice) => {
+  // Generate thermal receipt format with detailed line items
+  const generateThermalInvoice = async (invoice: Invoice) => {
     const studentName = getStudentName(invoice.studentId);
     const currentDate = new Date().toLocaleDateString();
     const currentTime = new Date().toLocaleTimeString();
+    
+    // Fetch enrollment data to show detailed line items
+    let lineItemsHTML = '';
+    
+    try {
+      // Get student's enrollments to show individual subject fees
+      const enrollmentsResponse = await fetch(`/api/enrollments/student/${invoice.studentId}`);
+      const enrollments = enrollmentsResponse.ok ? await enrollmentsResponse.json() : [];
+      
+      // Get subjects data to show individual fees
+      const subjectsResponse = await fetch('/api/subjects');
+      const subjects = subjectsResponse.ok ? await subjectsResponse.json() : [];
+      
+      // Build line items for subjects
+      for (const enrollment of enrollments) {
+        const subject = subjects.find((s: any) => s.id === enrollment.subjectId);
+        if (subject) {
+          const fee = parseFloat(subject.baseFee);
+          lineItemsHTML += `
+            <div class="row">
+              <span style="font-size: 9px;">${subject.name}</span>
+              <span>Rs.${fee.toLocaleString()}</span>
+            </div>`;
+        }
+      }
+      
+      // Parse add-ons from invoice notes
+      const addOnMatches = invoice.notes?.match(/(Registration Fees|Resource Pack|Online Access)/g) || [];
+      const addOnAmounts = { 'Registration Fees': 5000, 'Resource Pack': 4000, 'Online Access': 6900 };
+      
+      for (const addOn of addOnMatches) {
+        const amount = addOnAmounts[addOn as keyof typeof addOnAmounts];
+        if (amount) {
+          lineItemsHTML += `
+            <div class="row" style="background: #f0f0f0; padding: 0.5mm;">
+              <span style="font-size: 8px;">${addOn}</span>
+              <span>Rs.${amount.toLocaleString()}</span>
+            </div>`;
+        }
+      }
+      
+      // Show discount as negative line item
+      const discountAmount = parseFloat(invoice.discountAmount || '0');
+      if (discountAmount > 0) {
+        const discountText = invoice.notes?.includes('%') 
+          ? invoice.notes.match(/(\d+)% discount/)?.[0] || 'Discount'
+          : `Rs.${discountAmount.toLocaleString()} Discount`;
+          
+        lineItemsHTML += `
+          <div class="row" style="background: #e6ffe6; padding: 0.5mm;">
+            <span style="font-size: 8px;">${discountText}</span>
+            <span style="color: #008000;">-Rs.${discountAmount.toLocaleString()}</span>
+          </div>`;
+      }
+      
+    } catch (error) {
+      console.error('Error fetching enrollment data:', error);
+      // Fallback to basic display
+      lineItemsHTML = `
+        <div class="row">
+          <span style="font-size: 9px;">Tuition Fees</span>
+          <span>Rs.${Number(invoice.subtotal || invoice.total).toLocaleString()}</span>
+        </div>`;
+      
+      const discountAmount = parseFloat(invoice.discountAmount || '0');
+      if (discountAmount > 0) {
+        lineItemsHTML += `
+          <div class="row" style="background: #e6ffe6; padding: 0.5mm;">
+            <span style="font-size: 8px;">Discount</span>
+            <span style="color: #008000;">-Rs.${discountAmount.toLocaleString()}</span>
+          </div>`;
+      }
+    }
     
     const thermalHTML = `
       <html>
@@ -739,10 +969,18 @@ export default function Invoices() {
             <div class="section">
               ${invoice.notes ? `
               <div class="row" style="margin-bottom: 2mm;">
-                <span style="font-size: 9px;">${invoice.notes}</span>
+                <span style="font-size: 8px;">${invoice.notes}</span>
               </div>
               <div class="divider"></div>
               ` : ''}
+              
+              <!-- Detailed Line Items -->
+              <div style="margin-bottom: 3mm;">
+                <div style="text-align: center; font-weight: bold; font-size: 10px; margin-bottom: 2mm;">INVOICE DETAILS</div>
+                <div class="divider"></div>
+                ${lineItemsHTML}
+                <div class="divider"></div>
+              </div>
               
               <div class="row">
                 <span class="label">Total Amount:</span>

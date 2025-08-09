@@ -72,6 +72,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get enrollments for a specific student  
+  app.get("/api/enrollments/student/:studentId", async (req, res) => {
+    try {
+      const { studentId } = req.params;
+      const enrollments = await storage.getEnrollmentsByStudent(studentId);
+      res.json(enrollments);
+    } catch (error: any) {
+      console.error("Error fetching student enrollments:", error);
+      res.status(500).json({ 
+        message: "Failed to fetch student enrollments", 
+        error: error.message || error 
+      });
+    }
+  });
+
   // Complete enrollment endpoint - creates student, enrollments, and invoice
   app.post("/api/enrollments", async (req, res) => {
     try {
