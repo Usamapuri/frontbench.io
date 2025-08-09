@@ -9,8 +9,24 @@ import {
   insertPaymentSchema,
   insertAttendanceSchema,
   insertAssessmentSchema,
-  insertGradeSchema 
+  insertGradeSchema,
+  students,
+  subjects,
+  classes,
+  enrollments,
+  invoices,
+  payments,
+  paymentAllocations,
+  invoiceAdjustments,
+  attendance,
+  users,
+  expenses,
+  assessments,
+  grades,
+  cashDrawRequests
 } from "@shared/schema";
+import { db } from "./db";
+import { and, desc, eq, gte, lte, sql } from 'drizzle-orm';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Add demo authentication bypass middleware
@@ -706,6 +722,115 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating/updating attendance:", error);
       res.status(400).json({ message: "Failed to create/update attendance" });
+    }
+  });
+
+  // Student Portal API Routes - For parent access to view their child's information
+  
+  // Get comprehensive student information for parent portal
+  app.get("/api/students/:studentId", async (req, res) => {
+    try {
+      const { studentId } = req.params;
+      const student = await storage.getStudent(studentId);
+      
+      if (!student) {
+        return res.status(404).json({ message: "Student not found" });
+      }
+      
+      res.json(student);
+    } catch (error) {
+      console.error("Error fetching student:", error);
+      res.status(500).json({ message: "Failed to fetch student information" });
+    }
+  });
+
+  // Get student grades and assessments
+  app.get("/api/students/:studentId/grades", async (req, res) => {
+    try {
+      const { studentId } = req.params;
+      
+      // Get grades with assessment and subject information
+      const studentGrades = await db
+        .select({
+          id: grades.id,
+          score: grades.marksObtained,
+          maxScore: assessments.totalMarks,
+          assessmentName: assessments.name,
+          subjectName: subjects.name,
+          gradedAt: grades.enteredAt,
+          feedback: grades.comments
+        })
+        .from(grades)
+        .innerJoin(assessments, eq(grades.assessmentId, assessments.id))
+        .innerJoin(subjects, eq(assessments.subjectId, subjects.id))
+        .where(eq(grades.studentId, studentId))
+        .orderBy(desc(grades.enteredAt))
+        .limit(20);
+      
+      res.json(studentGrades);
+    } catch (error) {
+      console.error("Error fetching student grades:", error);
+      res.status(500).json({ message: "Failed to fetch student grades" });
+    }
+  });
+
+  // Get student attendance records
+  app.get("/api/students/:studentId/attendance", async (req, res) => {
+    try {
+      const { studentId } = req.params;
+      
+      // Get attendance with class and subject information
+      const attendanceRecords = await db
+        .select({
+          id: attendance.id,
+          status: attendance.status,
+          attendanceDate: attendance.attendanceDate,
+          notes: attendance.notes,
+          markedAt: attendance.markedAt,
+          subjectName: subjects.name,
+          className: classes.name
+        })
+        .from(attendance)
+        .innerJoin(classes, eq(attendance.classId, classes.id))
+        .innerJoin(subjects, eq(classes.subjectId, subjects.id))
+        .where(eq(attendance.studentId, studentId))
+        .orderBy(desc(attendance.attendanceDate))
+        .limit(50);
+      
+      res.json(attendanceRecords);
+    } catch (error) {
+      console.error("Error fetching student attendance:", error);
+      res.status(500).json({ message: "Failed to fetch student attendance" });
+    }
+  });
+
+  // Get student invoices and payment information
+  app.get("/api/students/:studentId/invoices", async (req, res) => {
+    try {
+      const { studentId } = req.params;
+      
+      // Get all invoices for the student
+      const studentInvoices = await db
+        .select({
+          id: invoices.id,
+          invoiceNumber: invoices.invoiceNumber,
+          totalAmount: invoices.totalAmount,
+          paidAmount: invoices.paidAmount,
+          dueDate: invoices.dueDate,
+          status: invoices.status,
+          createdAt: invoices.createdAt,
+          updatedAt: invoices.updatedAt,
+          notes: invoices.notes
+        })
+        .from(invoices)
+        .where(eq(invoices.studentId, studentId))
+        .orderBy(desc(invoices.createdAt))
+        .limit(20);
+      
+      res.json(studentInvoices);
+    } catch (error) {
+      console.error("Error fetching student invoices:", error);
+      res.status(500).json({ message: "Failed to fetch student invoices" });
     }
   });
 

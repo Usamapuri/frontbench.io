@@ -36,9 +36,7 @@ export default function Sidebar({ selectedRole }: SidebarProps) {
         ];
       case 'parent':
         return [
-          { path: '/dashboard', icon: 'fas fa-home', label: 'Portal Home' },
-          { path: '/attendance', icon: 'fas fa-calendar-alt', label: 'Attendance' },
-          { path: '/grades', icon: 'fas fa-graduation-cap', label: 'Grades' },
+          { path: '/dashboard', icon: 'fas fa-home', label: 'Student Portal' },
         ];
       case 'management':
         return [

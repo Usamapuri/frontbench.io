@@ -24,9 +24,7 @@ import Attendance from "@/pages/teacher/Attendance";
 import Gradebook from "@/pages/teacher/Gradebook";
 import Earnings from "@/pages/teacher/Earnings";
 
-import ParentPortal from "@/pages/parent/Portal";
-import AttendanceCalendar from "@/pages/parent/AttendanceCalendar";
-import ParentGrades from "@/pages/parent/Grades";
+import StudentPortal from "@/pages/StudentPortal";
 
 import ManagementDashboard from "@/pages/management/Dashboard";
 import Expenses from "@/pages/management/Expenses";
@@ -39,6 +37,11 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={RoleSelector} />
+      
+      {/* Public student portal routes - accessible without role selection */}
+      <Route path="/student/:studentId">
+        {(params) => <StudentPortal studentId={params.studentId} />}
+      </Route>
       
       {/* All dashboard routes wrapped in Layout */}
       <Route path="/:rest*">
@@ -77,12 +80,12 @@ function Router() {
                   </>
                 )}
                 
-                {/* Parent Routes */}
+                {/* Parent Routes - Simplified single-page portal */}
                 {selectedRole === 'parent' && (
                   <>
-                    <Route path="/dashboard" component={ParentPortal} />
-                    <Route path="/attendance" component={AttendanceCalendar} />
-                    <Route path="/grades" component={ParentGrades} />
+                    <Route path="/dashboard">
+                      {() => <StudentPortal studentId="4067f9d8-8deb-44c5-acaf-9067a0ccca21" />}
+                    </Route>
                   </>
                 )}
                 
