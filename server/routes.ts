@@ -79,10 +79,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         studentData, 
         selectedSubjects, 
         discountPercentage = 0, 
+        customDiscountAmount = 0,
         additionalFees = [] 
       } = req.body;
 
-      console.log("Processing complete enrollment:", { studentData, selectedSubjects, discountPercentage });
+      console.log("Processing complete enrollment:", { studentData, selectedSubjects, discountPercentage, customDiscountAmount });
 
       // 1. Create the student
       const validatedStudentData = insertStudentSchema.parse(studentData);
@@ -113,7 +114,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // 3. Calculate final amount with discounts
-      const discountAmount = (totalTuition * discountPercentage) / 100;
+      // Use custom discount amount if provided, otherwise use percentage
+      const discountAmount = customDiscountAmount > 0 
+        ? customDiscountAmount 
+        : (totalTuition * discountPercentage) / 100;
       const additionalFeesTotal = additionalFees.reduce((sum: number, fee: any) => sum + parseFloat(fee.amount || 0), 0);
       const finalTotal = totalTuition - discountAmount + additionalFeesTotal;
 
@@ -140,7 +144,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           amountPaid: '0.00',
           balanceDue: finalTotal.toFixed(2),
           status: 'sent',
-          notes: `Initial enrollment invoice for ${subjectNames.join(', ')}${discountPercentage > 0 ? ` (${discountPercentage}% discount applied)` : ''}`,
+          notes: `Initial enrollment invoice for ${subjectNames.join(', ')}${discountAmount > 0 ? (customDiscountAmount > 0 ? ` (Rs.${customDiscountAmount} discount applied)` : ` (${discountPercentage}% discount applied)`) : ''}`,
           createdBy: 'system'
         });
         
