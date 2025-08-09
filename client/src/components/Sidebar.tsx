@@ -22,6 +22,7 @@ export default function Sidebar({ selectedRole }: SidebarProps) {
           { path: '/invoices', icon: 'fas fa-file-invoice', label: 'Invoices' },
           { path: '/receipts', icon: 'fas fa-receipt', label: 'Receipts' },
           { path: '/students', icon: 'fas fa-users', label: 'Student Ledger' },
+          { path: '/attendance-management', icon: 'fas fa-calendar-check', label: 'Attendance Management' },
           { path: '/daily-close', icon: 'fas fa-lock', label: 'Daily Close' },
           { path: '/reports', icon: 'fas fa-chart-line', label: 'Reports' },
           { path: '/approvals', icon: 'fas fa-check-circle', label: 'Cash Draw Approvals' },

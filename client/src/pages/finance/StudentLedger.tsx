@@ -3,10 +3,22 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -28,104 +40,136 @@ export default function StudentLedger() {
   const [paymentMethod, setPaymentMethod] = useState("");
   const [transactionNumber, setTransactionNumber] = useState("");
   const [reminderMessage, setReminderMessage] = useState("");
-  
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: students, isLoading } = useQuery<Student[]>({
-    queryKey: ['/api/students'],
+    queryKey: ["/api/students"],
   });
 
   // Fetch financial data for all students
-  const { data: studentsWithFinancialData, isLoading: isLoadingFinancialData } = useQuery({
-    queryKey: ['/api/students-with-financial'],
-    queryFn: async () => {
-      if (!students || students.length === 0) return [];
-      
-      const studentsWithData = await Promise.all(
-        students.map(async (student) => {
-          try {
-            // Fetch financial, attendance, and grade data in parallel
-            const [financialRes, attendanceRes, gradeRes] = await Promise.all([
-              fetch(`/api/students/${student.id}/financial`).then(r => r.ok ? r.json() : null),
-              fetch(`/api/students/${student.id}/attendance`).then(r => r.ok ? r.json() : null),
-              fetch(`/api/students/${student.id}/grade`).then(r => r.ok ? r.json() : null),
-            ]);
-            
-            return {
-              ...student,
-              feeStatus: financialRes?.feeStatus || 'pending',
-              outstandingBalance: financialRes?.outstandingBalance || 0,
-              attendancePercentage: attendanceRes?.attendancePercentage || 0,
-              averageGrade: gradeRes?.averageGrade || 'N/A',
-            };
-          } catch (error) {
-            console.error(`Error fetching data for student ${student.id}:`, error);
-            return {
-              ...student,
-              feeStatus: 'pending' as const,
-              outstandingBalance: 0,
-              attendancePercentage: 0,
-              averageGrade: 'N/A',
-            };
-          }
-        })
-      );
-      
-      return studentsWithData;
-    },
-    enabled: !isLoading && !!students && students.length > 0,
-  });
+  const { data: studentsWithFinancialData, isLoading: isLoadingFinancialData } =
+    useQuery({
+      queryKey: ["/api/students-with-financial"],
+      queryFn: async () => {
+        if (!students || students.length === 0) return [];
 
-  const filteredStudents = studentsWithFinancialData?.filter(student => {
-    const matchesSearch = searchQuery === "" || 
-      `${student.firstName} ${student.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      student.rollNumber.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesClass = classFilter === "all" || classFilter === "" || student.classLevel === classFilter;
-    const matchesFeeStatus = feeStatusFilter === "all" || feeStatusFilter === "" || student.feeStatus === feeStatusFilter;
-    
-    // Attendance filter logic
-    const matchesAttendance = attendanceFilter === "all" || attendanceFilter === "" || 
-      (attendanceFilter === "excellent" && student.attendancePercentage >= 90) ||
-      (attendanceFilter === "good" && student.attendancePercentage >= 75 && student.attendancePercentage < 90) ||
-      (attendanceFilter === "poor" && student.attendancePercentage < 75);
-    
-    return matchesSearch && matchesClass && matchesFeeStatus && matchesAttendance;
-  }) || [];
+        const studentsWithData = await Promise.all(
+          students.map(async (student) => {
+            try {
+              // Fetch financial, attendance, and grade data in parallel
+              const [financialRes, attendanceRes, gradeRes] = await Promise.all(
+                [
+                  fetch(`/api/students/${student.id}/financial`).then((r) =>
+                    r.ok ? r.json() : null,
+                  ),
+                  fetch(`/api/students/${student.id}/attendance`).then((r) =>
+                    r.ok ? r.json() : null,
+                  ),
+                  fetch(`/api/students/${student.id}/grade`).then((r) =>
+                    r.ok ? r.json() : null,
+                  ),
+                ],
+              );
+
+              return {
+                ...student,
+                feeStatus: financialRes?.feeStatus || "pending",
+                outstandingBalance: financialRes?.outstandingBalance || 0,
+                attendancePercentage: attendanceRes?.attendancePercentage || 0,
+                averageGrade: gradeRes?.averageGrade || "N/A",
+              };
+            } catch (error) {
+              console.error(
+                `Error fetching data for student ${student.id}:`,
+                error,
+              );
+              return {
+                ...student,
+                feeStatus: "pending" as const,
+                outstandingBalance: 0,
+                attendancePercentage: 0,
+                averageGrade: "N/A",
+              };
+            }
+          }),
+        );
+
+        return studentsWithData;
+      },
+      enabled: !isLoading && !!students && students.length > 0,
+    });
+
+  const filteredStudents =
+    studentsWithFinancialData?.filter((student) => {
+      const matchesSearch =
+        searchQuery === "" ||
+        `${student.firstName} ${student.lastName}`
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase()) ||
+        student.rollNumber.toLowerCase().includes(searchQuery.toLowerCase());
+
+      const matchesClass =
+        classFilter === "all" ||
+        classFilter === "" ||
+        student.classLevel === classFilter;
+      const matchesFeeStatus =
+        feeStatusFilter === "all" ||
+        feeStatusFilter === "" ||
+        student.feeStatus === feeStatusFilter;
+
+      // Attendance filter logic
+      const matchesAttendance =
+        attendanceFilter === "all" ||
+        attendanceFilter === "" ||
+        (attendanceFilter === "excellent" &&
+          student.attendancePercentage >= 90) ||
+        (attendanceFilter === "good" &&
+          student.attendancePercentage >= 75 &&
+          student.attendancePercentage < 90) ||
+        (attendanceFilter === "poor" && student.attendancePercentage < 75);
+
+      return (
+        matchesSearch && matchesClass && matchesFeeStatus && matchesAttendance
+      );
+    }) || [];
 
   const handleExport = () => {
     // Export functionality would be implemented here
-    console.log('Exporting student ledger...');
+    console.log("Exporting student ledger...");
   };
-  
+
   const handleViewDetails = (student: any) => {
     setSelectedStudent(student);
     setShowDetailsDialog(true);
   };
-  
+
   const handleRecordPayment = async (student: any) => {
     setSelectedStudent(student);
     setPaymentAmount(student.outstandingBalance.toString());
     setPaymentMethod("");
     setTransactionNumber("");
-    
+
     // Fetch the student's outstanding invoices to get the first one to apply payment to
     try {
       const response = await fetch(`/api/students/${student.id}/financial`);
       const financialData = await response.json();
-      
+
       // Store the first outstanding invoice ID if available
-      if (financialData.outstandingInvoices && financialData.outstandingInvoices.length > 0) {
+      if (
+        financialData.outstandingInvoices &&
+        financialData.outstandingInvoices.length > 0
+      ) {
         student.firstInvoiceId = financialData.outstandingInvoices[0].id;
       }
     } catch (error) {
-      console.error('Error fetching student financial data:', error);
+      console.error("Error fetching student financial data:", error);
     }
-    
+
     setShowPaymentDialog(true);
   };
-  
+
   const handleSendReminder = async (student: any) => {
     try {
       // In a real app, this would send SMS/email reminder
@@ -142,7 +186,7 @@ export default function StudentLedger() {
       });
     }
   };
-  
+
   // Payment mutation
   const paymentMutation = useMutation({
     mutationFn: async (paymentData: {
@@ -152,14 +196,16 @@ export default function StudentLedger() {
       transactionNumber?: string;
       notes?: string;
     }) => {
-      const response = await apiRequest('POST', '/api/payments', {
+      const response = await apiRequest("POST", "/api/payments", {
         studentId: paymentData.studentId,
         invoiceId: selectedStudent?.firstInvoiceId, // Link to specific invoice if available
         amount: paymentData.amount,
         paymentMethod: paymentData.paymentMethod,
         transactionNumber: paymentData.transactionNumber,
         paymentDate: new Date().toISOString(),
-        notes: paymentData.notes || `Payment for ${selectedStudent?.firstName} ${selectedStudent?.lastName}`,
+        notes:
+          paymentData.notes ||
+          `Payment for ${selectedStudent?.firstName} ${selectedStudent?.lastName}`,
       });
       return response.json();
     },
@@ -168,11 +214,13 @@ export default function StudentLedger() {
         title: "Payment recorded successfully",
         description: `Payment of Rs. ${paymentAmount} recorded for ${selectedStudent?.firstName} ${selectedStudent?.lastName}`,
       });
-      
+
       // Refresh student data
-      queryClient.invalidateQueries({ queryKey: ['/api/students'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/students-with-financial'] });
-      
+      queryClient.invalidateQueries({ queryKey: ["/api/students"] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/students-with-financial"],
+      });
+
       // Reset form
       setPaymentAmount("");
       setPaymentMethod("");
@@ -207,7 +255,7 @@ export default function StudentLedger() {
         notes: `Payment recorded via Student Ledger for ${selectedStudent.firstName} ${selectedStudent.lastName}`,
       });
     } catch (error) {
-      console.error('Payment error:', error);
+      console.error("Payment error:", error);
     }
   };
 
@@ -246,7 +294,7 @@ export default function StudentLedger() {
             </div>
           </div>
         </CardHeader>
-        
+
         <CardContent className="space-y-6">
           {/* Filters */}
           <div className="flex flex-wrap gap-4">
@@ -260,9 +308,12 @@ export default function StudentLedger() {
                 <SelectItem value="a-level">A-Level</SelectItem>
               </SelectContent>
             </Select>
-            
+
             <Select onValueChange={setFeeStatusFilter}>
-              <SelectTrigger className="w-40" data-testid="select-fee-status-filter">
+              <SelectTrigger
+                className="w-40"
+                data-testid="select-fee-status-filter"
+              >
                 <SelectValue placeholder="All Fee Status" />
               </SelectTrigger>
               <SelectContent>
@@ -272,9 +323,12 @@ export default function StudentLedger() {
                 <SelectItem value="overdue">Overdue</SelectItem>
               </SelectContent>
             </Select>
-            
+
             <Select onValueChange={setAttendanceFilter}>
-              <SelectTrigger className="w-40" data-testid="select-attendance-filter">
+              <SelectTrigger
+                className="w-40"
+                data-testid="select-attendance-filter"
+              >
                 <SelectValue placeholder="All Attendance" />
               </SelectTrigger>
               <SelectContent>
@@ -285,128 +339,176 @@ export default function StudentLedger() {
               </SelectContent>
             </Select>
           </div>
-          
+
           {/* Student Table */}
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3 text-left font-medium text-gray-700">Student</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-700">Class</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-700">Outstanding Fees</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-700">Attendance %</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-700">Avg Grade</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-700">Actions</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-700">
+                    Student
+                  </th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-700">
+                    Class
+                  </th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-700">
+                    Outstanding Fees
+                  </th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-700">
+                    Attendance %
+                  </th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-700">
+                    Avg Grade
+                  </th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-700">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {filteredStudents.length > 0 ? filteredStudents.map((student) => {
-                  return (
-                    <tr key={student.id} className="hover:bg-gray-50" data-testid={`row-student-${student.id}`}>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center">
-                          {student.profileImageUrl && (
-                            <img 
-                              src={student.profileImageUrl} 
-                              alt="Student photo" 
-                              className="w-8 h-8 rounded-full object-cover mr-3"
-                            />
-                          )}
-                          <div>
-                            <p className="font-medium text-gray-900" data-testid={`text-student-name-${student.id}`}>
-                              {student.firstName} {student.lastName}
-                            </p>
-                            <p className="text-gray-500" data-testid={`text-roll-number-${student.id}`}>
-                              Roll: {student.rollNumber}
-                            </p>
+                {filteredStudents.length > 0 ? (
+                  filteredStudents.map((student) => {
+                    return (
+                      <tr
+                        key={student.id}
+                        className="hover:bg-gray-50"
+                        data-testid={`row-student-${student.id}`}
+                      >
+                        <td className="px-4 py-3">
+                          <div className="flex items-center">
+                            {student.profileImageUrl && (
+                              <img
+                                src={student.profileImageUrl}
+                                alt="Student photo"
+                                className="w-8 h-8 rounded-full object-cover mr-3"
+                              />
+                            )}
+                            <div>
+                              <p
+                                className="font-medium text-gray-900"
+                                data-testid={`text-student-name-${student.id}`}
+                              >
+                                {student.firstName} {student.lastName}
+                              </p>
+                              <p
+                                className="text-gray-500"
+                                data-testid={`text-roll-number-${student.id}`}
+                              >
+                                Roll: {student.rollNumber}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge 
-                          variant={student.classLevel === 'a-level' ? 'default' : 'secondary'}
-                          data-testid={`badge-class-${student.id}`}
-                        >
-                          {student.classLevel.toUpperCase()}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-col">
-                          <span 
-                            className={`font-semibold ${student.outstandingBalance > 0 ? 'text-red-600' : 'text-green-600'}`}
-                            data-testid={`text-outstanding-fees-${student.id}`}
-                          >
-                            Rs. {student.outstandingBalance.toLocaleString()}
-                          </span>
-                          <Badge 
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge
                             variant={
-                              student.feeStatus === 'paid' ? 'default' :
-                              student.feeStatus === 'overdue' ? 'destructive' :
-                              student.feeStatus === 'partial' ? 'secondary' : 'outline'
+                              student.classLevel === "a-level"
+                                ? "default"
+                                : "secondary"
                             }
-                            className="w-fit mt-1"
+                            data-testid={`badge-class-${student.id}`}
                           >
-                            {student.feeStatus.charAt(0).toUpperCase() + student.feeStatus.slice(1)}
+                            {student.classLevel.toUpperCase()}
                           </Badge>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center">
-                          <Progress value={student.attendancePercentage} className="w-16 h-2 mr-2" />
-                          <span 
-                            className={`text-sm font-medium ${
-                              student.attendancePercentage >= 90 ? 'text-green-600' : 
-                              student.attendancePercentage >= 75 ? 'text-yellow-600' : 'text-red-600'
-                            }`}
-                            data-testid={`text-attendance-${student.id}`}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-col">
+                            <span
+                              className={`font-semibold ${student.outstandingBalance > 0 ? "text-red-600" : "text-green-600"}`}
+                              data-testid={`text-outstanding-fees-${student.id}`}
+                            >
+                              Rs. {student.outstandingBalance.toLocaleString()}
+                            </span>
+                            <Badge
+                              variant={
+                                student.feeStatus === "paid"
+                                  ? "default"
+                                  : student.feeStatus === "overdue"
+                                    ? "destructive"
+                                    : student.feeStatus === "partial"
+                                      ? "secondary"
+                                      : "outline"
+                              }
+                              className="w-fit mt-1"
+                            >
+                              {student.feeStatus.charAt(0).toUpperCase() +
+                                student.feeStatus.slice(1)}
+                            </Badge>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center">
+                            <Progress
+                              value={student.attendancePercentage}
+                              className="w-16 h-2 mr-2"
+                            />
+                            <span
+                              className={`text-sm font-medium ${
+                                student.attendancePercentage >= 90
+                                  ? "text-green-600"
+                                  : student.attendancePercentage >= 75
+                                    ? "text-yellow-600"
+                                    : "text-red-600"
+                              }`}
+                              data-testid={`text-attendance-${student.id}`}
+                            >
+                              {student.attendancePercentage}%
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge
+                            variant={
+                              student.averageGrade.includes("A")
+                                ? "default"
+                                : student.averageGrade.includes("B")
+                                  ? "secondary"
+                                  : "outline"
+                            }
+                            data-testid={`badge-avg-grade-${student.id}`}
                           >
-                            {student.attendancePercentage}%
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge 
-                          variant={student.averageGrade.includes('A') ? 'default' : student.averageGrade.includes('B') ? 'secondary' : 'outline'}
-                          data-testid={`badge-avg-grade-${student.id}`}
-                        >
-                          {student.averageGrade}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex space-x-2">
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            onClick={() => handleViewDetails(student)}
-                            data-testid={`button-view-details-${student.id}`}
-                          >
-                            <i className="fas fa-eye"></i>
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            className="text-green-600" 
-                            onClick={() => handleRecordPayment(student)}
-                            data-testid={`button-record-payment-${student.id}`}
-                          >
-                            <i className="fas fa-dollar-sign"></i>
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            onClick={() => handleSendReminder(student)}
-                            disabled={student.feeStatus === 'paid'}
-                            data-testid={`button-send-reminder-${student.id}`}
-                          >
-                            <i className="fas fa-bell"></i>
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                }) : (
+                            {student.averageGrade}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex space-x-2">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleViewDetails(student)}
+                              data-testid={`button-view-details-${student.id}`}
+                            >
+                              <i className="fas fa-eye"></i>
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-green-600"
+                              onClick={() => handleRecordPayment(student)}
+                              data-testid={`button-record-payment-${student.id}`}
+                            >
+                              <i className="fas fa-dollar-sign"></i>
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleSendReminder(student)}
+                              disabled={student.feeStatus === "paid"}
+                              data-testid={`button-send-reminder-${student.id}`}
+                            >
+                              <i className="fas fa-bell"></i>
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                    <td
+                      colSpan={6}
+                      className="px-4 py-8 text-center text-gray-500"
+                    >
                       <i className="fas fa-users text-4xl mb-4"></i>
                       <p>No students found</p>
                     </td>
@@ -415,18 +517,30 @@ export default function StudentLedger() {
               </tbody>
             </table>
           </div>
-          
+
           {/* Pagination */}
           {filteredStudents.length > 0 && (
             <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-600" data-testid="text-pagination-info">
-                Showing 1 to {Math.min(10, filteredStudents.length)} of {filteredStudents.length} students
+              <div
+                className="text-sm text-gray-600"
+                data-testid="text-pagination-info"
+              >
+                Showing 1 to {Math.min(10, filteredStudents.length)} of{" "}
+                {filteredStudents.length} students
               </div>
               <div className="flex space-x-2">
-                <Button size="sm" variant="outline" data-testid="button-previous-page">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  data-testid="button-previous-page"
+                >
                   Previous
                 </Button>
-                <Button size="sm" variant="outline" data-testid="button-next-page">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  data-testid="button-next-page"
+                >
                   Next
                 </Button>
               </div>
@@ -434,7 +548,7 @@ export default function StudentLedger() {
           )}
         </CardContent>
       </Card>
-      
+
       {/* Student Details Dialog */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
         <DialogContent className="max-w-2xl">
@@ -446,7 +560,9 @@ export default function StudentLedger() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="font-semibold">Name</Label>
-                  <p>{selectedStudent.firstName} {selectedStudent.lastName}</p>
+                  <p>
+                    {selectedStudent.firstName} {selectedStudent.lastName}
+                  </p>
                 </div>
                 <div>
                   <Label className="font-semibold">Roll Number</Label>
@@ -458,25 +574,42 @@ export default function StudentLedger() {
                 </div>
                 <div>
                   <Label className="font-semibold">Fee Status</Label>
-                  <Badge variant={
-                    selectedStudent.feeStatus === 'paid' ? 'default' :
-                    selectedStudent.feeStatus === 'overdue' ? 'destructive' : 'outline'
-                  }>
-                    {selectedStudent.feeStatus.charAt(0).toUpperCase() + selectedStudent.feeStatus.slice(1)}
+                  <Badge
+                    variant={
+                      selectedStudent.feeStatus === "paid"
+                        ? "default"
+                        : selectedStudent.feeStatus === "overdue"
+                          ? "destructive"
+                          : "outline"
+                    }
+                  >
+                    {selectedStudent.feeStatus.charAt(0).toUpperCase() +
+                      selectedStudent.feeStatus.slice(1)}
                   </Badge>
                 </div>
                 <div>
                   <Label className="font-semibold">Outstanding Balance</Label>
-                  <p className={selectedStudent.outstandingBalance > 0 ? 'text-red-600 font-semibold' : 'text-green-600'}>
+                  <p
+                    className={
+                      selectedStudent.outstandingBalance > 0
+                        ? "text-red-600 font-semibold"
+                        : "text-green-600"
+                    }
+                  >
                     {formatPKR(selectedStudent.outstandingBalance)}
                   </p>
                 </div>
                 <div>
                   <Label className="font-semibold">Attendance</Label>
-                  <p className={
-                    selectedStudent.attendancePercentage >= 90 ? 'text-green-600' :
-                    selectedStudent.attendancePercentage >= 75 ? 'text-yellow-600' : 'text-red-600'
-                  }>
+                  <p
+                    className={
+                      selectedStudent.attendancePercentage >= 90
+                        ? "text-green-600"
+                        : selectedStudent.attendancePercentage >= 75
+                          ? "text-yellow-600"
+                          : "text-red-600"
+                    }
+                  >
                     {selectedStudent.attendancePercentage}%
                   </p>
                 </div>
@@ -485,7 +618,7 @@ export default function StudentLedger() {
           )}
         </DialogContent>
       </Dialog>
-      
+
       {/* Record Payment Dialog */}
       <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
         <DialogContent>
@@ -495,7 +628,10 @@ export default function StudentLedger() {
           {selectedStudent && (
             <div className="space-y-4">
               <div className="text-sm text-gray-600">
-                Recording payment for: <strong>{selectedStudent.firstName} {selectedStudent.lastName}</strong>
+                Recording payment for:{" "}
+                <strong>
+                  {selectedStudent.firstName} {selectedStudent.lastName}
+                </strong>
               </div>
               <div>
                 <Label htmlFor="amount">Payment Amount (PKR)</Label>
@@ -519,11 +655,13 @@ export default function StudentLedger() {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               {/* Transaction Number for Bank Transfer */}
               {paymentMethod === "bank_transfer" && (
                 <div>
-                  <Label htmlFor="transactionNumber">Transaction Number (Optional)</Label>
+                  <Label htmlFor="transactionNumber">
+                    Transaction Number (Optional)
+                  </Label>
                   <Input
                     id="transactionNumber"
                     value={transactionNumber}
@@ -532,25 +670,25 @@ export default function StudentLedger() {
                     className="mt-1"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Enter the bank transaction/reference number for this transfer (if available)
+                    Enter the bank transaction/reference number for this
+                    transfer (if available)
                   </p>
                 </div>
               )}
-              
+
               <div className="flex justify-end space-x-2 pt-4">
-                <Button variant="outline" onClick={() => setShowPaymentDialog(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowPaymentDialog(false)}
+                >
                   Cancel
                 </Button>
-                <Button onClick={handleSubmitPayment}>
-                  Record Payment
-                </Button>
+                <Button onClick={handleSubmitPayment}>Record Payment</Button>
               </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
-
-
     </div>
   );
 }

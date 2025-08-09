@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Check, X, Clock, QrCode, Users, Calendar } from "lucide-react";
+import { Check, X, Clock, QrCode, Users, Calendar, School, ChevronRight } from "lucide-react";
 import QrScanner from "qr-scanner";
 
 interface Student {
@@ -18,12 +18,24 @@ interface Student {
   profileImageUrl?: string;
 }
 
+interface Class {
+  id: string;
+  name: string;
+  subject: string;
+  startTime: string;
+  endTime: string;
+  dayOfWeek: number;
+  teacherName: string;
+  teacherId: string;
+}
+
 interface AttendanceRecord {
   studentId: string;
   status: 'present' | 'absent' | 'late';
 }
 
-export default function Attendance() {
+export default function AttendanceManagement() {
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedClass, setSelectedClass] = useState("");
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [attendanceMethod, setAttendanceMethod] = useState<'tap' | 'qr'>('tap');
@@ -33,8 +45,14 @@ export default function Attendance() {
   const queryClient = useQueryClient();
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  const { data: todayClasses } = useQuery({
-    queryKey: ['/api/teacher/classes/today'],
+  // Fetch all classes for the selected date
+  const { data: allClasses, isLoading: classesLoading } = useQuery<Class[]>({
+    queryKey: ['/api/classes/all', selectedDate],
+    queryFn: async () => {
+      // This would need to be implemented on the backend
+      const response = await fetch(`/api/classes/all?date=${selectedDate}`);
+      return response.ok ? response.json() : [];
+    }
   });
 
   const { data: students, isLoading: studentsLoading } = useQuery<Student[]>({
@@ -42,13 +60,34 @@ export default function Attendance() {
     enabled: !!selectedClass,
   });
 
+  // Get existing attendance for the selected class and date
+  const { data: existingAttendance } = useQuery({
+    queryKey: ['/api/attendance', selectedClass, selectedDate],
+    enabled: !!selectedClass,
+    queryFn: async () => {
+      const response = await fetch(`/api/attendance?classId=${selectedClass}&date=${selectedDate}`);
+      return response.ok ? response.json() : [];
+    }
+  });
+
+  // Update attendance records when existing attendance is loaded
+  useEffect(() => {
+    if (existingAttendance) {
+      const records = existingAttendance.map((att: any) => ({
+        studentId: att.studentId,
+        status: att.status
+      }));
+      setAttendanceRecords(records);
+    }
+  }, [existingAttendance]);
+
   const submitAttendanceMutation = useMutation({
     mutationFn: async () => {
       const promises = attendanceRecords.map(record => 
         apiRequest('POST', '/api/attendance', {
           classId: selectedClass,
           studentId: record.studentId,
-          attendanceDate: new Date().toISOString().split('T')[0],
+          attendanceDate: selectedDate,
           status: record.status,
         })
       );
@@ -57,49 +96,18 @@ export default function Attendance() {
     onSuccess: () => {
       toast({
         title: "Success",
-        description: "Attendance submitted successfully!",
+        description: "Attendance updated successfully!",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/attendance'] });
-      setAttendanceRecords([]);
     },
     onError: () => {
       toast({
         title: "Error",
-        description: "Failed to submit attendance. Please try again.",
+        description: "Failed to update attendance. Please try again.",
         variant: "destructive",
       });
     },
   });
-
-  const markAttendance = (studentId: string, status: 'present' | 'absent' | 'late') => {
-    setAttendanceRecords(prev => {
-      const existing = prev.find(r => r.studentId === studentId);
-      if (existing) {
-        return prev.map(r => r.studentId === studentId ? { ...r, status } : r);
-      }
-      return [...prev, { studentId, status }];
-    });
-  };
-
-  const undoMark = (studentId: string) => {
-    setAttendanceRecords(prev => prev.filter(r => r.studentId !== studentId));
-  };
-
-  const getStudentStatus = (studentId: string): 'present' | 'absent' | 'late' | undefined => {
-    return attendanceRecords.find(r => r.studentId === studentId)?.status;
-  };
-
-  const handleSubmit = () => {
-    if (attendanceRecords.length === 0) {
-      toast({
-        title: "Warning",
-        description: "Please mark attendance for at least one student.",
-        variant: "destructive",
-      });
-      return;
-    }
-    submitAttendanceMutation.mutate();
-  };
 
   // QR Scanner setup
   useEffect(() => {
@@ -128,12 +136,10 @@ export default function Attendance() {
 
   const handleQrScan = (qrData: string) => {
     try {
-      // Expected QR format: studentId:rollNumber or just studentId
       const studentId = qrData.includes(':') ? qrData.split(':')[0] : qrData;
       const student = students?.find(s => s.id === studentId || s.rollNumber === qrData);
       
       if (student) {
-        // Auto-mark as present when QR is scanned
         markAttendance(student.id, 'present');
         toast({
           title: "Student Scanned",
@@ -164,11 +170,53 @@ export default function Attendance() {
     }
   };
 
+  const markAttendance = (studentId: string, status: 'present' | 'absent' | 'late') => {
+    setAttendanceRecords(prev => {
+      const existing = prev.find(r => r.studentId === studentId);
+      if (existing) {
+        return prev.map(r => r.studentId === studentId ? { ...r, status } : r);
+      }
+      return [...prev, { studentId, status }];
+    });
+  };
+
+  const undoMark = (studentId: string) => {
+    setAttendanceRecords(prev => prev.filter(r => r.studentId !== studentId));
+  };
+
+  const getStudentStatus = (studentId: string): 'present' | 'absent' | 'late' | undefined => {
+    return attendanceRecords.find(r => r.studentId === studentId)?.status;
+  };
+
+  const handleSubmit = () => {
+    if (!selectedClass) {
+      toast({
+        title: "Error",
+        description: "Please select a class first.",
+        variant: "destructive",
+      });
+      return;
+    }
+    submitAttendanceMutation.mutate();
+  };
+
   const presentCount = attendanceRecords.filter(r => r.status === 'present').length;
   const absentCount = attendanceRecords.filter(r => r.status === 'absent').length;
   const lateCount = attendanceRecords.filter(r => r.status === 'late').length;
   const totalStudents = students?.length || 0;
   const unmarkedCount = totalStudents - attendanceRecords.length;
+
+  // Group classes by teacher
+  const classesByTeacher = allClasses?.reduce((acc, cls) => {
+    if (!acc[cls.teacherId]) {
+      acc[cls.teacherId] = {
+        teacherName: cls.teacherName,
+        classes: []
+      };
+    }
+    acc[cls.teacherId].classes.push(cls);
+    return acc;
+  }, {} as Record<string, { teacherName: string; classes: Class[] }>) || {};
 
   return (
     <div className="space-y-6">
@@ -178,15 +226,14 @@ export default function Attendance() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Take Attendance
+                <School className="h-5 w-5" />
+                Attendance Management
+                <span className="text-sm font-normal text-gray-500">(Front Desk)</span>
               </CardTitle>
-              {selectedClass && (
-                <p className="text-gray-600 mt-1 flex items-center gap-2" data-testid="text-class-info">
-                  <Calendar className="h-4 w-4" />
-                  {todayClasses?.find((c: any) => c.id === selectedClass)?.subject} - {new Date().toLocaleDateString()}
-                </p>
-              )}
+              <p className="text-gray-600 mt-1 flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                Manage attendance for all classes and teachers
+              </p>
             </div>
             {selectedClass && (
               <div className="grid grid-cols-4 gap-4 text-center">
@@ -195,7 +242,7 @@ export default function Attendance() {
                     <Check className="h-4 w-4 text-green-600" />
                     <span className="text-sm text-gray-600">Present</span>
                   </div>
-                  <p className="text-2xl font-bold text-green-600" data-testid="text-present-count">
+                  <p className="text-2xl font-bold text-green-600">
                     {presentCount}
                   </p>
                 </div>
@@ -204,7 +251,7 @@ export default function Attendance() {
                     <X className="h-4 w-4 text-red-600" />
                     <span className="text-sm text-gray-600">Absent</span>
                   </div>
-                  <p className="text-2xl font-bold text-red-600" data-testid="text-absent-count">
+                  <p className="text-2xl font-bold text-red-600">
                     {absentCount}
                   </p>
                 </div>
@@ -213,7 +260,7 @@ export default function Attendance() {
                     <Clock className="h-4 w-4 text-yellow-600" />
                     <span className="text-sm text-gray-600">Late</span>
                   </div>
-                  <p className="text-2xl font-bold text-yellow-600" data-testid="text-late-count">
+                  <p className="text-2xl font-bold text-yellow-600">
                     {lateCount}
                   </p>
                 </div>
@@ -222,7 +269,7 @@ export default function Attendance() {
                     <Users className="h-4 w-4 text-gray-600" />
                     <span className="text-sm text-gray-600">Unmarked</span>
                   </div>
-                  <p className="text-2xl font-bold text-gray-600" data-testid="text-unmarked-count">
+                  <p className="text-2xl font-bold text-gray-600">
                     {unmarkedCount}
                   </p>
                 </div>
@@ -232,32 +279,95 @@ export default function Attendance() {
         </CardHeader>
         
         <CardContent className="space-y-4">
-          {/* Class Selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Select Class</label>
-            <Select value={selectedClass} onValueChange={setSelectedClass}>
-              <SelectTrigger data-testid="select-class">
-                <SelectValue placeholder="Choose a class..." />
-              </SelectTrigger>
-              <SelectContent>
-                {todayClasses?.map((classItem: any) => (
-                  <SelectItem key={classItem.id} value={classItem.id}>
-                    {classItem.subject} ({classItem.startTime} - {classItem.endTime})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          {/* Date Selection */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Select Date</label>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                data-testid="input-date"
+              />
+            </div>
           </div>
 
-          {/* Method Toggle */}
+          {/* Classes by Teacher */}
+          {classesLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="animate-pulse bg-gray-200 h-24 rounded-lg"></div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {Object.entries(classesByTeacher).map(([teacherId, { teacherName, classes }]) => (
+                <div key={teacherId}>
+                  <h3 className="text-lg font-medium text-gray-900 mb-3 flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    {teacherName}
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {classes.map((classItem) => (
+                      <Card 
+                        key={classItem.id}
+                        className={`cursor-pointer transition-all ${
+                          selectedClass === classItem.id 
+                            ? 'bg-blue-50 border-blue-500 shadow-md' 
+                            : 'hover:bg-gray-50 border-gray-200'
+                        }`}
+                        onClick={() => {
+                          setSelectedClass(classItem.id);
+                          setAttendanceRecords([]);
+                        }}
+                        data-testid={`card-class-${classItem.id}`}
+                      >
+                        <CardContent className="pt-4">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h4 className="font-medium text-gray-900">{classItem.subject}</h4>
+                              <p className="text-sm text-gray-600">
+                                {classItem.startTime} - {classItem.endTime}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {classItem.name}
+                              </p>
+                            </div>
+                            <ChevronRight 
+                              className={`h-5 w-5 ${
+                                selectedClass === classItem.id ? 'text-blue-500' : 'text-gray-400'
+                              }`} 
+                            />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              
+              {Object.keys(classesByTeacher).length === 0 && (
+                <div className="text-center py-12">
+                  <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Classes Found</h3>
+                  <p className="text-gray-600">
+                    No classes are scheduled for {new Date(selectedDate).toLocaleDateString()}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Attendance Interface */}
           {selectedClass && (
             <Tabs value={attendanceMethod} onValueChange={(value) => setAttendanceMethod(value as 'tap' | 'qr')} className="w-full">
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="tap" className="flex items-center gap-2" data-testid="tab-tap-method">
+                <TabsTrigger value="tap" className="flex items-center gap-2">
                   <Users className="h-4 w-4" />
                   Tap Interface
                 </TabsTrigger>
-                <TabsTrigger value="qr" className="flex items-center gap-2" data-testid="tab-qr-method">
+                <TabsTrigger value="qr" className="flex items-center gap-2">
                   <QrCode className="h-4 w-4" />
                   QR Scanner
                 </TabsTrigger>
@@ -285,7 +395,6 @@ export default function Attendance() {
                             status === 'late' ? 'bg-yellow-50 border-yellow-200' :
                             'border-gray-200'
                           }`}
-                          data-testid={`card-student-${student.id}`}
                         >
                           <CardContent className="pt-4">
                             <div className="flex items-center justify-between">
@@ -294,10 +403,10 @@ export default function Attendance() {
                                   {student.rollNumber}
                                 </div>
                                 <div>
-                                  <p className="text-sm font-medium text-gray-900" data-testid={`text-student-name-${student.id}`}>
+                                  <p className="text-sm font-medium text-gray-900">
                                     {student.firstName} {student.lastName}
                                   </p>
-                                  <p className="text-xs text-gray-500" data-testid={`text-roll-number-${student.id}`}>
+                                  <p className="text-xs text-gray-500">
                                     Roll: {student.rollNumber}
                                   </p>
                                 </div>
@@ -311,7 +420,6 @@ export default function Attendance() {
                                       status === 'absent' ? 'bg-red-100 text-red-800' :
                                       'bg-yellow-100 text-yellow-800'
                                     }
-                                    data-testid={`badge-status-${student.id}`}
                                   >
                                     {status}
                                   </Badge>
@@ -320,9 +428,8 @@ export default function Attendance() {
                                     variant="ghost"
                                     onClick={() => undoMark(student.id)}
                                     className="w-6 h-6 p-0"
-                                    data-testid={`button-undo-${student.id}`}
                                   >
-                                    <i className="fas fa-undo text-xs"></i>
+                                    <X className="h-3 w-3" />
                                   </Button>
                                 </div>
                               ) : (
@@ -331,25 +438,25 @@ export default function Attendance() {
                                     size="sm"
                                     className="w-8 h-8 p-0 bg-green-600 hover:bg-green-700"
                                     onClick={() => markAttendance(student.id, 'present')}
-                                    data-testid={`button-present-${student.id}`}
+                                    title="Mark as Present"
                                   >
-                                    <i className="fas fa-check text-xs"></i>
+                                    <Check className="h-3 w-3" />
                                   </Button>
                                   <Button
                                     size="sm"
                                     className="w-8 h-8 p-0 bg-red-600 hover:bg-red-700"
                                     onClick={() => markAttendance(student.id, 'absent')}
-                                    data-testid={`button-absent-${student.id}`}
+                                    title="Mark as Absent"
                                   >
-                                    <i className="fas fa-times text-xs"></i>
+                                    <X className="h-3 w-3" />
                                   </Button>
                                   <Button
                                     size="sm"
                                     className="w-8 h-8 p-0 bg-yellow-600 hover:bg-yellow-700"
                                     onClick={() => markAttendance(student.id, 'late')}
-                                    data-testid={`button-late-${student.id}`}
+                                    title="Mark as Late"
                                   >
-                                    <i className="fas fa-clock text-xs"></i>
+                                    <Clock className="h-3 w-3" />
                                   </Button>
                                 </div>
                               )}
@@ -377,7 +484,6 @@ export default function Attendance() {
                       <div className="flex justify-center">
                         <Button 
                           onClick={toggleScanning}
-                          data-testid="button-toggle-scanner"
                           className={isScanning ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"}
                         >
                           {isScanning ? (
@@ -408,50 +514,25 @@ export default function Attendance() {
                           </div>
                         </div>
                       )}
-                      
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <h4 className="font-medium text-blue-900 mb-2">QR Code Format</h4>
-                        <p className="text-sm text-blue-700">
-                          Expected format: <code className="bg-blue-100 px-1 rounded">studentId:rollNumber</code> or just <code className="bg-blue-100 px-1 rounded">studentId</code>
-                        </p>
-                      </div>
                     </div>
                   </CardContent>
                 </Card>
               </TabsContent>
+
+              {/* Submit Button */}
+              <div className="flex justify-end pt-6">
+                <Button
+                  onClick={handleSubmit}
+                  disabled={submitAttendanceMutation.isPending || attendanceRecords.length === 0}
+                  className="min-w-[200px]"
+                >
+                  {submitAttendanceMutation.isPending ? 'Updating...' : 'Update Attendance'}
+                </Button>
+              </div>
             </Tabs>
           )}
         </CardContent>
       </Card>
-
-      {/* Action Buttons */}
-      {selectedClass && students && students.length > 0 && (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex justify-between items-center">
-              <div className="text-sm text-gray-600" data-testid="text-progress">
-                <span>{attendanceRecords.length}</span> of <span>{totalStudents}</span> students marked
-              </div>
-              <div className="flex space-x-3">
-                <Button 
-                  variant="outline"
-                  disabled={attendanceRecords.length === 0}
-                  data-testid="button-save-draft"
-                >
-                  Save as Draft
-                </Button>
-                <Button 
-                  onClick={handleSubmit}
-                  disabled={attendanceRecords.length === 0 || submitAttendanceMutation.isPending}
-                  data-testid="button-submit-attendance"
-                >
-                  {submitAttendanceMutation.isPending ? 'Submitting...' : 'Submit Attendance'}
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

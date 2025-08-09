@@ -639,6 +639,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Attendance Management Routes
+  
+  // Get all classes for a specific date (used by front desk attendance management)
+  app.get("/api/classes/all", async (req, res) => {
+    try {
+      const date = req.query.date as string;
+      const dayOfWeek = new Date(date).getDay(); // 0 = Sunday, 1 = Monday, etc.
+      
+      // Get all classes for the specified day
+      const classes = await storage.getClassesForDay(dayOfWeek);
+      res.json(classes);
+    } catch (error) {
+      console.error("Error fetching all classes:", error);
+      res.status(500).json({ message: "Failed to fetch classes" });
+    }
+  });
+
+  // Get attendance records for a specific class and date
+  app.get("/api/attendance", async (req, res) => {
+    try {
+      const { classId, date } = req.query;
+      if (!classId || !date) {
+        return res.status(400).json({ message: "Class ID and date are required" });
+      }
+      
+      const attendance = await storage.getAttendanceByClassAndDate(classId as string, date as string);
+      res.json(attendance);
+    } catch (error) {
+      console.error("Error fetching attendance:", error);
+      res.status(500).json({ message: "Failed to fetch attendance" });
+    }
+  });
+
+  // Create or update attendance record
+  app.post("/api/attendance", async (req: any, res) => {
+    try {
+      const { classId, studentId, attendanceDate, status } = req.body;
+      
+      if (!classId || !studentId || !attendanceDate || !status) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      // Check if attendance record already exists
+      const existingRecord = await storage.getAttendanceRecord(classId, studentId, attendanceDate);
+      
+      let attendanceRecord;
+      if (existingRecord) {
+        // Update existing record
+        attendanceRecord = await storage.updateAttendance(existingRecord.id, {
+          status,
+          markedBy: 'demo-user' // In real app, this would be req.user.id
+        });
+      } else {
+        // Create new record
+        attendanceRecord = await storage.createAttendance({
+          classId,
+          studentId,
+          date: new Date(attendanceDate),
+          status,
+          markedBy: 'demo-user' // In real app, this would be req.user.id
+        });
+      }
+      
+      res.status(201).json(attendanceRecord);
+    } catch (error) {
+      console.error("Error creating/updating attendance:", error);
+      res.status(400).json({ message: "Failed to create/update attendance" });
+    }
+  });
+
   // Enhanced Billing System Routes
   
   // Generate monthly invoices

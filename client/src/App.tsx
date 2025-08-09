@@ -17,6 +17,7 @@ import Receipts from "@/pages/finance/Receipts";
 import DailyClose from "@/pages/finance/DailyClose";
 import CashDrawApprovals from "@/pages/finance/CashDrawApprovals";
 import Reports from "@/pages/finance/Reports";
+import AttendanceManagement from "@/pages/finance/AttendanceManagement";
 
 import TeacherDashboard from "@/pages/teacher/Dashboard";
 import Attendance from "@/pages/teacher/Attendance";
@@ -62,6 +63,7 @@ function Router() {
                     <Route path="/daily-close" component={DailyClose} />
                     <Route path="/approvals" component={CashDrawApprovals} />
                     <Route path="/reports" component={Reports} />
+                    <Route path="/attendance-management" component={AttendanceManagement} />
                   </>
                 )}
                 

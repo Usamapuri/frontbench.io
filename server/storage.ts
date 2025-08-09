@@ -51,6 +51,7 @@ export interface IStorage {
   // Classes
   getClassesByTeacher(teacherId: string): Promise<Class[]>;
   getTodayClasses(teacherId: string): Promise<any[]>;
+  getClassesForDay(dayOfWeek: number): Promise<any[]>;
   
   // Enrollments
   getStudentsByClass(classId: string): Promise<any[]>;
@@ -73,6 +74,9 @@ export interface IStorage {
   
   // Attendance
   createAttendance(attendanceData: any): Promise<Attendance>;
+  getAttendanceByClassAndDate(classId: string, date: string): Promise<Attendance[]>;
+  getAttendanceRecord(classId: string, studentId: string, date: string): Promise<Attendance | undefined>;
+  updateAttendance(attendanceId: string, updates: Partial<Attendance>): Promise<Attendance>;
   getAttendanceByClass(classId: string, date: string): Promise<Attendance[]>;
   getStudentAttendance(studentId: string, startDate?: string, endDate?: string): Promise<Attendance[]>;
   
@@ -207,6 +211,29 @@ export class DatabaseStorage implements IStorage {
       .where(
         and(
           eq(classes.teacherId, teacherId),
+          eq(classes.dayOfWeek, dayOfWeek),
+          eq(classes.isActive, true)
+        )
+      )
+      .orderBy(classes.startTime);
+  }
+
+  async getClassesForDay(dayOfWeek: number): Promise<any[]> {
+    return await db
+      .select({
+        id: classes.id,
+        name: classes.name,
+        startTime: classes.startTime,
+        endTime: classes.endTime,
+        subject: subjects.name,
+        teacherName: users.replit_username,
+        teacherId: classes.teacherId,
+      })
+      .from(classes)
+      .innerJoin(subjects, eq(classes.subjectId, subjects.id))
+      .innerJoin(users, eq(classes.teacherId, users.replit_id))
+      .where(
+        and(
           eq(classes.dayOfWeek, dayOfWeek),
           eq(classes.isActive, true)
         )
@@ -436,6 +463,60 @@ export class DatabaseStorage implements IStorage {
       .from(attendance)
       .where(and(...conditions))
       .orderBy(desc(attendance.attendanceDate));
+  }
+
+  async getAttendanceByClassAndDate(classId: string, date: string): Promise<Attendance[]> {
+    const targetDate = new Date(date);
+    const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
+
+    return await db
+      .select()
+      .from(attendance)
+      .where(
+        and(
+          eq(attendance.classId, classId),
+          gte(attendance.date, startOfDay),
+          lte(attendance.date, endOfDay)
+        )
+      );
+  }
+
+  async getAttendanceRecord(classId: string, studentId: string, date: string): Promise<Attendance | undefined> {
+    const targetDate = new Date(date);
+    const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
+
+    const result = await db
+      .select()
+      .from(attendance)
+      .where(
+        and(
+          eq(attendance.classId, classId),
+          eq(attendance.studentId, studentId),
+          gte(attendance.date, startOfDay),
+          lte(attendance.date, endOfDay)
+        )
+      );
+
+    return result.length > 0 ? result[0] : undefined;
+  }
+
+  async updateAttendance(attendanceId: string, updates: Partial<Attendance>): Promise<Attendance> {
+    const [updated] = await db
+      .update(attendance)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(eq(attendance.id, attendanceId))
+      .returning();
+    
+    if (!updated) {
+      throw new Error('Attendance record not found');
+    }
+    
+    return updated;
   }
 
   // Grades
