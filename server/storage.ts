@@ -54,6 +54,7 @@ export interface IStorage {
   
   // Enrollments
   getStudentsByClass(classId: string): Promise<any[]>;
+  createEnrollment(enrollment: any): Promise<any>;
   
   // Invoices
   getInvoices(limit?: number): Promise<Invoice[]>;
@@ -285,6 +286,11 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(invoices.createdAt));
   }
 
+  async createEnrollment(enrollmentData: any): Promise<any> {
+    const [enrollment] = await db.insert(enrollments).values(enrollmentData).returning();
+    return enrollment;
+  }
+
   async getEnrollmentsByStudent(studentId: string): Promise<any[]> {
     return await db
       .select({
@@ -292,7 +298,7 @@ export class DatabaseStorage implements IStorage {
         studentId: enrollments.studentId,
         subjectId: enrollments.subjectId,
         subjectName: subjects.name,
-        tuitionFee: subjects.monthlyFee,
+        tuitionFee: subjects.baseFee,
         enrollmentDate: enrollments.enrolledAt,
         isActive: enrollments.isActive,
       })

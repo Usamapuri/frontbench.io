@@ -23,6 +23,8 @@ interface EnrollmentFormData {
   parentEmail: string;
   selectedSubjects: string[];
   discounts: string[];
+  discountPercentage: string;
+  additionalFees: Array<{ type: string; amount: number; description?: string }>;
 }
 
 export default function Enrollment() {
@@ -30,6 +32,8 @@ export default function Enrollment() {
   const [formData, setFormData] = useState<Partial<EnrollmentFormData>>({
     selectedSubjects: [],
     discounts: [],
+    discountPercentage: "0",
+    additionalFees: [],
   });
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -39,25 +43,28 @@ export default function Enrollment() {
     enabled: currentStep >= 2,
   });
 
-  const createStudentMutation = useMutation({
+  const createEnrollmentMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest('POST', '/api/students', data);
+      return await apiRequest('POST', '/api/enrollments', data);
     },
-    onSuccess: () => {
+    onSuccess: (response: any) => {
+      console.log("Enrollment successful:", response);
       toast({
-        title: "Success",
-        description: "Student enrolled successfully!",
+        title: "Success!",
+        description: `Student enrolled successfully! ${response.invoice ? `Invoice ${response.invoice.invoiceNumber} created for Rs.${response.summary.total}` : ''}`,
         variant: "success" as any,
       });
       queryClient.invalidateQueries({ queryKey: ['/api/students'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
       // Reset form
       setFormData({ selectedSubjects: [], discounts: [] });
       setCurrentStep(1);
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      console.error("Enrollment error:", error);
       toast({
         title: "Error",
-        description: "Failed to enroll student. Please try again.",
+        description: `Failed to enroll student: ${error.message || 'Please try again.'}`,
         variant: "destructive",
       });
     },
@@ -164,7 +171,16 @@ export default function Enrollment() {
         rollNumber: formData.rollNumber,
       });
       
-      createStudentMutation.mutate(studentData);
+      // Prepare complete enrollment data
+      const enrollmentData = {
+        studentData,
+        selectedSubjects: formData.selectedSubjects || [],
+        discountPercentage: parseFloat(formData.discountPercentage) || 0,
+        additionalFees: formData.additionalFees || []
+      };
+      
+      console.log("Submitting enrollment data:", enrollmentData);
+      createEnrollmentMutation.mutate(enrollmentData);
     } catch (error) {
       toast({
         title: "Validation Error",
@@ -418,10 +434,10 @@ export default function Enrollment() {
             ) : (
               <Button 
                 onClick={handleSubmit}
-                disabled={createStudentMutation.isPending}
+                disabled={createEnrollmentMutation.isPending}
                 data-testid="button-submit-enrollment"
               >
-                {createStudentMutation.isPending ? 'Enrolling...' : 'Complete Enrollment'}
+                {createEnrollmentMutation.isPending ? 'Enrolling...' : 'Complete Enrollment'}
               </Button>
             )}
           </div>

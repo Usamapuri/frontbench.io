@@ -65,54 +65,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = insertStudentSchema.parse(req.body);
       const student = await storage.createStudent(validatedData);
-      
-      // Automatically create an invoice for the new student
-      try {
-        // Get subject enrollments for this student
-        const enrollments = await storage.getEnrollmentsByStudent(student.id);
-        
-        if (enrollments.length > 0) {
-          // Calculate total tuition from enrollments
-          let totalTuition = 0;
-          let subjects = [];
-          
-          for (const enrollment of enrollments) {
-            const subject = await storage.getSubjectById(enrollment.subjectId);
-            if (subject) {
-              totalTuition += parseFloat(subject.fee);
-              subjects.push(subject.name);
-            }
-          }
-          
-          if (totalTuition > 0) {
-            // Create initial invoice for new student
-            await storage.createInvoice({
-              studentId: student.id,
-              invoiceNumber: `INV-${Date.now()}`,
-              type: 'monthly',
-              billingPeriodStart: new Date().toISOString(),
-              billingPeriodEnd: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString(),
-              issueDate: new Date().toISOString(),
-              dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-              subtotal: totalTuition.toFixed(2),
-              total: totalTuition.toFixed(2),
-              amountPaid: '0.00',
-              balanceDue: totalTuition.toFixed(2),
-              status: 'sent',
-              notes: `Initial invoice for ${subjects.join(', ')}`,
-              createdBy: 'system'
-            });
-          }
-        }
-      } catch (invoiceError) {
-        console.error("Error creating initial invoice:", invoiceError);
-        // Don't fail student creation if invoice creation fails
-      }
-      
       res.status(201).json(student);
     } catch (error) {
       console.error("Error creating student:", error);
       res.status(400).json({ message: "Failed to create student" });
+    }
+  });
+
+  // Complete enrollment endpoint - creates student, enrollments, and invoice
+  app.post("/api/enrollments", async (req, res) => {
+    try {
+      const { 
+        studentData, 
+        selectedSubjects, 
+        discountPercentage = 0, 
+        additionalFees = [] 
+      } = req.body;
+
+      console.log("Processing complete enrollment:", { studentData, selectedSubjects, discountPercentage });
+
+      // 1. Create the student
+      const validatedStudentData = insertStudentSchema.parse(studentData);
+      const student = await storage.createStudent(validatedStudentData);
+      console.log("Student created:", student.id);
+
+      // 2. Create enrollments for selected subjects
+      const enrollments = [];
+      let totalTuition = 0;
+      let subjectNames = [];
+
+      for (const subjectId of selectedSubjects) {
+        const subject = await storage.getSubjectById(subjectId);
+        if (subject) {
+          // Create enrollment
+          const enrollment = await storage.createEnrollment({
+            studentId: student.id,
+            subjectId: subjectId,
+            enrolledAt: new Date(),
+            isActive: true
+          });
+          enrollments.push(enrollment);
+          
+          totalTuition += parseFloat(subject.baseFee);
+          subjectNames.push(subject.name);
+          console.log(`Enrolled in ${subject.name} - Fee: Rs.${subject.baseFee}`);
+        }
+      }
+
+      // 3. Calculate final amount with discounts
+      const discountAmount = (totalTuition * discountPercentage) / 100;
+      const additionalFeesTotal = additionalFees.reduce((sum: number, fee: any) => sum + parseFloat(fee.amount || 0), 0);
+      const finalTotal = totalTuition - discountAmount + additionalFeesTotal;
+
+      // 4. Generate initial invoice
+      if (finalTotal > 0) {
+        const invoiceNumber = `INV-${Date.now()}`;
+        const currentDate = new Date();
+        const nextMonth = new Date(currentDate);
+        nextMonth.setMonth(currentDate.getMonth() + 1);
+        const dueDate = new Date(currentDate);
+        dueDate.setDate(currentDate.getDate() + 7); // 7 days to pay
+
+        const invoice = await storage.createInvoice({
+          studentId: student.id,
+          invoiceNumber,
+          type: 'monthly',
+          billingPeriodStart: currentDate.toISOString().split('T')[0],
+          billingPeriodEnd: nextMonth.toISOString().split('T')[0],
+          issueDate: currentDate.toISOString().split('T')[0],
+          dueDate: dueDate.toISOString().split('T')[0],
+          subtotal: totalTuition.toFixed(2),
+          discountAmount: discountAmount.toFixed(2),
+          total: finalTotal.toFixed(2),
+          amountPaid: '0.00',
+          balanceDue: finalTotal.toFixed(2),
+          status: 'sent',
+          notes: `Initial enrollment invoice for ${subjectNames.join(', ')}${discountPercentage > 0 ? ` (${discountPercentage}% discount applied)` : ''}`,
+          createdBy: 'system'
+        });
+        
+        console.log(`Invoice ${invoiceNumber} created for Rs.${finalTotal}`);
+
+        res.status(201).json({
+          student,
+          enrollments,
+          invoice,
+          summary: {
+            totalSubjects: selectedSubjects.length,
+            subtotal: totalTuition,
+            discount: discountAmount,
+            total: finalTotal
+          }
+        });
+      } else {
+        res.status(201).json({
+          student,
+          enrollments,
+          summary: {
+            totalSubjects: selectedSubjects.length,
+            subtotal: totalTuition,
+            discount: discountAmount,
+            total: finalTotal
+          }
+        });
+      }
+
+    } catch (error: any) {
+      console.error("Error processing enrollment:", error);
+      res.status(400).json({ 
+        message: "Failed to process enrollment", 
+        error: error.message || error 
+      });
     }
   });
 
