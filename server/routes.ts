@@ -415,7 +415,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           paymentDate: req.body.paymentDate ? new Date(req.body.paymentDate) : new Date(),
           receivedBy: 'system',
           notes: req.body.notes || '',
-          transactionNumber: req.body.transactionNumber || null,
+          transactionNumber: req.body.transactionNumber || '',
           invoiceId: req.body.invoiceId
         });
 
@@ -801,6 +801,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching student attendance:", error);
       res.status(500).json({ message: "Failed to fetch student attendance" });
+    }
+  });
+
+  // Get all enrolled subjects for a student with teacher info
+  app.get("/api/students/:studentId/enrolled-subjects", async (req, res) => {
+    try {
+      const { studentId } = req.params;
+      
+      const enrolledSubjects = await db
+        .select({
+          subjectId: subjects.id,
+          subjectName: subjects.name,
+          subjectCode: subjects.code,
+          teacherId: enrollments.teacherId,
+          teacherFirstName: users.firstName,
+          teacherLastName: users.lastName,
+          teacherEmail: users.email,
+          baseFee: subjects.baseFee,
+          isActive: enrollments.isActive
+        })
+        .from(enrollments)
+        .innerJoin(subjects, eq(enrollments.subjectId, subjects.id))
+        .leftJoin(users, eq(enrollments.teacherId, users.id))
+        .where(and(
+          eq(enrollments.studentId, studentId),
+          eq(enrollments.isActive, true)
+        ))
+        .orderBy(subjects.name);
+      
+      res.json(enrolledSubjects);
+    } catch (error) {
+      console.error("Error fetching enrolled subjects:", error);
+      res.status(500).json({ message: "Failed to fetch enrolled subjects" });
+    }
+  });
+
+  // Get attendance for a specific subject
+  app.get("/api/students/:studentId/attendance/:subjectId", async (req, res) => {
+    try {
+      const { studentId, subjectId } = req.params;
+      
+      const attendanceRecords = await db
+        .select({
+          id: attendance.id,
+          status: attendance.status,
+          attendanceDate: attendance.attendanceDate,
+          notes: attendance.notes,
+          markedAt: attendance.markedAt,
+          subjectName: subjects.name,
+          className: classes.name,
+          classTime: classes.startTime
+        })
+        .from(attendance)
+        .innerJoin(classes, eq(attendance.classId, classes.id))
+        .innerJoin(subjects, eq(classes.subjectId, subjects.id))
+        .where(and(
+          eq(attendance.studentId, studentId),
+          eq(subjects.id, subjectId)
+        ))
+        .orderBy(desc(attendance.attendanceDate))
+        .limit(50);
+      
+      res.json(attendanceRecords);
+    } catch (error) {
+      console.error("Error fetching subject attendance:", error);
+      res.status(500).json({ message: "Failed to fetch subject attendance" });
+    }
+  });
+
+  // Get grades for a specific subject
+  app.get("/api/students/:studentId/grades/:subjectId", async (req, res) => {
+    try {
+      const { studentId, subjectId } = req.params;
+      
+      const studentGrades = await db
+        .select({
+          id: grades.id,
+          score: grades.marksObtained,
+          maxScore: assessments.totalMarks,
+          assessmentName: assessments.name,
+          subjectName: subjects.name,
+          gradedAt: grades.enteredAt,
+          feedback: grades.comments
+        })
+        .from(grades)
+        .innerJoin(assessments, eq(grades.assessmentId, assessments.id))
+        .innerJoin(subjects, eq(assessments.subjectId, subjects.id))
+        .where(and(
+          eq(grades.studentId, studentId),
+          eq(subjects.id, subjectId)
+        ))
+        .orderBy(desc(grades.enteredAt))
+        .limit(20);
+      
+      res.json(studentGrades);
+    } catch (error) {
+      console.error("Error fetching subject grades:", error);
+      res.status(500).json({ message: "Failed to fetch subject grades" });
     }
   });
 

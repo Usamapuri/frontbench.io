@@ -1,7 +1,9 @@
 import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   User, 
   Calendar, 
@@ -50,6 +52,18 @@ interface AttendanceRecord {
   classTime: string;
 }
 
+interface EnrolledSubject {
+  subjectId: string;
+  subjectName: string;
+  subjectCode: string;
+  teacherId: string;
+  teacherFirstName: string;
+  teacherLastName: string;
+  teacherEmail: string;
+  baseFee: string;
+  isActive: boolean;
+}
+
 interface StudentPortalProps {
   studentId?: string;
 }
@@ -57,6 +71,7 @@ interface StudentPortalProps {
 export default function StudentPortal(props: StudentPortalProps = {}) {
   const { studentId: urlStudentId } = useParams<{ studentId: string }>();
   const studentId = props.studentId || urlStudentId;
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string>('all');
 
   // Fetch student basic information
   const { data: student, isLoading: studentLoading } = useQuery<Student>({
@@ -64,22 +79,38 @@ export default function StudentPortal(props: StudentPortalProps = {}) {
     enabled: !!studentId,
   });
 
-  // Fetch student grades
-  const { data: grades, isLoading: gradesLoading } = useQuery<Grade[]>({
-    queryKey: [`/api/students/${studentId}/grades`],
+  // Fetch enrolled subjects with teacher info
+  const { data: enrolledSubjects, isLoading: subjectsLoading } = useQuery<EnrolledSubject[]>({
+    queryKey: [`/api/students/${studentId}/enrolled-subjects`],
     enabled: !!studentId,
     queryFn: async () => {
-      const response = await fetch(`/api/students/${studentId}/grades`);
+      const response = await fetch(`/api/students/${studentId}/enrolled-subjects`);
       return response.ok ? response.json() : [];
     }
   });
 
-  // Fetch student attendance
-  const { data: attendance, isLoading: attendanceLoading } = useQuery<AttendanceRecord[]>({
-    queryKey: [`/api/students/${studentId}/attendance`],
+  // Fetch student grades (either all or for specific subject)
+  const { data: grades, isLoading: gradesLoading } = useQuery<Grade[]>({
+    queryKey: [`/api/students/${studentId}/grades`, selectedSubjectId],
     enabled: !!studentId,
     queryFn: async () => {
-      const response = await fetch(`/api/students/${studentId}/attendance`);
+      const url = selectedSubjectId === 'all' 
+        ? `/api/students/${studentId}/grades`
+        : `/api/students/${studentId}/grades/${selectedSubjectId}`;
+      const response = await fetch(url);
+      return response.ok ? response.json() : [];
+    }
+  });
+
+  // Fetch student attendance (either all or for specific subject)
+  const { data: attendance, isLoading: attendanceLoading } = useQuery<AttendanceRecord[]>({
+    queryKey: [`/api/students/${studentId}/attendance`, selectedSubjectId],
+    enabled: !!studentId,
+    queryFn: async () => {
+      const url = selectedSubjectId === 'all' 
+        ? `/api/students/${studentId}/attendance`
+        : `/api/students/${studentId}/attendance/${selectedSubjectId}`;
+      const response = await fetch(url);
       return response.ok ? response.json() : [];
     }
   });
@@ -97,6 +128,11 @@ export default function StudentPortal(props: StudentPortalProps = {}) {
     ? Math.round(((attendanceStats.present + attendanceStats.late) / attendanceStats.total) * 100)
     : 0;
 
+  // Get current selected subject info
+  const currentSubject = selectedSubjectId === 'all' 
+    ? null 
+    : enrolledSubjects?.find(s => s.subjectId === selectedSubjectId);
+
   // Mock subjects with progress for design consistency
   const subjectProgress = [
     { name: 'Physics', assessment: 'Final Term Exam', score: 84, maxScore: 100, trend: 'up' },
@@ -106,7 +142,7 @@ export default function StudentPortal(props: StudentPortalProps = {}) {
     { name: 'Biology', assessment: 'Lab Test', score: 35, maxScore: 40, trend: 'down' }
   ];
 
-  if (studentLoading) {
+  if (studentLoading || subjectsLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -172,6 +208,74 @@ export default function StudentPortal(props: StudentPortalProps = {}) {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Subject Selector and Teacher Info */}
+        <div className="mb-6 space-y-4">
+          {/* Subject Selector */}
+          <Card className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <BookOpen className="h-5 w-5 text-purple-600" />
+                <div>
+                  <h3 className="font-semibold text-gray-900">Subject View</h3>
+                  <p className="text-sm text-gray-500">Select a subject to view specific grades and attendance</p>
+                </div>
+              </div>
+              <div className="min-w-[250px]">
+                <Select value={selectedSubjectId} onValueChange={setSelectedSubjectId}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select subject..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">📊 All Subjects Overview</SelectItem>
+                    {enrolledSubjects?.map((subject) => (
+                      <SelectItem key={subject.subjectId} value={subject.subjectId}>
+                        📚 {subject.subjectName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </Card>
+
+          {/* Teacher Contact Info - Only show when specific subject is selected */}
+          {currentSubject && (
+            <Card className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 border-l-4 border-purple-500">
+              <div className="flex items-start space-x-4">
+                <div className="flex-shrink-0">
+                  <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center">
+                    <User className="h-6 w-6 text-purple-600" />
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold text-gray-900 mb-1">
+                    {currentSubject.subjectName} Teacher
+                  </h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2 text-gray-700">
+                      <User className="h-4 w-4" />
+                      <span>{currentSubject.teacherFirstName} {currentSubject.teacherLastName}</span>
+                    </div>
+                    <div className="flex items-center space-x-2 text-gray-700">
+                      <Mail className="h-4 w-4" />
+                      <a 
+                        href={`mailto:${currentSubject.teacherEmail}`}
+                        className="text-purple-600 hover:text-purple-800 underline"
+                      >
+                        {currentSubject.teacherEmail}
+                      </a>
+                    </div>
+                    <div className="flex items-center space-x-2 text-gray-700">
+                      <DollarSign className="h-4 w-4" />
+                      <span>Subject Fee: Rs. {currentSubject.baseFee}/month</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
         </div>
 
         {/* Stats Cards Row */}
