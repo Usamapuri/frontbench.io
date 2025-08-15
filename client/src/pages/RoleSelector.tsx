@@ -83,22 +83,33 @@ export default function RoleSelector() {
     }
     
     try {
-      console.log('Navigating to dashboard:', dashboardRole);
+      console.log('=== DASHBOARD SELECTION START ===');
+      console.log('Dashboard clicked:', dashboardRole);
+      console.log('Current user role:', user?.role);
+      console.log('Current user isSuperAdmin:', user?.isSuperAdmin);
       
-      // Set localStorage first
+      // Clear any existing role first to avoid conflicts
+      localStorage.removeItem('selectedRole');
+      
+      // Set the new role
       localStorage.setItem('selectedRole', dashboardRole);
+      console.log('localStorage set to:', dashboardRole);
+      
+      // Update component state
       setSelectedRole(dashboardRole);
       
-      // Dispatch custom event to notify router
-      window.dispatchEvent(new Event('roleChanged'));
-      
-      // Navigate immediately - the state management will handle timing
-      setLocation('/dashboard');
-      
+      // Show success message
       toast({
         title: "Dashboard Selected",
-        description: `Switched to ${dashboardOptions.find(d => d.role === dashboardRole)?.title}`,
+        description: `Opening ${dashboardOptions.find(d => d.role === dashboardRole)?.title}`,
       });
+      
+      // Force a page reload to ensure clean navigation
+      setTimeout(() => {
+        console.log('Navigating to /dashboard with role:', dashboardRole);
+        window.location.href = '/dashboard';
+      }, 100);
+      
     } catch (error) {
       console.error('Dashboard selection error:', error);
       toast({
