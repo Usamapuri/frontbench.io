@@ -31,16 +31,19 @@ export default function Gradebook() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Fetch only teacher's assigned subjects (maintaining data isolation)
   const { data: subjects } = useQuery({
-    queryKey: ['/api/subjects'],
+    queryKey: ['/api/teacher/subjects'],
   });
 
+  // Fetch only teacher's students (enrolled in subjects they teach)
   const { data: students } = useQuery<Student[]>({
-    queryKey: ['/api/students'],
+    queryKey: ['/api/teacher/students'],
   });
 
+  // Fetch only teacher's assessments (maintaining data isolation)
   const { data: assessments } = useQuery<Assessment[]>({
-    queryKey: ['/api/assessments'],
+    queryKey: ['/api/teacher/assessments'],
   });
 
   const createAssessmentMutation = useMutation({

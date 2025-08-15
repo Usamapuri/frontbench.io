@@ -99,6 +99,7 @@ export interface IStorage {
   
   // Assessments
   getAssessments(): Promise<Assessment[]>;
+  getTeacherAssessments(teacherId: string): Promise<Assessment[]>;
   createAssessment(assessment: any): Promise<Assessment>;
   
   // Grades
@@ -585,6 +586,15 @@ export class DatabaseStorage implements IStorage {
   async getAssessments(): Promise<Assessment[]> {
     const allAssessments = await db.select().from(assessments).orderBy(desc(assessments.createdAt));
     return allAssessments;
+  }
+
+  async getTeacherAssessments(teacherId: string): Promise<Assessment[]> {
+    const teacherAssessments = await db
+      .select()
+      .from(assessments)
+      .where(eq(assessments.teacherId, teacherId))
+      .orderBy(desc(assessments.createdAt));
+    return teacherAssessments;
   }
 
   async createAssessment(assessmentData: any): Promise<Assessment> {
@@ -1327,7 +1337,7 @@ export class DatabaseStorage implements IStorage {
     if (!change) return;
 
     // Get students enrolled in the affected subject
-    const students = await db
+    const enrolledStudents = await db
       .select({ id: students.id })
       .from(students)
       .innerJoin(enrollments, eq(students.id, enrollments.studentId))
@@ -1365,7 +1375,7 @@ export class DatabaseStorage implements IStorage {
     }
 
     // Create notifications for all affected students
-    const notifications = students.map(student => ({
+    const notifications = enrolledStudents.map((student: any) => ({
       studentId: student.id,
       scheduleChangeId: scheduleChangeId,
       message: message.trim(),

@@ -69,22 +69,16 @@ export default function DigitalDiary() {
     },
   });
 
-  const { data: classes = [] } = useQuery({
-    queryKey: ["/api/classes"],
-    queryFn: async () => {
-      const response = await fetch("/api/classes");
-      return response.json();
-    },
-  });
-
-  // Fetch teacher's students only (enrolled in their subjects)
-  const { data: students = [] } = useQuery({
+  // Fetch teacher's students grouped by subject (this replaces the generic classes)
+  const { data: teacherStudents = [] } = useQuery({
     queryKey: ["/api/teacher/students"],
     queryFn: async () => {
       const response = await fetch("/api/teacher/students");
       return response.json();
     },
   });
+
+  // Use teacherStudents as students (avoid duplicate query)
 
   // Create announcement mutation
   const createAnnouncementMutation = useMutation({
@@ -99,15 +93,14 @@ export default function DigitalDiary() {
         const teacherStudents = await studentsResponse.json();
         announcementData.recipients = teacherStudents.map((student: any) => student.id);
       } else if (data.broadcastType === "class" && data.classId) {
-        // Get students in specific class (would need intersection with teacher's students)
-        const studentsResponse = await fetch(`/api/classes/${data.classId}/students`);
-        const classStudents = await studentsResponse.json();
-        // Filter to only include students that the teacher teaches
+        // Get students in specific subject that this teacher teaches
         const teacherStudentsResponse = await fetch("/api/teacher/students");
         const teacherStudents = await teacherStudentsResponse.json();
-        const teacherStudentIds = teacherStudents.map((s: any) => s.id);
-        const filteredStudents = classStudents.filter((s: any) => teacherStudentIds.includes(s.id));
-        announcementData.recipients = filteredStudents.map((student: any) => student.id);
+        // Filter students by the selected subject
+        const subjectStudents = teacherStudents.filter((s: any) => 
+          s.enrolledSubjects && s.enrolledSubjects.some((sub: any) => sub.subjectId === data.classId)
+        );
+        announcementData.recipients = subjectStudents.map((student: any) => student.id);
       } else if (data.broadcastType === "specific") {
         // Use manually selected recipients (already filtered to teacher's students in UI)
         announcementData.recipients = data.recipients || [];
@@ -360,7 +353,7 @@ export default function DigitalDiary() {
                           onChange={(e) => setBroadcastType(e.target.value as "all" | "class" | "specific")}
                           className="text-blue-600"
                         />
-                        <span className="text-sm">Specific Class</span>
+                        <span className="text-sm">Specific Subject</span>
                       </label>
                       
                       <label className="flex items-center space-x-2">
@@ -384,17 +377,17 @@ export default function DigitalDiary() {
                       name="classId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Select Class</FormLabel>
+                          <FormLabel>Select Subject</FormLabel>
                           <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
-                              <SelectTrigger data-testid="select-class">
-                                <SelectValue placeholder="Choose a class" />
+                              <SelectTrigger data-testid="select-subject">
+                                <SelectValue placeholder="Choose a subject" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {Array.isArray(classes) && classes.map((cls: any) => (
-                                <SelectItem key={cls.id} value={cls.id}>
-                                  {cls.name} - {cls.level}
+                              {Array.isArray(subjects) && subjects.map((subject: any) => (
+                                <SelectItem key={subject.id} value={subject.id}>
+                                  {subject.name} ({subject.code})
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -414,7 +407,7 @@ export default function DigitalDiary() {
                         <FormItem>
                           <FormLabel>Select Students</FormLabel>
                           <div className="max-h-32 overflow-y-auto border rounded-md p-2 space-y-1">
-                            {Array.isArray(students) && students.map((student: any) => (
+                            {Array.isArray(teacherStudents) && teacherStudents.map((student: any) => (
                               <label key={student.id} className="flex items-center space-x-2 text-sm">
                                 <input
                                   type="checkbox"

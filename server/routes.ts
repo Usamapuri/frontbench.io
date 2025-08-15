@@ -355,6 +355,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get assessments created by teacher only (maintaining data isolation)
+  app.get("/api/teacher/assessments", async (req: any, res) => {
+    try {
+      const teacherId = req.user?.role === 'teacher' ? req.user.id : "demo-teacher-1";
+      const assessments = await storage.getTeacherAssessments(teacherId);
+      res.json(assessments);
+    } catch (error) {
+      console.error("Error fetching teacher assessments:", error);
+      res.status(500).json({ message: "Failed to fetch teacher assessments" });
+    }
+  });
+
   // Schedule Management Routes
   
   // Get teacher's schedules
