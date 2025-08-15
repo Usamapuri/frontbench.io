@@ -4,10 +4,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatPKR } from "@/lib/currency";
 
 export default function Receipts() {
   const [searchQuery, setSearchQuery] = useState("");
+  
+  // Advanced filtering states (same as invoices)
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState("all");
+  const [dateRangeFilter, setDateRangeFilter] = useState("all");
+  const [amountRangeFilter, setAmountRangeFilter] = useState("all");
+  const [studentFilter, setStudentFilter] = useState("all");
 
   const { data: payments, isLoading } = useQuery({
     queryKey: ['/api/payments'],
@@ -413,10 +420,75 @@ export default function Receipts() {
     }
   };
 
-  const filteredPayments = (payments || []).filter((payment: any) =>
-    payment.receiptNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    payment.notes?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Enhanced filtering logic (same as invoices)
+  const filteredPayments = (payments || []).filter((payment: any) => {
+    // Text search across receipt number, student name, and notes
+    const studentName = getStudentName(payment.studentId).toLowerCase();
+    const searchTerms = searchQuery.toLowerCase();
+    const matchesSearch = !searchQuery || 
+      payment.receiptNumber?.toLowerCase().includes(searchTerms) ||
+      studentName.includes(searchTerms) ||
+      payment.notes?.toLowerCase().includes(searchTerms);
+
+    // Payment method filter
+    const matchesPaymentMethod = !paymentMethodFilter || paymentMethodFilter === "all" || payment.paymentMethod === paymentMethodFilter;
+
+    // Student filter
+    const matchesStudent = !studentFilter || studentFilter === "all" || payment.studentId === studentFilter;
+
+    // Date range filter
+    const matchesDateRange = !dateRangeFilter || dateRangeFilter === "all" || (() => {
+      const paymentDate = new Date(payment.paymentDate);
+      const today = new Date();
+      
+      switch (dateRangeFilter) {
+        case 'today':
+          return paymentDate.toDateString() === today.toDateString();
+        case 'this-week':
+          const weekStart = new Date(today);
+          weekStart.setDate(today.getDate() - today.getDay());
+          return paymentDate >= weekStart;
+        case 'this-month':
+          return paymentDate.getMonth() === today.getMonth() && 
+                 paymentDate.getFullYear() === today.getFullYear();
+        case 'last-30-days':
+          const thirtyDaysAgo = new Date(today);
+          thirtyDaysAgo.setDate(today.getDate() - 30);
+          return paymentDate >= thirtyDaysAgo;
+        default:
+          return true;
+      }
+    })();
+
+    // Amount range filter
+    const matchesAmountRange = !amountRangeFilter || amountRangeFilter === "all" || (() => {
+      const amount = parseFloat(payment.amount);
+      
+      switch (amountRangeFilter) {
+        case 'under-10k':
+          return amount < 10000;
+        case '10k-25k':
+          return amount >= 10000 && amount <= 25000;
+        case '25k-50k':
+          return amount >= 25000 && amount <= 50000;
+        case 'over-50k':
+          return amount > 50000;
+        default:
+          return true;
+      }
+    })();
+
+    return matchesSearch && matchesPaymentMethod && matchesStudent && matchesDateRange && matchesAmountRange;
+  });
+
+  // Clear all filters function
+  const clearAllFilters = () => {
+    setSearchQuery("");
+    setPaymentMethodFilter("all");
+    setDateRangeFilter("all");
+    setAmountRangeFilter("all");
+    setStudentFilter("all");
+  };
 
   const getPaymentMethodColor = (method: string) => {
     switch (method) {
@@ -449,21 +521,115 @@ export default function Receipts() {
           <div className="flex items-center justify-between">
             <CardTitle>Payment Receipts</CardTitle>
             <div className="flex space-x-3">
-              <div className="relative">
-                <Input
-                  placeholder="Search receipts..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                  data-testid="input-search-receipts"
-                />
-                <i className="fas fa-search absolute left-3 top-3 text-gray-400"></i>
-              </div>
               <Button data-testid="button-export-receipts">
                 <i className="fas fa-download mr-2"></i>
                 Export
               </Button>
             </div>
+          </div>
+          
+          {/* Enhanced Search and Filters (same as invoices) */}
+          <div className="space-y-4">
+            {/* Search Bar */}
+            <div className="relative">
+              <Input
+                placeholder="Search receipts, students, or notes..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 w-full"
+                data-testid="input-search-receipts"
+              />
+              <i className="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+              {searchQuery && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="absolute right-2 top-2 h-6 w-6 p-0"
+                  onClick={() => setSearchQuery("")}
+                >
+                  <i className="fas fa-times text-gray-400"></i>
+                </Button>
+              )}
+            </div>
+
+            {/* Filter Controls */}
+            <div className="flex flex-wrap gap-3 items-center">
+              {/* Payment Method Filter */}
+              <Select value={paymentMethodFilter} onValueChange={setPaymentMethodFilter}>
+                <SelectTrigger className="w-40" data-testid="select-method-filter">
+                  <SelectValue placeholder="Payment Method" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Methods</SelectItem>
+                  <SelectItem value="cash">Cash</SelectItem>
+                  <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                  <SelectItem value="card">Card</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Student Filter */}
+              <Select value={studentFilter} onValueChange={setStudentFilter}>
+                <SelectTrigger className="w-48" data-testid="select-student-filter">
+                  <SelectValue placeholder="Student" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Students</SelectItem>
+                  {(students || []).map((student: any) => (
+                    <SelectItem key={student.id} value={student.id}>
+                      {student.firstName} {student.lastName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Date Range Filter */}
+              <Select value={dateRangeFilter} onValueChange={setDateRangeFilter}>
+                <SelectTrigger className="w-36" data-testid="select-date-filter">
+                  <SelectValue placeholder="Date Range" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Dates</SelectItem>
+                  <SelectItem value="today">Today</SelectItem>
+                  <SelectItem value="this-week">This Week</SelectItem>
+                  <SelectItem value="this-month">This Month</SelectItem>
+                  <SelectItem value="last-30-days">Last 30 Days</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Amount Range Filter */}
+              <Select value={amountRangeFilter} onValueChange={setAmountRangeFilter}>
+                <SelectTrigger className="w-36" data-testid="select-amount-filter">
+                  <SelectValue placeholder="Amount Range" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Amounts</SelectItem>
+                  <SelectItem value="under-10k">Under Rs. 10K</SelectItem>
+                  <SelectItem value="10k-25k">Rs. 10K - 25K</SelectItem>
+                  <SelectItem value="25k-50k">Rs. 25K - 50K</SelectItem>
+                  <SelectItem value="over-50k">Over Rs. 50K</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Clear Filters Button */}
+              {(searchQuery || paymentMethodFilter !== "all" || dateRangeFilter !== "all" || amountRangeFilter !== "all" || studentFilter !== "all") && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearAllFilters}
+                  data-testid="button-clear-filters"
+                >
+                  <i className="fas fa-times mr-2"></i>
+                  Clear Filters
+                </Button>
+              )}
+            </div>
+
+            {/* Results Count */}
+            {payments && (
+              <div className="text-sm text-gray-600">
+                Showing {filteredPayments.length} of {payments.length} receipts
+              </div>
+            )}
           </div>
         </CardHeader>
         
@@ -473,6 +639,7 @@ export default function Receipts() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-3 text-left font-medium text-gray-700">Receipt #</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-700">Student</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-700">Date</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-700">Amount</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-700">Payment Method</th>
@@ -487,6 +654,11 @@ export default function Receipts() {
                     <td className="px-4 py-3">
                       <span className="font-mono text-sm" data-testid={`text-receipt-${payment.id}`}>
                         {payment.receiptNumber || 'N/A'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="font-medium" data-testid={`text-student-${payment.id}`}>
+                        {getStudentName(payment.studentId)}
                       </span>
                     </td>
                     <td className="px-4 py-3" data-testid={`text-payment-date-${payment.id}`}>
@@ -543,9 +715,12 @@ export default function Receipts() {
                   </tr>
                 )) : (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                    <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
                       <i className="fas fa-receipt text-4xl mb-4"></i>
                       <p>No receipts found</p>
+                      {(searchQuery || paymentMethodFilter !== "all" || dateRangeFilter !== "all" || amountRangeFilter !== "all" || studentFilter !== "all") && (
+                        <p className="text-sm mt-2">Try adjusting your filters or search terms</p>
+                      )}
                     </td>
                   </tr>
                 )}
