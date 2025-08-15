@@ -10,6 +10,7 @@ import {
   insertAttendanceSchema,
   insertAssessmentSchema,
   insertGradeSchema,
+  insertAnnouncementSchema,
   students,
   subjects,
   classes,
@@ -23,7 +24,9 @@ import {
   expenses,
   assessments,
   grades,
-  cashDrawRequests
+  cashDrawRequests,
+  announcements,
+  announcementRecipients
 } from "@shared/schema";
 import { db } from "./db";
 import { and, desc, eq, gte, lte, sql } from 'drizzle-orm';
@@ -1052,6 +1055,140 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error running billing demo:", error);
       res.status(500).json({ message: "Failed to run billing demo" });
+    }
+  });
+
+  // Digital Diary - Announcement Routes
+  
+  // Get all announcements (with optional teacher filter)
+  app.get("/api/announcements", async (req: any, res) => {
+    try {
+      const teacherId = req.query.teacherId as string;
+      const announcements = await storage.getAnnouncements(teacherId);
+      res.json(announcements);
+    } catch (error) {
+      console.error("Error fetching announcements:", error);
+      res.status(500).json({ message: "Failed to fetch announcements" });
+    }
+  });
+
+  // Create new announcement
+  app.post("/api/announcements", async (req: any, res) => {
+    try {
+      const validatedData = insertAnnouncementSchema.parse({
+        ...req.body,
+        createdBy: req.body.createdBy || 'demo-user',
+      });
+      
+      const announcement = await storage.createAnnouncement(validatedData);
+      
+      // If recipients are provided, add them
+      if (req.body.recipients && req.body.recipients.length > 0) {
+        await storage.addAnnouncementRecipients(announcement.id, req.body.recipients);
+      }
+      
+      res.status(201).json(announcement);
+    } catch (error) {
+      console.error("Error creating announcement:", error);
+      res.status(400).json({ message: "Failed to create announcement" });
+    }
+  });
+
+  // Update announcement
+  app.put("/api/announcements/:id", async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+      
+      const updatedAnnouncement = await storage.updateAnnouncement(id, updates);
+      res.json(updatedAnnouncement);
+    } catch (error) {
+      console.error("Error updating announcement:", error);
+      res.status(500).json({ message: "Failed to update announcement" });
+    }
+  });
+
+  // Delete announcement (soft delete)
+  app.delete("/api/announcements/:id", async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteAnnouncement(id);
+      res.json({ success: true, message: "Announcement deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting announcement:", error);
+      res.status(500).json({ message: "Failed to delete announcement" });
+    }
+  });
+
+  // Add recipients to announcement
+  app.post("/api/announcements/:id/recipients", async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { studentIds } = req.body;
+      
+      if (!studentIds || !Array.isArray(studentIds)) {
+        return res.status(400).json({ message: "Student IDs array is required" });
+      }
+      
+      await storage.addAnnouncementRecipients(id, studentIds);
+      res.json({ success: true, message: "Recipients added successfully" });
+    } catch (error) {
+      console.error("Error adding announcement recipients:", error);
+      res.status(500).json({ message: "Failed to add recipients" });
+    }
+  });
+
+  // Get announcements for a specific student
+  app.get("/api/students/:studentId/announcements", async (req, res) => {
+    try {
+      const { studentId } = req.params;
+      const announcements = await storage.getStudentAnnouncements(studentId);
+      res.json(announcements);
+    } catch (error) {
+      console.error("Error fetching student announcements:", error);
+      res.status(500).json({ message: "Failed to fetch student announcements" });
+    }
+  });
+
+  // Mark announcement as read
+  app.post("/api/announcements/:announcementId/read", async (req: any, res) => {
+    try {
+      const { announcementId } = req.params;
+      const { studentId } = req.body;
+      
+      if (!studentId) {
+        return res.status(400).json({ message: "Student ID is required" });
+      }
+      
+      await storage.markAnnouncementAsRead(announcementId, studentId);
+      res.json({ success: true, message: "Announcement marked as read" });
+    } catch (error) {
+      console.error("Error marking announcement as read:", error);
+      res.status(500).json({ message: "Failed to mark announcement as read" });
+    }
+  });
+
+  // Get announcements for a specific class
+  app.get("/api/classes/:classId/announcements", async (req, res) => {
+    try {
+      const { classId } = req.params;
+      const announcements = await storage.getAnnouncementsByClass(classId);
+      res.json(announcements);
+    } catch (error) {
+      console.error("Error fetching class announcements:", error);
+      res.status(500).json({ message: "Failed to fetch class announcements" });
+    }
+  });
+
+  // Get announcements for a specific subject
+  app.get("/api/subjects/:subjectId/announcements", async (req, res) => {
+    try {
+      const { subjectId } = req.params;
+      const announcements = await storage.getAnnouncementsBySubject(subjectId);
+      res.json(announcements);
+    } catch (error) {
+      console.error("Error fetching subject announcements:", error);
+      res.status(500).json({ message: "Failed to fetch subject announcements" });
     }
   });
 

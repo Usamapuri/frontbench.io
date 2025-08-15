@@ -48,6 +48,8 @@ export const invoiceStatusEnum = pgEnum('invoice_status', ['draft', 'sent', 'pai
 export const invoiceTypeEnum = pgEnum('invoice_type', ['monthly', 'prorated', 'custom', 'multi_month', 'adjustment']);
 export const paymentStatusEnum = pgEnum('payment_status', ['completed', 'pending', 'failed', 'refunded']);
 export const adjustmentTypeEnum = pgEnum('adjustment_type', ['discount', 'late_fee', 'manual_edit', 'refund', 'writeoff']);
+export const announcementTypeEnum = pgEnum('announcement_type', ['homework', 'announcement', 'notice', 'reminder', 'event']);
+export const priorityEnum = pgEnum('priority', ['low', 'medium', 'high']);
 
 // Students table
 export const students = pgTable("students", {
@@ -300,6 +302,32 @@ export const expenses = pgTable("expenses", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Digital Diary - Announcements
+export const announcements = pgTable("announcements", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: varchar("title").notNull(),
+  content: text("content").notNull(),
+  type: announcementTypeEnum("type").notNull(),
+  priority: priorityEnum("priority").default('medium'),
+  createdBy: varchar("created_by").references(() => users.id).notNull(),
+  subjectId: varchar("subject_id").references(() => subjects.id), // Optional - for subject-specific announcements
+  classId: varchar("class_id").references(() => classes.id), // Optional - for class-specific announcements
+  dueDate: date("due_date"), // Optional - for homework/assignments
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Announcement Recipients - Many-to-many relationship
+export const announcementRecipients = pgTable("announcement_recipients", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  announcementId: varchar("announcement_id").references(() => announcements.id).notNull(),
+  studentId: varchar("student_id").references(() => students.id).notNull(),
+  isRead: boolean("is_read").default(false),
+  readAt: timestamp("read_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   studentsAsParent: many(students),
@@ -313,6 +341,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   cashDrawRequests: many(cashDrawRequests),
   dailyCloses: many(dailyClose),
   expensesEntered: many(expenses),
+  announcementsCreated: many(announcements),
 }));
 
 export const studentsRelations = relations(students, ({ one, many }) => ({
@@ -326,6 +355,7 @@ export const studentsRelations = relations(students, ({ one, many }) => ({
   billingSchedules: many(billingSchedules),
   attendance: many(attendance),
   grades: many(grades),
+  announcementRecipients: many(announcementRecipients),
 }));
 
 export const subjectsRelations = relations(subjects, ({ many }) => ({
@@ -333,6 +363,7 @@ export const subjectsRelations = relations(subjects, ({ many }) => ({
   classes: many(classes),
   assessments: many(assessments),
   comboSubjects: many(comboSubjects),
+  announcements: many(announcements),
 }));
 
 export const subjectCombosRelations = relations(subjectCombos, ({ many }) => ({
@@ -456,6 +487,7 @@ export const classesRelations = relations(classes, ({ one, many }) => ({
     references: [users.id],
   }),
   attendance: many(attendance),
+  announcements: many(announcements),
 }));
 
 export const attendanceRelations = relations(attendance, ({ one }) => ({
@@ -532,6 +564,33 @@ export const expensesRelations = relations(expenses, ({ one }) => ({
   }),
 }));
 
+export const announcementsRelations = relations(announcements, ({ one, many }) => ({
+  createdByUser: one(users, {
+    fields: [announcements.createdBy],
+    references: [users.id],
+  }),
+  subject: one(subjects, {
+    fields: [announcements.subjectId],
+    references: [subjects.id],
+  }),
+  class: one(classes, {
+    fields: [announcements.classId],
+    references: [classes.id],
+  }),
+  recipients: many(announcementRecipients),
+}));
+
+export const announcementRecipientsRelations = relations(announcementRecipients, ({ one }) => ({
+  announcement: one(announcements, {
+    fields: [announcementRecipients.announcementId],
+    references: [announcements.id],
+  }),
+  student: one(students, {
+    fields: [announcementRecipients.studentId],
+    references: [students.id],
+  }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -577,6 +636,17 @@ export const insertGradeSchema = createInsertSchema(grades).omit({
   enteredAt: true,
 });
 
+export const insertAnnouncementSchema = createInsertSchema(announcements).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertAnnouncementRecipientSchema = createInsertSchema(announcementRecipients).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type UpsertUser = typeof users.$inferInsert;
@@ -599,3 +669,7 @@ export type PayoutRule = typeof payoutRules.$inferSelect;
 export type CashDrawRequest = typeof cashDrawRequests.$inferSelect;
 export type DailyClose = typeof dailyClose.$inferSelect;
 export type Expense = typeof expenses.$inferSelect;
+export type Announcement = typeof announcements.$inferSelect;
+export type InsertAnnouncement = z.infer<typeof insertAnnouncementSchema>;
+export type AnnouncementRecipient = typeof announcementRecipients.$inferSelect;
+export type InsertAnnouncementRecipient = z.infer<typeof insertAnnouncementRecipientSchema>;

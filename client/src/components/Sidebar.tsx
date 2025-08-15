@@ -33,6 +33,7 @@ export default function Sidebar({ selectedRole }: SidebarProps) {
           { path: '/dashboard', icon: 'fas fa-home', label: 'Today' },
           { path: '/attendance', icon: 'fas fa-calendar-check', label: 'Attendance' },
           { path: '/gradebook', icon: 'fas fa-book', label: 'Gradebook' },
+          { path: '/digital-diary', icon: 'fas fa-bullhorn', label: 'Digital Diary' },
           { path: '/earnings', icon: 'fas fa-dollar-sign', label: 'Earnings' },
         ];
       case 'parent':

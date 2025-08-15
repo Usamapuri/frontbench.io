@@ -15,6 +15,8 @@ import {
   cashDrawRequests,
   dailyClose,
   expenses,
+  announcements,
+  announcementRecipients,
   type User,
   type UpsertUser,
   type Student,
@@ -29,6 +31,10 @@ import {
   type CashDrawRequest,
   type DailyClose,
   type Expense,
+  type Announcement,
+  type InsertAnnouncement,
+  type AnnouncementRecipient,
+  type InsertAnnouncementRecipient,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, gte, lte, count, sum, avg } from "drizzle-orm";
@@ -126,6 +132,19 @@ export interface IStorage {
   // Dashboard stats
   getDashboardStats(): Promise<any>;
   getTeacherEarnings(teacherId: string): Promise<any>;
+
+  // Digital Diary - Announcements
+  getAnnouncements(teacherId?: string): Promise<Announcement[]>;
+  createAnnouncement(announcement: InsertAnnouncement): Promise<Announcement>;
+  updateAnnouncement(id: string, updates: Partial<InsertAnnouncement>): Promise<Announcement>;
+  deleteAnnouncement(id: string): Promise<void>;
+  
+  // Announcement Recipients
+  addAnnouncementRecipients(announcementId: string, studentIds: string[]): Promise<void>;
+  getStudentAnnouncements(studentId: string): Promise<any[]>;
+  markAnnouncementAsRead(announcementId: string, studentId: string): Promise<void>;
+  getAnnouncementsByClass(classId: string): Promise<Announcement[]>;
+  getAnnouncementsBySubject(subjectId: string): Promise<Announcement[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -826,6 +845,137 @@ export class DatabaseStorage implements IStorage {
     // This would generate invoices based on billing schedules
     // For now, return empty array as placeholder
     return [];
+  }
+
+  // Digital Diary - Announcement Implementation
+  async getAnnouncements(teacherId?: string): Promise<Announcement[]> {
+    let query = db
+      .select({
+        id: announcements.id,
+        title: announcements.title,
+        content: announcements.content,
+        type: announcements.type,
+        priority: announcements.priority,
+        createdBy: announcements.createdBy,
+        subjectId: announcements.subjectId,
+        classId: announcements.classId,
+        dueDate: announcements.dueDate,
+        isActive: announcements.isActive,
+        createdAt: announcements.createdAt,
+        updatedAt: announcements.updatedAt,
+      })
+      .from(announcements)
+      .where(eq(announcements.isActive, true))
+      .orderBy(desc(announcements.createdAt));
+
+    if (teacherId) {
+      query = query.where(eq(announcements.createdBy, teacherId));
+    }
+
+    return await query;
+  }
+
+  async createAnnouncement(announcement: InsertAnnouncement): Promise<Announcement> {
+    const [newAnnouncement] = await db.insert(announcements).values(announcement).returning();
+    return newAnnouncement;
+  }
+
+  async updateAnnouncement(id: string, updates: Partial<InsertAnnouncement>): Promise<Announcement> {
+    const [updatedAnnouncement] = await db
+      .update(announcements)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(announcements.id, id))
+      .returning();
+    return updatedAnnouncement;
+  }
+
+  async deleteAnnouncement(id: string): Promise<void> {
+    await db.update(announcements)
+      .set({ isActive: false })
+      .where(eq(announcements.id, id));
+  }
+
+  async addAnnouncementRecipients(announcementId: string, studentIds: string[]): Promise<void> {
+    const recipients = studentIds.map(studentId => ({
+      announcementId,
+      studentId,
+    }));
+    
+    await db.insert(announcementRecipients).values(recipients);
+  }
+
+  async getStudentAnnouncements(studentId: string): Promise<any[]> {
+    const results = await db
+      .select({
+        id: announcements.id,
+        title: announcements.title,
+        content: announcements.content,
+        type: announcements.type,
+        priority: announcements.priority,
+        dueDate: announcements.dueDate,
+        createdAt: announcements.createdAt,
+        isRead: announcementRecipients.isRead,
+        readAt: announcementRecipients.readAt,
+        // Include teacher and subject info
+        teacherFirstName: users.firstName,
+        teacherLastName: users.lastName,
+        subjectName: subjects.name,
+        subjectCode: subjects.code,
+      })
+      .from(announcementRecipients)
+      .innerJoin(announcements, eq(announcementRecipients.announcementId, announcements.id))
+      .innerJoin(users, eq(announcements.createdBy, users.id))
+      .leftJoin(subjects, eq(announcements.subjectId, subjects.id))
+      .where(
+        and(
+          eq(announcementRecipients.studentId, studentId),
+          eq(announcements.isActive, true)
+        )
+      )
+      .orderBy(desc(announcements.createdAt));
+
+    return results;
+  }
+
+  async markAnnouncementAsRead(announcementId: string, studentId: string): Promise<void> {
+    await db
+      .update(announcementRecipients)
+      .set({ 
+        isRead: true, 
+        readAt: new Date() 
+      })
+      .where(
+        and(
+          eq(announcementRecipients.announcementId, announcementId),
+          eq(announcementRecipients.studentId, studentId)
+        )
+      );
+  }
+
+  async getAnnouncementsByClass(classId: string): Promise<Announcement[]> {
+    return await db
+      .select()
+      .from(announcements)
+      .where(
+        and(
+          eq(announcements.classId, classId),
+          eq(announcements.isActive, true)
+        )
+      )
+      .orderBy(desc(announcements.createdAt));
+  }
+
+  async getAnnouncementsBySubject(subjectId: string): Promise<Announcement[]> {
+    return await db
+      .select()
+      .from(announcements)
+      .where(
+        and(
+          eq(announcements.subjectId, subjectId),
+          eq(announcements.isActive, true)
+        )
+      )
+      .orderBy(desc(announcements.createdAt));
   }
 }
 

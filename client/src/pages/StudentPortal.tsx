@@ -19,7 +19,9 @@ import {
   Mail,
   MapPin,
   TrendingUp,
-  DollarSign
+  DollarSign,
+  Megaphone,
+  BookOpen as BookIcon
 } from "lucide-react";
 
 interface Student {
@@ -73,6 +75,16 @@ export default function StudentPortal(props: StudentPortalProps = {}) {
   const { studentId: urlStudentId } = useParams<{ studentId: string }>();
   const studentId = props.studentId || urlStudentId;
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>('all');
+
+  // Fetch student announcements
+  const { data: announcements = [] } = useQuery({
+    queryKey: ["/api/students", studentId, "announcements"],
+    queryFn: async () => {
+      const response = await fetch(`/api/students/${studentId}/announcements`);
+      return response.json();
+    },
+    enabled: !!studentId,
+  });
 
   // Fetch student basic information
   const { data: student, isLoading: studentLoading } = useQuery<Student>({
@@ -496,52 +508,112 @@ export default function StudentPortal(props: StudentPortalProps = {}) {
               </CardContent>
             </Card>
 
-            {/* Upcoming Events */}
+            {/* Digital Diary - Announcements */}
             <Card>
               <CardHeader>
                 <div className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-blue-600" />
-                  <CardTitle>Upcoming Events</CardTitle>
+                  <Megaphone className="h-5 w-5 text-purple-600" />
+                  <CardTitle>Digital Diary</CardTitle>
                 </div>
-                <p className="text-sm text-gray-600">Important dates and school announcements</p>
+                <p className="text-sm text-gray-600">Messages and announcements from your teachers</p>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="p-3 bg-red-50 border-l-4 border-red-500 rounded">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-medium text-red-900">Parent-Teacher Meeting</p>
-                      <p className="text-sm text-red-700">Oct 15, 2025 at 2:00 PM</p>
-                    </div>
-                    <Badge variant="destructive" className="text-xs">DUE</Badge>
+                {Array.isArray(announcements) && announcements.length > 0 ? (
+                  announcements.slice(0, 4).map((announcement: any) => {
+                    const getAnnouncementStyle = (type: string, priority: string) => {
+                      const styles = {
+                        homework: "bg-orange-50 border-l-4 border-orange-500",
+                        notice: "bg-blue-50 border-l-4 border-blue-500", 
+                        reminder: "bg-yellow-50 border-l-4 border-yellow-500",
+                        announcement: "bg-purple-50 border-l-4 border-purple-500"
+                      };
+                      return styles[type as keyof typeof styles] || styles.announcement;
+                    };
+
+                    const getAnnouncementTextColor = (type: string) => {
+                      const colors = {
+                        homework: "text-orange-900",
+                        notice: "text-blue-900",
+                        reminder: "text-yellow-900", 
+                        announcement: "text-purple-900"
+                      };
+                      return colors[type as keyof typeof colors] || colors.announcement;
+                    };
+
+                    const getAnnouncementIcon = (type: string) => {
+                      switch (type) {
+                        case "homework": return <BookIcon className="h-4 w-4" />;
+                        case "notice": return <AlertCircle className="h-4 w-4" />;
+                        case "reminder": return <Clock className="h-4 w-4" />;
+                        default: return <Megaphone className="h-4 w-4" />;
+                      }
+                    };
+
+                    const getPriorityBadge = (priority: string) => {
+                      const variants = {
+                        high: "destructive",
+                        medium: "secondary", 
+                        low: "outline"
+                      };
+                      return variants[priority as keyof typeof variants] || "secondary";
+                    };
+
+                    return (
+                      <div 
+                        key={announcement.id} 
+                        className={`p-3 rounded ${getAnnouncementStyle(announcement.type, announcement.priority)}`}
+                        data-testid={`announcement-${announcement.id}`}
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex items-center gap-2">
+                            {getAnnouncementIcon(announcement.type)}
+                            <div>
+                              <p className={`font-medium ${getAnnouncementTextColor(announcement.type)}`}>
+                                {announcement.title}
+                              </p>
+                              <p className="text-xs text-gray-600 capitalize">
+                                {announcement.type} • {announcement.teacherFirstName} {announcement.teacherLastName}
+                                {announcement.subjectName && ` • ${announcement.subjectName}`}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Badge variant={getPriorityBadge(announcement.priority) as any} className="text-xs">
+                              {announcement.priority}
+                            </Badge>
+                            {!announcement.isRead && (
+                              <div className="w-2 h-2 bg-red-500 rounded-full" title="Unread"></div>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-sm text-gray-700 mb-2">{announcement.content}</p>
+                        <div className="flex justify-between items-center text-xs text-gray-500">
+                          <span>{new Date(announcement.createdAt).toLocaleDateString()}</span>
+                          {announcement.dueDate && (
+                            <span className="flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              Due: {new Date(announcement.dueDate).toLocaleDateString()}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="text-center py-8">
+                    <Megaphone className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500 font-medium">No announcements yet</p>
+                    <p className="text-sm text-gray-400">Your teachers' messages will appear here</p>
                   </div>
-                </div>
-                <div className="p-3 bg-blue-50 border-l-4 border-blue-500 rounded">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-medium text-blue-900">Mid-term Exams Begin</p>
-                      <p className="text-sm text-blue-700">Oct 20, 2025 at 9:00 AM</p>
-                    </div>
-                    <Badge variant="secondary" className="text-xs">DUE</Badge>
+                )}
+                
+                {Array.isArray(announcements) && announcements.length > 4 && (
+                  <div className="text-center pt-2">
+                    <button className="text-sm text-purple-600 hover:text-purple-800 font-medium">
+                      View All Announcements ({announcements.length})
+                    </button>
                   </div>
-                </div>
-                <div className="p-3 bg-green-50 border-l-4 border-green-500 rounded">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-medium text-green-900">Science Fair</p>
-                      <p className="text-sm text-green-700">Oct 25, 2025 at 10:00 AM</p>
-                    </div>
-                    <Badge className="text-xs bg-green-100 text-green-800">DUE</Badge>
-                  </div>
-                </div>
-                <div className="p-3 bg-purple-50 border-l-4 border-purple-500 rounded">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-medium text-purple-900">Fee Payment Deadline</p>
-                      <p className="text-sm text-purple-700">Oct 30, 2025 at 11:59 PM</p>
-                    </div>
-                    <Badge className="text-xs bg-purple-100 text-purple-800">DUE</Badge>
-                  </div>
-                </div>
+                )}
               </CardContent>
             </Card>
 
