@@ -270,6 +270,13 @@ export default function TeacherDashboard() {
               </Button>
             </Link>
             
+            <Link href="/schedule-manager">
+              <Button variant="outline" className="h-20 flex flex-col space-y-2" data-testid="button-schedule-manager">
+                <i className="fas fa-calendar-alt text-2xl text-blue-600"></i>
+                <span className="text-sm font-medium">Schedule Manager</span>
+              </Button>
+            </Link>
+            
             <Button variant="outline" className="h-20 flex flex-col space-y-2" data-testid="button-sync">
               <i className="fas fa-sync-alt text-2xl text-blue-600"></i>
               <span className="text-sm font-medium">Sync Data</span>

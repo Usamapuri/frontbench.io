@@ -50,6 +50,9 @@ export const paymentStatusEnum = pgEnum('payment_status', ['completed', 'pending
 export const adjustmentTypeEnum = pgEnum('adjustment_type', ['discount', 'late_fee', 'manual_edit', 'refund', 'writeoff']);
 export const announcementTypeEnum = pgEnum('announcement_type', ['homework', 'announcement', 'notice', 'reminder', 'event']);
 export const priorityEnum = pgEnum('priority', ['low', 'medium', 'high']);
+export const dayOfWeekEnum = pgEnum('day_of_week', ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']);
+export const scheduleChangeTypeEnum = pgEnum('schedule_change_type', ['cancellation', 'reschedule', 'extra_class']);
+export const notificationStatusEnum = pgEnum('notification_status', ['pending', 'sent', 'read']);
 
 // Students table
 export const students = pgTable("students", {
@@ -342,6 +345,51 @@ export const announcementRecipients = pgTable("announcement_recipients", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Class Schedules - Regular recurring schedules
+export const classSchedules = pgTable("class_schedules", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  teacherId: varchar("teacher_id").references(() => users.id).notNull(),
+  subjectId: varchar("subject_id").references(() => subjects.id).notNull(),
+  dayOfWeek: dayOfWeekEnum("day_of_week").notNull(),
+  startTime: varchar("start_time").notNull(), // Format: "HH:MM"
+  endTime: varchar("end_time").notNull(), // Format: "HH:MM"
+  location: varchar("location"), // Room number or location
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Schedule Changes - One-time modifications to regular schedules
+export const scheduleChanges = pgTable("schedule_changes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  scheduleId: varchar("schedule_id").references(() => classSchedules.id),
+  teacherId: varchar("teacher_id").references(() => users.id).notNull(),
+  subjectId: varchar("subject_id").references(() => subjects.id).notNull(),
+  changeType: scheduleChangeTypeEnum("change_type").notNull(),
+  affectedDate: date("affected_date").notNull(), // Specific date for the change
+  originalStartTime: varchar("original_start_time"), // For rescheduling
+  originalEndTime: varchar("original_end_time"), // For rescheduling
+  newStartTime: varchar("new_start_time"), // For rescheduling or extra classes
+  newEndTime: varchar("new_end_time"), // For rescheduling or extra classes
+  newLocation: varchar("new_location"), // For location changes
+  reason: text("reason"), // Why the change was made
+  isNotificationSent: boolean("is_notification_sent").default(false),
+  createdBy: varchar("created_by").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Student Notifications - Track alerts for schedule changes
+export const studentNotifications = pgTable("student_notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  studentId: varchar("student_id").references(() => students.id).notNull(),
+  scheduleChangeId: varchar("schedule_change_id").references(() => scheduleChanges.id).notNull(),
+  message: text("message").notNull(), // Generated notification message
+  status: notificationStatusEnum("status").default('pending'),
+  sentAt: timestamp("sent_at"),
+  readAt: timestamp("read_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   studentsAsParent: many(students),
@@ -605,6 +653,49 @@ export const announcementRecipientsRelations = relations(announcementRecipients,
   }),
 }));
 
+export const classSchedulesRelations = relations(classSchedules, ({ one, many }) => ({
+  teacher: one(users, {
+    fields: [classSchedules.teacherId],
+    references: [users.id],
+  }),
+  subject: one(subjects, {
+    fields: [classSchedules.subjectId],
+    references: [subjects.id],
+  }),
+  scheduleChanges: many(scheduleChanges),
+}));
+
+export const scheduleChangesRelations = relations(scheduleChanges, ({ one, many }) => ({
+  schedule: one(classSchedules, {
+    fields: [scheduleChanges.scheduleId],
+    references: [classSchedules.id],
+  }),
+  teacher: one(users, {
+    fields: [scheduleChanges.teacherId],
+    references: [users.id],
+  }),
+  subject: one(subjects, {
+    fields: [scheduleChanges.subjectId],
+    references: [subjects.id],
+  }),
+  createdByUser: one(users, {
+    fields: [scheduleChanges.createdBy],
+    references: [users.id],
+  }),
+  notifications: many(studentNotifications),
+}));
+
+export const studentNotificationsRelations = relations(studentNotifications, ({ one }) => ({
+  student: one(students, {
+    fields: [studentNotifications.studentId],
+    references: [students.id],
+  }),
+  scheduleChange: one(scheduleChanges, {
+    fields: [studentNotifications.scheduleChangeId],
+    references: [scheduleChanges.id],
+  }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -661,6 +752,22 @@ export const insertAnnouncementRecipientSchema = createInsertSchema(announcement
   createdAt: true,
 });
 
+export const insertClassScheduleSchema = createInsertSchema(classSchedules).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertScheduleChangeSchema = createInsertSchema(scheduleChanges).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertStudentNotificationSchema = createInsertSchema(studentNotifications).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type UpsertUser = typeof users.$inferInsert;
@@ -687,3 +794,9 @@ export type Announcement = typeof announcements.$inferSelect;
 export type InsertAnnouncement = z.infer<typeof insertAnnouncementSchema>;
 export type AnnouncementRecipient = typeof announcementRecipients.$inferSelect;
 export type InsertAnnouncementRecipient = z.infer<typeof insertAnnouncementRecipientSchema>;
+export type ClassSchedule = typeof classSchedules.$inferSelect;
+export type InsertClassSchedule = z.infer<typeof insertClassScheduleSchema>;
+export type ScheduleChange = typeof scheduleChanges.$inferSelect;
+export type InsertScheduleChange = z.infer<typeof insertScheduleChangeSchema>;
+export type StudentNotification = typeof studentNotifications.$inferSelect;
+export type InsertStudentNotification = z.infer<typeof insertStudentNotificationSchema>;

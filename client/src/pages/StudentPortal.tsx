@@ -71,6 +71,31 @@ interface StudentPortalProps {
   studentId?: string;
 }
 
+interface ScheduleNotification {
+  id: string;
+  message: string;
+  status: 'pending' | 'read';
+  createdAt: string;
+  affectedDate: string;
+  changeType: 'cancellation' | 'reschedule' | 'extra_class';
+  subjectName: string;
+}
+
+interface ScheduleItem {
+  id: string;
+  type: 'regular' | 'cancellation' | 'reschedule' | 'extra_class';
+  subjectId: string;
+  subjectName: string;
+  subjectCode: string;
+  dayOfWeek?: number;
+  startTime: string;
+  endTime: string;
+  location?: string;
+  teacherName: string;
+  affectedDate?: string;
+  reason?: string;
+}
+
 export default function StudentPortal(props: StudentPortalProps = {}) {
   const { studentId: urlStudentId } = useParams<{ studentId: string }>();
   const studentId = props.studentId || urlStudentId;
@@ -82,6 +107,26 @@ export default function StudentPortal(props: StudentPortalProps = {}) {
     queryFn: async () => {
       const response = await fetch(`/api/students/${studentId}/announcements`);
       return response.json();
+    },
+    enabled: !!studentId,
+  });
+
+  // Fetch student schedule
+  const { data: schedule } = useQuery({
+    queryKey: ["/api/student", studentId, "schedule"],
+    queryFn: async () => {
+      const response = await fetch(`/api/student/${studentId}/schedule`);
+      return response.ok ? response.json() : { regularSchedules: [], scheduleChanges: [] };
+    },
+    enabled: !!studentId,
+  });
+
+  // Fetch schedule notifications
+  const { data: notifications = [] } = useQuery<ScheduleNotification[]>({
+    queryKey: ["/api/student", studentId, "notifications"],
+    queryFn: async () => {
+      const response = await fetch(`/api/student/${studentId}/notifications`);
+      return response.ok ? response.json() : [];
     },
     enabled: !!studentId,
   });
@@ -614,6 +659,140 @@ export default function StudentPortal(props: StudentPortalProps = {}) {
                     </button>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+
+            {/* Schedule & Notifications */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-blue-600" />
+                  <CardTitle>Class Schedule</CardTitle>
+                </div>
+                <p className="text-sm text-gray-600">Your weekly class schedule and schedule updates</p>
+              </CardHeader>
+              <CardContent>
+                {/* Schedule Notifications */}
+                {notifications.length > 0 && (
+                  <div className="mb-6">
+                    <h4 className="font-medium text-gray-700 mb-3 flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 text-orange-500" />
+                      Schedule Updates ({notifications.filter(n => n.status === 'pending').length} new)
+                    </h4>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {notifications.slice(0, 5).map((notification) => {
+                        const getNotificationIcon = (type: string) => {
+                          switch (type) {
+                            case "cancellation": return <XCircle className="h-4 w-4 text-red-500" />;
+                            case "reschedule": return <Clock className="h-4 w-4 text-orange-500" />;
+                            case "extra_class": return <Calendar className="h-4 w-4 text-green-500" />;
+                            default: return <AlertCircle className="h-4 w-4 text-blue-500" />;
+                          }
+                        };
+
+                        const getBgColor = (type: string, status: string) => {
+                          const opacity = status === 'read' ? '50' : '100';
+                          switch (type) {
+                            case "cancellation": return `bg-red-${opacity} border-red-200`;
+                            case "reschedule": return `bg-orange-${opacity} border-orange-200`;
+                            case "extra_class": return `bg-green-${opacity} border-green-200`;
+                            default: return `bg-blue-${opacity} border-blue-200`;
+                          }
+                        };
+
+                        return (
+                          <div 
+                            key={notification.id}
+                            className={`p-3 rounded-lg border ${getBgColor(notification.changeType, notification.status)} ${notification.status === 'pending' ? 'border-l-4' : ''}`}
+                            data-testid={`notification-${notification.id}`}
+                          >
+                            <div className="flex items-start gap-3">
+                              {getNotificationIcon(notification.changeType)}
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <p className="font-medium text-gray-900 text-sm">
+                                    {notification.subjectName}
+                                  </p>
+                                  {notification.status === 'pending' && (
+                                    <div className="w-2 h-2 bg-blue-500 rounded-full" title="New notification"></div>
+                                  )}
+                                </div>
+                                <p className="text-sm text-gray-700">{notification.message}</p>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  {new Date(notification.createdAt).toLocaleDateString()} • 
+                                  Affected: {new Date(notification.affectedDate).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Weekly Schedule */}
+                <div>
+                  <h4 className="font-medium text-gray-700 mb-3">Weekly Class Schedule</h4>
+                  {schedule?.regularSchedules?.length > 0 ? (
+                    <div className="space-y-3">
+                      {(() => {
+                        const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+                        const scheduleByDay: any = {};
+                        
+                        schedule.regularSchedules.forEach((item: any) => {
+                          const day = dayNames[item.dayOfWeek];
+                          if (!scheduleByDay[day]) {
+                            scheduleByDay[day] = [];
+                          }
+                          scheduleByDay[day].push(item);
+                        });
+
+                        // Sort each day's classes by start time
+                        Object.keys(scheduleByDay).forEach(day => {
+                          scheduleByDay[day].sort((a: any, b: any) => a.startTime.localeCompare(b.startTime));
+                        });
+
+                        return dayNames.map(day => (
+                          <div key={day} className="border rounded-lg p-3">
+                            <h5 className="font-medium text-gray-800 mb-2">{day}</h5>
+                            {scheduleByDay[day]?.length > 0 ? (
+                              <div className="space-y-2">
+                                {scheduleByDay[day].map((classItem: any, index: number) => (
+                                  <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                    <div className="flex items-center gap-3">
+                                      <div className="text-sm font-medium text-blue-600">
+                                        {classItem.startTime} - {classItem.endTime}
+                                      </div>
+                                      <div>
+                                        <p className="font-medium text-gray-900">{classItem.subjectName}</p>
+                                        <p className="text-xs text-gray-600">
+                                          {classItem.teacherName}
+                                          {classItem.location && ` • ${classItem.location}`}
+                                        </p>
+                                      </div>
+                                    </div>
+                                    <Badge variant="outline" className="text-xs">
+                                      {classItem.subjectCode}
+                                    </Badge>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-sm text-gray-500">No classes scheduled</p>
+                            )}
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500 font-medium">No schedule available</p>
+                      <p className="text-sm text-gray-400">Your class schedule will appear here once created by teachers</p>
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
 

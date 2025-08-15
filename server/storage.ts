@@ -19,6 +19,9 @@ import {
   announcementRecipients,
   addOns,
   invoiceItems,
+  classSchedules,
+  scheduleChanges,
+  studentNotifications,
   type User,
   type UpsertUser,
   type Student,
@@ -37,6 +40,12 @@ import {
   type InsertAnnouncement,
   type AnnouncementRecipient,
   type InsertAnnouncementRecipient,
+  type ClassSchedule,
+  type InsertClassSchedule,
+  type ScheduleChange,
+  type InsertScheduleChange,
+  type StudentNotification,
+  type InsertStudentNotification,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, gte, lte, count, sum, avg } from "drizzle-orm";
@@ -157,6 +166,24 @@ export interface IStorage {
   // Add-ons
   getAddOns(): Promise<any[]>;
   createAddOn(addOn: any): Promise<any>;
+
+  // Schedule Management
+  getTeacherSchedules(teacherId: string): Promise<ClassSchedule[]>;
+  createSchedule(schedule: InsertClassSchedule): Promise<ClassSchedule>;
+  updateSchedule(id: string, updates: Partial<InsertClassSchedule>): Promise<ClassSchedule>;
+  deleteSchedule(id: string): Promise<void>;
+  
+  // Schedule Changes
+  getScheduleChanges(teacherId: string, startDate?: Date, endDate?: Date): Promise<ScheduleChange[]>;
+  createScheduleChange(change: InsertScheduleChange): Promise<ScheduleChange>;
+  updateScheduleChange(id: string, updates: Partial<InsertScheduleChange>): Promise<ScheduleChange>;
+  deleteScheduleChange(id: string): Promise<void>;
+  
+  // Student Schedule & Notifications
+  getStudentSchedule(studentId: string, startDate?: Date, endDate?: Date): Promise<any[]>;
+  getStudentNotifications(studentId: string): Promise<StudentNotification[]>;
+  createStudentNotification(notification: InsertStudentNotification): Promise<StudentNotification>;
+  markNotificationRead(notificationId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1197,6 +1224,213 @@ export class DatabaseStorage implements IStorage {
         eq(announcements.isActive, true)
       ))
       .orderBy(desc(announcements.createdAt));
+  }
+
+  // Schedule Management Implementation
+  async getTeacherSchedules(teacherId: string): Promise<ClassSchedule[]> {
+    return await db
+      .select({
+        id: classSchedules.id,
+        teacherId: classSchedules.teacherId,
+        subjectId: classSchedules.subjectId,
+        dayOfWeek: classSchedules.dayOfWeek,
+        startTime: classSchedules.startTime,
+        endTime: classSchedules.endTime,
+        location: classSchedules.location,
+        isActive: classSchedules.isActive,
+        createdAt: classSchedules.createdAt,
+        updatedAt: classSchedules.updatedAt,
+        subjectName: subjects.name,
+        subjectCode: subjects.code,
+      })
+      .from(classSchedules)
+      .innerJoin(subjects, eq(classSchedules.subjectId, subjects.id))
+      .where(
+        and(
+          eq(classSchedules.teacherId, teacherId),
+          eq(classSchedules.isActive, true)
+        )
+      )
+      .orderBy(classSchedules.dayOfWeek, classSchedules.startTime);
+  }
+
+  async createSchedule(schedule: InsertClassSchedule): Promise<ClassSchedule> {
+    const [newSchedule] = await db.insert(classSchedules).values(schedule).returning();
+    return newSchedule;
+  }
+
+  async updateSchedule(id: string, updates: Partial<InsertClassSchedule>): Promise<ClassSchedule> {
+    const [updatedSchedule] = await db
+      .update(classSchedules)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(classSchedules.id, id))
+      .returning();
+    return updatedSchedule;
+  }
+
+  async deleteSchedule(id: string): Promise<void> {
+    await db
+      .update(classSchedules)
+      .set({ isActive: false })
+      .where(eq(classSchedules.id, id));
+  }
+
+  // Schedule Changes Implementation
+  async getScheduleChanges(teacherId: string, startDate?: Date, endDate?: Date): Promise<ScheduleChange[]> {
+    const conditions = [eq(scheduleChanges.teacherId, teacherId)];
+    
+    if (startDate) {
+      conditions.push(gte(scheduleChanges.affectedDate, startDate.toISOString().split('T')[0]));
+    }
+    if (endDate) {
+      conditions.push(lte(scheduleChanges.affectedDate, endDate.toISOString().split('T')[0]));
+    }
+
+    return await db
+      .select()
+      .from(scheduleChanges)
+      .innerJoin(subjects, eq(scheduleChanges.subjectId, subjects.id))
+      .where(and(...conditions))
+      .orderBy(desc(scheduleChanges.affectedDate));
+  }
+
+  async createScheduleChange(change: InsertScheduleChange): Promise<ScheduleChange> {
+    const [newChange] = await db.insert(scheduleChanges).values(change).returning();
+    
+    // Auto-generate notifications for affected students
+    await this.generateScheduleChangeNotifications(newChange.id);
+    
+    return newChange;
+  }
+
+  async updateScheduleChange(id: string, updates: Partial<InsertScheduleChange>): Promise<ScheduleChange> {
+    const [updatedChange] = await db
+      .update(scheduleChanges)
+      .set(updates)
+      .where(eq(scheduleChanges.id, id))
+      .returning();
+    return updatedChange;
+  }
+
+  async deleteScheduleChange(id: string): Promise<void> {
+    await db.delete(scheduleChanges).where(eq(scheduleChanges.id, id));
+  }
+
+  // Helper method to generate notifications for schedule changes
+  private async generateScheduleChangeNotifications(scheduleChangeId: string): Promise<void> {
+    // Get the schedule change details
+    const [change] = await db
+      .select()
+      .from(scheduleChanges)
+      .where(eq(scheduleChanges.id, scheduleChangeId));
+
+    if (!change) return;
+
+    // Get students enrolled in the affected subject
+    const students = await db
+      .select({ id: students.id })
+      .from(students)
+      .innerJoin(enrollments, eq(students.id, enrollments.studentId))
+      .where(
+        and(
+          eq(enrollments.subjectId, change.subjectId),
+          eq(enrollments.isActive, true),
+          eq(students.isActive, true)
+        )
+      );
+
+    // Generate notification message
+    const subject = await db
+      .select({ name: subjects.name })
+      .from(subjects)
+      .where(eq(subjects.id, change.subjectId));
+
+    let message = '';
+    const subjectName = subject[0]?.name || 'Class';
+    const affectedDate = new Date(change.affectedDate).toLocaleDateString();
+
+    switch (change.changeType) {
+      case 'cancellation':
+        message = `${subjectName} class on ${affectedDate} has been cancelled. ${change.reason ? 'Reason: ' + change.reason : ''}`;
+        break;
+      case 'reschedule':
+        const oldTime = change.originalStartTime ? `${change.originalStartTime}-${change.originalEndTime}` : '';
+        const newTime = change.newStartTime ? `${change.newStartTime}-${change.newEndTime}` : '';
+        message = `${subjectName} class on ${affectedDate} has been rescheduled from ${oldTime} to ${newTime}. ${change.reason ? 'Reason: ' + change.reason : ''}`;
+        break;
+      case 'extra_class':
+        const extraTime = change.newStartTime ? `${change.newStartTime}-${change.newEndTime}` : '';
+        message = `Extra ${subjectName} class scheduled for ${affectedDate} at ${extraTime}. ${change.reason ? 'Reason: ' + change.reason : ''}`;
+        break;
+    }
+
+    // Create notifications for all affected students
+    const notifications = students.map(student => ({
+      studentId: student.id,
+      scheduleChangeId: scheduleChangeId,
+      message: message.trim(),
+      status: 'pending' as const,
+    }));
+
+    if (notifications.length > 0) {
+      await db.insert(studentNotifications).values(notifications);
+    }
+  }
+
+  // Student Schedule & Notifications Implementation
+  async getStudentSchedule(studentId: string, startDate?: Date, endDate?: Date): Promise<any[]> {
+    // Get regular schedules for student's enrolled subjects
+    const regularSchedules = await db
+      .select({
+        id: classSchedules.id,
+        type: sql<string>`'regular'`.as('type'),
+        subjectId: subjects.id,
+        subjectName: subjects.name,
+        subjectCode: subjects.code,
+        dayOfWeek: classSchedules.dayOfWeek,
+        startTime: classSchedules.startTime,
+        endTime: classSchedules.endTime,
+        location: classSchedules.location,
+        teacherName: sql<string>`CONCAT(${users.firstName}, ' ', ${users.lastName})`.as('teacherName'),
+      })
+      .from(enrollments)
+      .innerJoin(subjects, eq(enrollments.subjectId, subjects.id))
+      .innerJoin(classSchedules, eq(subjects.id, classSchedules.subjectId))
+      .innerJoin(users, eq(classSchedules.teacherId, users.id))
+      .where(
+        and(
+          eq(enrollments.studentId, studentId),
+          eq(enrollments.isActive, true),
+          eq(classSchedules.isActive, true)
+        )
+      );
+
+    return { regularSchedules, scheduleChanges: [] };
+  }
+
+  async getStudentNotifications(studentId: string): Promise<StudentNotification[]> {
+    return await db
+      .select()
+      .from(studentNotifications)
+      .innerJoin(scheduleChanges, eq(studentNotifications.scheduleChangeId, scheduleChanges.id))
+      .innerJoin(subjects, eq(scheduleChanges.subjectId, subjects.id))
+      .where(eq(studentNotifications.studentId, studentId))
+      .orderBy(desc(studentNotifications.createdAt));
+  }
+
+  async createStudentNotification(notification: InsertStudentNotification): Promise<StudentNotification> {
+    const [newNotification] = await db.insert(studentNotifications).values(notification).returning();
+    return newNotification;
+  }
+
+  async markNotificationRead(notificationId: string): Promise<void> {
+    await db
+      .update(studentNotifications)
+      .set({ 
+        status: 'read', 
+        readAt: new Date() 
+      })
+      .where(eq(studentNotifications.id, notificationId));
   }
 }
 

@@ -11,6 +11,8 @@ import {
   insertAssessmentSchema,
   insertGradeSchema,
   insertAnnouncementSchema,
+  insertClassScheduleSchema,
+  insertScheduleChangeSchema,
   students,
   subjects,
   classes,
@@ -28,7 +30,10 @@ import {
   announcements,
   announcementRecipients,
   addOns,
-  invoiceItems
+  invoiceItems,
+  classSchedules,
+  scheduleChanges,
+  studentNotifications
 } from "@shared/schema";
 import { db } from "./db";
 import { and, desc, eq, gte, lte, sql } from 'drizzle-orm';
@@ -347,6 +352,205 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching teacher students:", error);
       res.status(500).json({ message: "Failed to fetch teacher students" });
+    }
+  });
+
+  // Schedule Management Routes
+  
+  // Get teacher's schedules
+  app.get("/api/teacher/schedules", async (req: any, res) => {
+    try {
+      const teacherId = req.user?.role === 'teacher' ? req.user.id : "demo-teacher-1";
+      const schedules = await storage.getTeacherSchedules(teacherId);
+      res.json(schedules);
+    } catch (error) {
+      console.error("Error fetching teacher schedules:", error);
+      res.status(500).json({ message: "Failed to fetch teacher schedules" });
+    }
+  });
+
+  // Create new schedule
+  app.post("/api/teacher/schedules", async (req: any, res) => {
+    try {
+      const teacherId = req.user?.role === 'teacher' ? req.user.id : "demo-teacher-1";
+      
+      const scheduleData = insertClassScheduleSchema.parse({
+        ...req.body,
+        teacherId: teacherId, // Ensure teacher can only create schedules for themselves
+      });
+      
+      const schedule = await storage.createSchedule(scheduleData);
+      res.status(201).json(schedule);
+    } catch (error) {
+      console.error("Error creating schedule:", error);
+      res.status(500).json({ message: "Failed to create schedule" });
+    }
+  });
+
+  // Update schedule
+  app.put("/api/teacher/schedules/:id", async (req: any, res) => {
+    try {
+      const teacherId = req.user?.role === 'teacher' ? req.user.id : "demo-teacher-1";
+      const scheduleId = req.params.id;
+      
+      // Verify schedule belongs to teacher before updating
+      const existingSchedules = await storage.getTeacherSchedules(teacherId);
+      const scheduleExists = existingSchedules.find(s => s.id === scheduleId);
+      
+      if (!scheduleExists) {
+        return res.status(403).json({ message: "You can only update your own schedules" });
+      }
+      
+      const updates = insertClassScheduleSchema.partial().parse(req.body);
+      const updatedSchedule = await storage.updateSchedule(scheduleId, updates);
+      res.json(updatedSchedule);
+    } catch (error) {
+      console.error("Error updating schedule:", error);
+      res.status(500).json({ message: "Failed to update schedule" });
+    }
+  });
+
+  // Delete schedule
+  app.delete("/api/teacher/schedules/:id", async (req: any, res) => {
+    try {
+      const teacherId = req.user?.role === 'teacher' ? req.user.id : "demo-teacher-1";
+      const scheduleId = req.params.id;
+      
+      // Verify schedule belongs to teacher before deleting
+      const existingSchedules = await storage.getTeacherSchedules(teacherId);
+      const scheduleExists = existingSchedules.find(s => s.id === scheduleId);
+      
+      if (!scheduleExists) {
+        return res.status(403).json({ message: "You can only delete your own schedules" });
+      }
+      
+      await storage.deleteSchedule(scheduleId);
+      res.json({ message: "Schedule deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting schedule:", error);
+      res.status(500).json({ message: "Failed to delete schedule" });
+    }
+  });
+
+  // Schedule Changes Routes
+  
+  // Get schedule changes for teacher
+  app.get("/api/teacher/schedule-changes", async (req: any, res) => {
+    try {
+      const teacherId = req.user?.role === 'teacher' ? req.user.id : "demo-teacher-1";
+      const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
+      const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
+      
+      const changes = await storage.getScheduleChanges(teacherId, startDate, endDate);
+      res.json(changes);
+    } catch (error) {
+      console.error("Error fetching schedule changes:", error);
+      res.status(500).json({ message: "Failed to fetch schedule changes" });
+    }
+  });
+
+  // Create schedule change (cancellation, reschedule, extra class)
+  app.post("/api/teacher/schedule-changes", async (req: any, res) => {
+    try {
+      const teacherId = req.user?.role === 'teacher' ? req.user.id : "demo-teacher-1";
+      
+      const changeData = insertScheduleChangeSchema.parse({
+        ...req.body,
+        teacherId: teacherId,
+        createdBy: req.user?.id || teacherId,
+      });
+      
+      const change = await storage.createScheduleChange(changeData);
+      res.status(201).json(change);
+    } catch (error) {
+      console.error("Error creating schedule change:", error);
+      res.status(500).json({ message: "Failed to create schedule change" });
+    }
+  });
+
+  // Update schedule change
+  app.put("/api/teacher/schedule-changes/:id", async (req: any, res) => {
+    try {
+      const teacherId = req.user?.role === 'teacher' ? req.user.id : "demo-teacher-1";
+      const changeId = req.params.id;
+      
+      // Verify change belongs to teacher
+      const existingChanges = await storage.getScheduleChanges(teacherId);
+      const changeExists = existingChanges.find(c => c.id === changeId);
+      
+      if (!changeExists) {
+        return res.status(403).json({ message: "You can only update your own schedule changes" });
+      }
+      
+      const updates = insertScheduleChangeSchema.partial().parse(req.body);
+      const updatedChange = await storage.updateScheduleChange(changeId, updates);
+      res.json(updatedChange);
+    } catch (error) {
+      console.error("Error updating schedule change:", error);
+      res.status(500).json({ message: "Failed to update schedule change" });
+    }
+  });
+
+  // Delete schedule change
+  app.delete("/api/teacher/schedule-changes/:id", async (req: any, res) => {
+    try {
+      const teacherId = req.user?.role === 'teacher' ? req.user.id : "demo-teacher-1";
+      const changeId = req.params.id;
+      
+      // Verify change belongs to teacher
+      const existingChanges = await storage.getScheduleChanges(teacherId);
+      const changeExists = existingChanges.find(c => c.id === changeId);
+      
+      if (!changeExists) {
+        return res.status(403).json({ message: "You can only delete your own schedule changes" });
+      }
+      
+      await storage.deleteScheduleChange(changeId);
+      res.json({ message: "Schedule change deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting schedule change:", error);
+      res.status(500).json({ message: "Failed to delete schedule change" });
+    }
+  });
+
+  // Student Schedule Routes
+  
+  // Get student's schedule and schedule changes
+  app.get("/api/student/:studentId/schedule", async (req: any, res) => {
+    try {
+      const studentId = req.params.studentId;
+      const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
+      const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
+      
+      const schedule = await storage.getStudentSchedule(studentId, startDate, endDate);
+      res.json(schedule);
+    } catch (error) {
+      console.error("Error fetching student schedule:", error);
+      res.status(500).json({ message: "Failed to fetch student schedule" });
+    }
+  });
+
+  // Get student's schedule notifications
+  app.get("/api/student/:studentId/notifications", async (req: any, res) => {
+    try {
+      const studentId = req.params.studentId;
+      const notifications = await storage.getStudentNotifications(studentId);
+      res.json(notifications);
+    } catch (error) {
+      console.error("Error fetching student notifications:", error);
+      res.status(500).json({ message: "Failed to fetch student notifications" });
+    }
+  });
+
+  // Mark notification as read
+  app.put("/api/student/notifications/:id/read", async (req: any, res) => {
+    try {
+      const notificationId = req.params.id;
+      await storage.markNotificationRead(notificationId);
+      res.json({ message: "Notification marked as read" });
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+      res.status(500).json({ message: "Failed to mark notification as read" });
     }
   });
 

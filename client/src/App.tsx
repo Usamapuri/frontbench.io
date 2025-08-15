@@ -25,6 +25,7 @@ import Attendance from "@/pages/teacher/Attendance";
 import Gradebook from "@/pages/teacher/Gradebook";
 import Earnings from "@/pages/teacher/Earnings";
 import DigitalDiary from "@/pages/teacher/DigitalDiary";
+import ScheduleManager from "@/pages/teacher/ScheduleManager";
 
 import StudentPortal from "@/pages/StudentPortal";
 
@@ -93,6 +94,7 @@ function Router() {
                     <Route path="/gradebook" component={Gradebook} />
                     <Route path="/earnings" component={Earnings} />
                     <Route path="/digital-diary" component={DigitalDiary} />
+                    <Route path="/schedule-manager" component={ScheduleManager} />
                   </>
                 )}
                 
