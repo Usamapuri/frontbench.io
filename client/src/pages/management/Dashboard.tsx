@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
+import { Receipt, DollarSign, PieChart, EyeOff } from "lucide-react";
 import type { DashboardStats } from "@/types";
 
 export default function ManagementDashboard() {
@@ -191,35 +192,67 @@ export default function ManagementDashboard() {
         </Card>
       </div>
 
-      {/* Quick Actions */}
+      {/* Management Tools */}
       <Card>
         <CardHeader>
           <CardTitle>Management Tools</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <Link href="/expenses">
-              <Button variant="outline" className="h-20 flex flex-col space-y-2" data-testid="button-manage-expenses">
-                <i className="fas fa-receipt text-2xl text-blue-600"></i>
-                <span className="text-sm font-medium">Manage Expenses</span>
+              <Button 
+                variant="outline" 
+                className="w-full h-24 flex flex-col items-center justify-center space-y-3 hover:shadow-md hover:border-blue-300 transition-all duration-200 group"
+                data-testid="button-manage-expenses"
+              >
+                <div className="p-2 rounded-lg bg-blue-50 group-hover:bg-blue-100 transition-colors">
+                  <Receipt className="h-6 w-6 text-blue-600" />
+                </div>
+                <span className="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">
+                  Manage Expenses
+                </span>
               </Button>
             </Link>
             
             <Link href="/payouts">
-              <Button variant="outline" className="h-20 flex flex-col space-y-2" data-testid="button-teacher-payouts">
-                <i className="fas fa-money-bill text-2xl text-blue-600"></i>
-                <span className="text-sm font-medium">Teacher Payouts</span>
+              <Button 
+                variant="outline" 
+                className="w-full h-24 flex flex-col items-center justify-center space-y-3 hover:shadow-md hover:border-green-300 transition-all duration-200 group"
+                data-testid="button-teacher-payouts"
+              >
+                <div className="p-2 rounded-lg bg-green-50 group-hover:bg-green-100 transition-colors">
+                  <DollarSign className="h-6 w-6 text-green-600" />
+                </div>
+                <span className="text-sm font-medium text-gray-700 group-hover:text-green-600 transition-colors">
+                  Teacher Payouts
+                </span>
               </Button>
             </Link>
             
-            <Button variant="outline" className="h-20 flex flex-col space-y-2" data-testid="button-financial-reports">
-              <i className="fas fa-chart-pie text-2xl text-blue-600"></i>
-              <span className="text-sm font-medium">Financial Reports</span>
+            <Button 
+              variant="outline" 
+              className="w-full h-24 flex flex-col items-center justify-center space-y-3 hover:shadow-md hover:border-purple-300 transition-all duration-200 group"
+              data-testid="button-financial-reports"
+            >
+              <div className="p-2 rounded-lg bg-purple-50 group-hover:bg-purple-100 transition-colors">
+                <PieChart className="h-6 w-6 text-purple-600" />
+              </div>
+              <span className="text-sm font-medium text-gray-700 group-hover:text-purple-600 transition-colors">
+                Financial Reports
+              </span>
             </Button>
             
-            <Button variant="outline" className="h-20 flex flex-col space-y-2" data-testid="button-sos-mode">
-              <i className="fas fa-eye-slash text-2xl text-orange-600"></i>
-              <span className="text-sm font-medium">SOS Mode</span>
+            <Button 
+              variant="outline" 
+              className="w-full h-24 flex flex-col items-center justify-center space-y-3 hover:shadow-md hover:border-orange-300 transition-all duration-200 group"
+              data-testid="button-sos-mode"
+            >
+              <div className="p-2 rounded-lg bg-orange-50 group-hover:bg-orange-100 transition-colors">
+                <EyeOff className="h-6 w-6 text-orange-600" />
+              </div>
+              <span className="text-sm font-medium text-gray-700 group-hover:text-orange-600 transition-colors">
+                SOS Mode
+              </span>
             </Button>
           </div>
         </CardContent>
