@@ -134,10 +134,24 @@ export const invoices = pgTable("invoices", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Invoice line items
+// Add-ons/Services table
+export const addOns = pgTable("add_ons", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(),
+  description: text("description"),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  category: varchar("category").notNull(), // materials, transport, activities, etc.
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Enhanced invoice line items
 export const invoiceItems = pgTable("invoice_items", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   invoiceId: varchar("invoice_id").references(() => invoices.id).notNull(),
+  subjectId: varchar("subject_id").references(() => subjects.id),
+  addOnId: varchar("add_on_id").references(() => addOns.id),
+  type: varchar("type").notNull(), // 'subject', 'addon', 'custom'
   description: text("description").notNull(),
   quantity: integer("quantity").default(1),
   unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),

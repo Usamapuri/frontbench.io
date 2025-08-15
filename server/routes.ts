@@ -26,7 +26,9 @@ import {
   grades,
   cashDrawRequests,
   announcements,
-  announcementRecipients
+  announcementRecipients,
+  addOns,
+  invoiceItems
 } from "@shared/schema";
 import { db } from "./db";
 import { and, desc, eq, gte, lte, sql } from 'drizzle-orm';
@@ -275,6 +277,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add-ons routes
+  app.get("/api/add-ons", async (req, res) => {
+    try {
+      const addOns = await storage.getAddOns();
+      res.json(addOns);
+    } catch (error) {
+      console.error("Error fetching add-ons:", error);
+      res.status(500).json({ message: "Failed to fetch add-ons" });
+    }
+  });
+
+  app.post("/api/add-ons", async (req, res) => {
+    try {
+      const addOn = await storage.createAddOn(req.body);
+      res.status(201).json(addOn);
+    } catch (error) {
+      console.error("Error creating add-on:", error);
+      res.status(400).json({ message: "Failed to create add-on" });
+    }
+  });
+
   // Teacher routes
   app.get("/api/teacher/classes/today", async (req: any, res) => {
     try {
@@ -367,12 +390,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/invoices", async (req, res) => {
     try {
-      const validatedData = insertInvoiceSchema.parse(req.body);
-      const invoice = await storage.createInvoice(validatedData);
-      res.status(201).json(invoice);
+      // Handle both old format and new wizard format
+      if (req.body.items && Array.isArray(req.body.items)) {
+        // New wizard format with items
+        const invoice = await storage.createInvoiceWithItems(req.body);
+        res.status(201).json(invoice);
+      } else {
+        // Old format
+        const validatedData = insertInvoiceSchema.parse(req.body);
+        const invoice = await storage.createInvoice(validatedData);
+        res.status(201).json(invoice);
+      }
     } catch (error) {
       console.error("Error creating invoice:", error);
       res.status(400).json({ message: "Failed to create invoice" });
+    }
+  });
+
+  app.put("/api/invoices/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const invoice = await storage.updateInvoiceWithItems(id, req.body);
+      res.json(invoice);
+    } catch (error) {
+      console.error("Error updating invoice:", error);
+      res.status(500).json({ message: "Failed to update invoice" });
     }
   });
 

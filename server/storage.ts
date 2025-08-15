@@ -17,6 +17,8 @@ import {
   expenses,
   announcements,
   announcementRecipients,
+  addOns,
+  invoiceItems,
   type User,
   type UpsertUser,
   type Student,
@@ -145,6 +147,10 @@ export interface IStorage {
   markAnnouncementAsRead(announcementId: string, studentId: string): Promise<void>;
   getAnnouncementsByClass(classId: string): Promise<Announcement[]>;
   getAnnouncementsBySubject(subjectId: string): Promise<Announcement[]>;
+
+  // Add-ons
+  getAddOns(): Promise<any[]>;
+  createAddOn(addOn: any): Promise<any>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -976,6 +982,120 @@ export class DatabaseStorage implements IStorage {
         )
       )
       .orderBy(desc(announcements.createdAt));
+  }
+
+  // Add-ons management
+  async getAddOns(): Promise<any[]> {
+    try {
+      return await db.select().from(addOns).orderBy(addOns.name);
+    } catch (error) {
+      console.error("Error fetching add-ons:", error);
+      return [];
+    }
+  }
+
+  async createAddOn(addOnData: any): Promise<any> {
+    const [addOn] = await db.insert(addOns).values({
+      id: crypto.randomUUID(),
+      name: addOnData.name,
+      description: addOnData.description || '',
+      price: addOnData.price.toString(),
+      isActive: addOnData.isActive ?? true,
+      category: addOnData.category || 'other',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }).returning();
+    return addOn;
+  }
+
+  // Enhanced invoice creation with items
+  async createInvoiceWithItems(invoiceData: any): Promise<Invoice> {
+    // Generate invoice number
+    const invoiceNumber = `INV-${Date.now()}`;
+    
+    // Calculate totals
+    const subtotal = invoiceData.items.reduce((sum: number, item: any) => 
+      sum + parseFloat(item.totalPrice), 0);
+    const discountAmount = invoiceData.discountAmount || 0;
+    const total = subtotal - discountAmount;
+
+    // Create invoice
+    const [invoice] = await db.insert(invoices).values({
+      id: crypto.randomUUID(),
+      invoiceNumber,
+      studentId: invoiceData.studentId,
+      issueDate: new Date(invoiceData.dueDate),
+      dueDate: new Date(invoiceData.dueDate),
+      subtotal: subtotal.toFixed(2),
+      discountAmount: discountAmount.toFixed(2),
+      total: total.toFixed(2),
+      amountPaid: '0.00',
+      balanceDue: total.toFixed(2),
+      status: 'sent',
+      notes: invoiceData.notes || '',
+      createdBy: invoiceData.createdBy || 'system',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }).returning();
+
+    // Create invoice items
+    if (invoiceData.items && invoiceData.items.length > 0) {
+      const itemsToInsert = invoiceData.items.map((item: any) => ({
+        id: crypto.randomUUID(),
+        invoiceId: invoice.id,
+        type: item.type,
+        itemId: item.itemId,
+        name: item.name,
+        description: item.description || '',
+        quantity: item.quantity || 1,
+        unitPrice: item.unitPrice,
+        totalPrice: item.totalPrice,
+        createdAt: new Date(),
+      }));
+      
+      await db.insert(invoiceItems).values(itemsToInsert);
+    }
+
+    return invoice;
+  }
+
+  async updateInvoiceWithItems(invoiceId: string, invoiceData: any): Promise<Invoice> {
+    // Update invoice
+    const [invoice] = await db
+      .update(invoices)
+      .set({
+        dueDate: new Date(invoiceData.dueDate),
+        subtotal: invoiceData.subtotal,
+        discountAmount: invoiceData.discountAmount || '0.00',
+        total: invoiceData.total,
+        balanceDue: invoiceData.total,
+        notes: invoiceData.notes || '',
+        updatedAt: new Date(),
+      })
+      .where(eq(invoices.id, invoiceId))
+      .returning();
+
+    // Delete existing items and recreate
+    await db.delete(invoiceItems).where(eq(invoiceItems.invoiceId, invoiceId));
+
+    if (invoiceData.items && invoiceData.items.length > 0) {
+      const itemsToInsert = invoiceData.items.map((item: any) => ({
+        id: crypto.randomUUID(),
+        invoiceId: invoice.id,
+        type: item.type,
+        itemId: item.itemId,
+        name: item.name,
+        description: item.description || '',
+        quantity: item.quantity || 1,
+        unitPrice: item.unitPrice,
+        totalPrice: item.totalPrice,
+        createdAt: new Date(),
+      }));
+      
+      await db.insert(invoiceItems).values(itemsToInsert);
+    }
+
+    return invoice;
   }
 }
 

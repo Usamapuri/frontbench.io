@@ -11,12 +11,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Invoice } from "@shared/schema";
+import InvoiceWizard from "@/components/InvoiceWizard";
 
 export default function Invoices() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [showCreateInvoiceDialog, setShowCreateInvoiceDialog] = useState(false);
+  const [showInvoiceWizard, setShowInvoiceWizard] = useState(false);
   
   // Advanced filtering states
   const [statusFilter, setStatusFilter] = useState("all");
@@ -1101,7 +1103,7 @@ export default function Invoices() {
           <div className="flex items-center justify-between mb-4">
             <CardTitle>Invoices</CardTitle>
             <Button 
-              onClick={() => setShowCreateInvoiceDialog(true)}
+              onClick={() => setShowInvoiceWizard(true)}
               data-testid="button-create-invoice"
             >
               <i className="fas fa-plus mr-2"></i>
@@ -1530,6 +1532,18 @@ export default function Invoices() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Invoice Creation/Edit Wizard */}
+      <InvoiceWizard
+        open={showInvoiceWizard}
+        onOpenChange={(open) => {
+          setShowInvoiceWizard(open);
+          if (!open) {
+            setEditingInvoice(null);
+          }
+        }}
+        editingInvoice={editingInvoice}
+      />
     </div>
   );
 }
