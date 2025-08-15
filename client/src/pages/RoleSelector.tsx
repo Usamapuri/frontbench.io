@@ -91,8 +91,15 @@ export default function RoleSelector() {
     }
   };
 
+  const getCurrentDemoRole = () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('role') || 'finance';
+  };
+
   const handleDemoRoleChange = (role: string) => {
-    // Reload the page with the new role parameter
+    // Store the selected demo role in localStorage
+    localStorage.setItem('demoRole', role);
+    // Reload the page with the new role parameter to refresh authentication
     window.location.href = `/?role=${role}`;
   };
 
@@ -157,7 +164,7 @@ export default function RoleSelector() {
               <h3 className="text-sm font-medium text-yellow-800">Demo Mode</h3>
               <p className="text-xs text-yellow-700">Switch between different user roles to test the system</p>
             </div>
-            <Select onValueChange={handleDemoRoleChange}>
+            <Select onValueChange={handleDemoRoleChange} defaultValue={getCurrentDemoRole()}>
               <SelectTrigger className="w-64" data-testid="select-demo-role">
                 <SelectValue placeholder="Select demo role" />
               </SelectTrigger>

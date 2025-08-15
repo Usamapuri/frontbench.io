@@ -41,9 +41,8 @@ import { and, desc, eq, gte, lte, sql } from 'drizzle-orm';
 export async function registerRoutes(app: Express): Promise<Server> {
   // Enhanced demo authentication with role-based access control
   app.use((req: any, res, next) => {
-    // Parse role from URL or query for demo purposes
+    // Parse role from URL query parameter for demo purposes
     const urlRole = req.query.role || 'finance';
-    const isTeacherPath = req.path.includes('/teacher');
     
     // Demo user configurations for different role types
     const demoUsers = {
@@ -61,7 +60,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Super admin who is also a teacher - sees everything
       'super-admin-teacher': {
         id: 'demo-super-admin-teacher',
-        role: 'teacher',
+        role: 'teacher', // Base role is teacher
         isSuperAdmin: true,
         isTeacher: true,
         teacherSubjects: ['99c0039b-c3cb-4182-b311-5d69a755d548', '747f8a50-8cb0-4090-aaf0-1a6dda90103b'],
@@ -93,9 +92,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     };
 
-    // Select user based on role parameter or path
-    const selectedRole = isTeacherPath ? 'teacher' : urlRole;
-    const user = demoUsers[selectedRole] || demoUsers['finance'];
+    // Select user based on role parameter
+    const user = demoUsers[urlRole as keyof typeof demoUsers] || demoUsers['finance'];
     
     req.user = {
       ...user,
@@ -1468,7 +1466,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         priority: req.body.priority,
         subjectId: req.body.subjectId || null,
         classId: req.body.classId || null,
-        dueDate: req.body.dueDate ? new Date(req.body.dueDate) : null,
+        dueDate: req.body.dueDate || null,
         createdBy: req.user?.id || 'demo-user',
         isActive: true,
         createdAt: new Date(),

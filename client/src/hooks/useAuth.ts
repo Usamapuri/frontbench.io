@@ -16,8 +16,12 @@ interface User {
 }
 
 export function useAuth() {
-  const { data: user, isLoading } = useQuery<User>({
-    queryKey: ["/api/auth/user"],
+  // Include the current role from URL params in the query key to trigger refresh on role change
+  const urlParams = new URLSearchParams(window.location.search);
+  const currentRole = urlParams.get('role') || 'finance';
+  
+  const { data: user, isLoading, refetch } = useQuery<User>({
+    queryKey: ["/api/auth/user", currentRole],
     retry: false,
   });
 
@@ -25,5 +29,6 @@ export function useAuth() {
     user,
     isLoading,
     isAuthenticated: !!user,
+    refetch,
   };
 }
