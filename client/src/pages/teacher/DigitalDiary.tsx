@@ -51,20 +51,20 @@ export default function DigitalDiary() {
     },
   });
 
-  // Fetch announcements
+  // Fetch teacher's announcements only
   const { data: announcements = [], isLoading } = useQuery({
     queryKey: ["/api/announcements"],
     queryFn: async () => {
-      const response = await fetch("/api/announcements?teacherId=demo-user");
+      const response = await fetch("/api/announcements");
       return response.json();
     },
   });
 
-  // Fetch subjects and classes for the dropdown
+  // Fetch teacher's assigned subjects only
   const { data: subjects = [] } = useQuery({
-    queryKey: ["/api/subjects"],
+    queryKey: ["/api/teacher/subjects"],
     queryFn: async () => {
-      const response = await fetch("/api/subjects");
+      const response = await fetch("/api/teacher/subjects");
       return response.json();
     },
   });
@@ -77,10 +77,11 @@ export default function DigitalDiary() {
     },
   });
 
+  // Fetch teacher's students only (enrolled in their subjects)
   const { data: students = [] } = useQuery({
-    queryKey: ["/api/students"],
+    queryKey: ["/api/teacher/students"],
     queryFn: async () => {
-      const response = await fetch("/api/students");
+      const response = await fetch("/api/teacher/students");
       return response.json();
     },
   });
@@ -91,19 +92,24 @@ export default function DigitalDiary() {
       // Prepare announcement data with recipient logic
       const announcementData = { ...data };
       
-      // Determine recipients based on broadcast type
+      // Determine recipients based on broadcast type (restricted to teacher's students)
       if (data.broadcastType === "all") {
-        // Get all students for broadcast to all
-        const studentsResponse = await fetch("/api/students");
-        const allStudents = await studentsResponse.json();
-        announcementData.recipients = allStudents.map((student: any) => student.id);
+        // Get teacher's students only (not all students in school)
+        const studentsResponse = await fetch("/api/teacher/students");
+        const teacherStudents = await studentsResponse.json();
+        announcementData.recipients = teacherStudents.map((student: any) => student.id);
       } else if (data.broadcastType === "class" && data.classId) {
-        // Get students in specific class
+        // Get students in specific class (would need intersection with teacher's students)
         const studentsResponse = await fetch(`/api/classes/${data.classId}/students`);
         const classStudents = await studentsResponse.json();
-        announcementData.recipients = classStudents.map((student: any) => student.id);
+        // Filter to only include students that the teacher teaches
+        const teacherStudentsResponse = await fetch("/api/teacher/students");
+        const teacherStudents = await teacherStudentsResponse.json();
+        const teacherStudentIds = teacherStudents.map((s: any) => s.id);
+        const filteredStudents = classStudents.filter((s: any) => teacherStudentIds.includes(s.id));
+        announcementData.recipients = filteredStudents.map((student: any) => student.id);
       } else if (data.broadcastType === "specific") {
-        // Use manually selected recipients
+        // Use manually selected recipients (already filtered to teacher's students in UI)
         announcementData.recipients = data.recipients || [];
       }
       

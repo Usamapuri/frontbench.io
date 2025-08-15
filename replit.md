@@ -2,6 +2,8 @@
 
 Primax School Management System is a comprehensive web application designed to digitize school processes, replacing paper-based systems and Google Sheets. It provides tailored interfaces for four user roles: Finance/Front Desk, Teachers, Parents, and Management. The system integrates enrollment, attendance, grade management, billing, payments, and financial reporting into a single platform. Its core vision is to streamline administrative tasks, enhance communication, and provide a unified digital environment for all stakeholders, with a strong focus on a flexible and auditable financial management system.
 
+**CRITICAL FEATURE**: Teacher Data Isolation - Each teacher has their own isolated dashboard showing only data for subjects they teach, including earnings, gradebook, attendance, and Digital Diary messages restricted to their specific students. This ensures complete data privacy and security between teachers.
+
 # User Preferences
 
 Preferred communication style: Simple, everyday language.

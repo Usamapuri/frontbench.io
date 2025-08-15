@@ -36,13 +36,16 @@ import { and, desc, eq, gte, lte, sql } from 'drizzle-orm';
 export async function registerRoutes(app: Express): Promise<Server> {
   // Add demo authentication bypass middleware
   app.use((req: any, res, next) => {
+    // Check if teacher role is requested via URL param for testing
+    const isTeacherDemo = req.path.includes('/teacher') || req.query.role === 'teacher';
+    
     // Mock authentication for demo purposes
     req.user = {
-      id: 'demo-user',
-      role: 'finance',
-      firstName: 'Demo',
-      lastName: 'User',
-      email: 'demo@primax.school',
+      id: isTeacherDemo ? 'demo-teacher-1' : 'demo-user',
+      role: isTeacherDemo ? 'teacher' : 'finance',
+      firstName: isTeacherDemo ? 'Ahmed' : 'Demo',
+      lastName: isTeacherDemo ? 'Khan' : 'User',
+      email: isTeacherDemo ? 'teacher1@primax.edu' : 'demo@primax.school',
       expires_at: Math.floor(Date.now() / 1000) + 3600 // 1 hour from now
     };
     req.isAuthenticated = () => true;
@@ -301,8 +304,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Teacher routes
   app.get("/api/teacher/classes/today", async (req: any, res) => {
     try {
-      // For demo purposes, use a mock teacher ID
-      const teacherId = "demo-teacher-id";
+      // Use actual teacher ID from session (fallback to demo for now)
+      const teacherId = req.user?.role === 'teacher' ? req.user.id : "demo-teacher-1";
       const classes = await storage.getTodayClasses(teacherId);
       res.json(classes);
     } catch (error) {
@@ -313,13 +316,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/teacher/earnings", async (req: any, res) => {
     try {
-      // For demo purposes, use a mock teacher ID
-      const teacherId = "demo-teacher-id";
-      const earnings = await storage.getTeacherEarnings(teacherId);
+      // Use actual teacher ID from session (fallback to demo for now)
+      const teacherId = req.user?.role === 'teacher' ? req.user.id : "demo-teacher-1";
+      const earnings = await storage.getTeacherEarningsRestricted(teacherId);
       res.json(earnings);
     } catch (error) {
       console.error("Error fetching teacher earnings:", error);
       res.status(500).json({ message: "Failed to fetch teacher earnings" });
+    }
+  });
+
+  // Get teacher's assigned subjects only
+  app.get("/api/teacher/subjects", async (req: any, res) => {
+    try {
+      const teacherId = req.user?.role === 'teacher' ? req.user.id : "demo-teacher-1";
+      const subjects = await storage.getTeacherSubjects(teacherId);
+      res.json(subjects);
+    } catch (error) {
+      console.error("Error fetching teacher subjects:", error);
+      res.status(500).json({ message: "Failed to fetch teacher subjects" });
+    }
+  });
+
+  // Get students enrolled in teacher's subjects only
+  app.get("/api/teacher/students", async (req: any, res) => {
+    try {
+      const teacherId = req.user?.role === 'teacher' ? req.user.id : "demo-teacher-1";
+      const students = await storage.getTeacherStudents(teacherId);
+      res.json(students);
+    } catch (error) {
+      console.error("Error fetching teacher students:", error);
+      res.status(500).json({ message: "Failed to fetch teacher students" });
     }
   });
 
@@ -1129,7 +1156,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all announcements (with optional teacher filter)
   app.get("/api/announcements", async (req: any, res) => {
     try {
-      const teacherId = req.query.teacherId as string;
+      // For teachers, only show their own announcements
+      let teacherId = req.query.teacherId as string;
+      if (req.user?.role === 'teacher') {
+        teacherId = req.user.id; // Override to ensure data isolation
+      }
       const announcements = await storage.getAnnouncements(teacherId);
       res.json(announcements);
     } catch (error) {
@@ -1152,7 +1183,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         subjectId: req.body.subjectId || null,
         classId: req.body.classId || null,
         dueDate: req.body.dueDate ? new Date(req.body.dueDate) : null,
-        createdBy: req.body.createdBy || 'demo-user',
+        createdBy: req.user?.id || 'demo-user',
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date(),

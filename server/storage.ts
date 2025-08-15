@@ -135,6 +135,12 @@ export interface IStorage {
   getDashboardStats(): Promise<any>;
   getTeacherEarnings(teacherId: string): Promise<any>;
 
+  // Teacher Data Isolation
+  getTeacherSubjects(teacherId: string): Promise<Subject[]>;
+  getTeacherStudents(teacherId: string): Promise<Student[]>;
+  getTeacherEarningsRestricted(teacherId: string): Promise<any>;
+  getTeacherAnnouncements(teacherId: string): Promise<Announcement[]>;
+
   // Digital Diary - Announcements
   getAnnouncements(teacherId?: string): Promise<Announcement[]>;
   createAnnouncement(announcement: InsertAnnouncement): Promise<Announcement>;
@@ -1083,6 +1089,114 @@ export class DatabaseStorage implements IStorage {
     }
 
     return invoice;
+  }
+
+  // Teacher Data Isolation Methods
+  async getTeacherSubjects(teacherId: string): Promise<Subject[]> {
+    return await db
+      .select({
+        id: subjects.id,
+        name: subjects.name,
+        code: subjects.code,
+        classLevel: subjects.classLevel,
+        baseFee: subjects.baseFee,
+        description: subjects.description,
+        isActive: subjects.isActive,
+        createdAt: subjects.createdAt,
+      })
+      .from(subjects)
+      .innerJoin(enrollments, eq(subjects.id, enrollments.subjectId))
+      .where(and(
+        eq(enrollments.teacherId, teacherId),
+        eq(subjects.isActive, true)
+      ))
+      .groupBy(subjects.id);
+  }
+
+  async getTeacherStudents(teacherId: string): Promise<Student[]> {
+    return await db
+      .select({
+        id: students.id,
+        rollNumber: students.rollNumber,
+        firstName: students.firstName,
+        lastName: students.lastName,
+        dateOfBirth: students.dateOfBirth,
+        gender: students.gender,
+        classLevel: students.classLevel,
+        parentId: students.parentId,
+        profileImageUrl: students.profileImageUrl,
+        isActive: students.isActive,
+        createdAt: students.createdAt,
+        updatedAt: students.updatedAt,
+      })
+      .from(students)
+      .innerJoin(enrollments, eq(students.id, enrollments.studentId))
+      .where(and(
+        eq(enrollments.teacherId, teacherId),
+        eq(students.isActive, true)
+      ))
+      .groupBy(students.id);
+  }
+
+  async getTeacherEarningsRestricted(teacherId: string): Promise<any> {
+    // Get teacher's subjects first
+    const teacherSubjects = await this.getTeacherSubjects(teacherId);
+    const subjectIds = teacherSubjects.map(s => s.id);
+    
+    if (subjectIds.length === 0) {
+      return {
+        baseAmount: 0,
+        extraClasses: 0,
+        bonuses: 0,
+        deductions: 0,
+        netAmount: 0,
+        subjectBreakdown: []
+      };
+    }
+
+    // Calculate earnings only for teacher's subjects
+    const earnings = {
+      baseAmount: teacherSubjects.reduce((sum, subject) => 
+        sum + parseFloat(subject.baseFee), 0),
+      extraClasses: 3500, // Placeholder - would calculate from actual extra classes
+      bonuses: 2000,
+      deductions: 500,
+      netAmount: 0,
+      subjectBreakdown: teacherSubjects.map(subject => ({
+        subjectName: subject.name,
+        studentCount: 0, // Will be calculated
+        baseFee: parseFloat(subject.baseFee)
+      }))
+    };
+    
+    earnings.netAmount = earnings.baseAmount + earnings.extraClasses + earnings.bonuses - earnings.deductions;
+    
+    return earnings;
+  }
+
+  async getTeacherAnnouncements(teacherId: string): Promise<Announcement[]> {
+    // Get announcements created by this teacher only
+    return await db
+      .select({
+        id: announcements.id,
+        title: announcements.title,
+        content: announcements.content,
+        type: announcements.type,
+        priority: announcements.priority,
+        createdBy: announcements.createdBy,
+        subjectId: announcements.subjectId,
+        classId: announcements.classId,
+        dueDate: announcements.dueDate,
+        isActive: announcements.isActive,
+        createdAt: announcements.createdAt,
+        updatedAt: announcements.updatedAt,
+      })
+      .from(announcements)
+      .where(and(
+        eq(announcements.createdBy, teacherId),
+        eq(announcements.isActive, true)
+      ))
+      .orderBy(desc(announcements.createdAt));
   }
 }
 
