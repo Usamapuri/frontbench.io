@@ -61,17 +61,17 @@ export default function Sidebar({ selectedRole }: SidebarProps) {
       
       <nav className="flex-1 p-4 space-y-2">
         {navItems.map((item) => (
-          <Link key={item.path} href={item.path}>
-            <a
-              className={cn(
-                "flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors min-h-[44px]",
-                location === item.path && "bg-blue-50 text-blue-700 border-r-2 border-blue-700"
-              )}
-              data-testid={`nav-${item.label.toLowerCase().replace(' ', '-')}`}
-            >
-              <i className={`${item.icon} w-5 mr-3`}></i>
-              {item.label}
-            </a>
+          <Link 
+            key={item.path} 
+            href={item.path}
+            className={cn(
+              "flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors min-h-[44px]",
+              location === item.path && "bg-blue-50 text-blue-700 border-r-2 border-blue-700"
+            )}
+            data-testid={`nav-${item.label.toLowerCase().replace(' ', '-')}`}
+          >
+            <i className={`${item.icon} w-5 mr-3`}></i>
+            {item.label}
           </Link>
         ))}
       </nav>
