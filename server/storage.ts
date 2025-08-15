@@ -1013,11 +1013,11 @@ export class DatabaseStorage implements IStorage {
     // Generate invoice number
     const invoiceNumber = `INV-${Date.now()}`;
     
-    // Calculate totals
-    const subtotal = invoiceData.items.reduce((sum: number, item: any) => 
+    // Use provided totals or calculate from items
+    const subtotal = parseFloat(invoiceData.subtotal) || invoiceData.items.reduce((sum: number, item: any) => 
       sum + parseFloat(item.totalPrice), 0);
-    const discountAmount = invoiceData.discountAmount || 0;
-    const total = subtotal - discountAmount;
+    const discountAmount = parseFloat(invoiceData.discountAmount) || 0;
+    const total = parseFloat(invoiceData.total) || (subtotal - discountAmount);
 
     // Create invoice
     const [invoice] = await db.insert(invoices).values({

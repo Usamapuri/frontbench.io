@@ -390,20 +390,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/invoices", async (req, res) => {
     try {
+      console.log("Creating invoice with data:", JSON.stringify(req.body, null, 2));
+      
       // Handle both old format and new wizard format
       if (req.body.items && Array.isArray(req.body.items)) {
         // New wizard format with items
         const invoice = await storage.createInvoiceWithItems(req.body);
         res.status(201).json(invoice);
-      } else {
-        // Old format
-        const validatedData = insertInvoiceSchema.parse(req.body);
-        const invoice = await storage.createInvoice(validatedData);
+      } else if (req.body.studentId && req.body.total) {
+        // Old format - create simple invoice without schema validation
+        const invoiceData = {
+          id: crypto.randomUUID(),
+          invoiceNumber: `INV-${Date.now()}`,
+          studentId: req.body.studentId,
+          issueDate: new Date(),
+          dueDate: new Date(),
+          subtotal: req.body.total,
+          discountAmount: '0.00',
+          total: req.body.total,
+          amountPaid: '0.00',
+          balanceDue: req.body.total,
+          status: 'sent',
+          notes: req.body.notes || '',
+          createdBy: 'demo-user',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        
+        const invoice = await storage.createInvoice(invoiceData);
         res.status(201).json(invoice);
+      } else {
+        res.status(400).json({ message: "Invalid invoice data format" });
       }
     } catch (error) {
       console.error("Error creating invoice:", error);
-      res.status(400).json({ message: "Failed to create invoice" });
+      res.status(400).json({ 
+        message: "Failed to create invoice",
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 

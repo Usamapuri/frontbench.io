@@ -243,15 +243,50 @@ export default function InvoiceWizard({ open, onOpenChange, editingInvoice }: In
   };
 
   const handleSubmit = () => {
+    // Create items array from selected subjects and add-ons
+    const items = [];
+    
+    // Add selected subjects
+    formData.selectedSubjects
+      .filter(s => s.selected)
+      .forEach(subject => {
+        items.push({
+          type: 'subject',
+          itemId: subject.id,
+          name: subject.name,
+          description: `Subject: ${subject.name}`,
+          quantity: 1,
+          unitPrice: subject.price.toFixed(2),
+          totalPrice: subject.price.toFixed(2),
+        });
+      });
+    
+    // Add selected add-ons
+    formData.selectedAddOns
+      .filter(a => a.selected)
+      .forEach(addOn => {
+        items.push({
+          type: 'addon',
+          itemId: addOn.id,
+          name: addOn.name,
+          description: addOn.description || `Add-on: ${addOn.name}`,
+          quantity: 1,
+          unitPrice: addOn.price.toFixed(2),
+          totalPrice: addOn.price.toFixed(2),
+        });
+      });
+
     const invoiceData = {
       studentId: formData.studentId,
       dueDate: formData.dueDate,
-      subjects: formData.selectedSubjects.filter(s => s.selected),
-      addOns: formData.selectedAddOns.filter(a => a.selected),
-      discount: discountAmount,
+      items: items,
+      subtotal: subtotal.toFixed(2),
+      discountAmount: discountAmount.toFixed(2),
+      total: total.toFixed(2),
       notes: formData.notes,
-      total: total,
     };
+
+    console.log('Submitting invoice data:', invoiceData);
 
     if (editingInvoice) {
       updateInvoiceMutation.mutate(invoiceData);
