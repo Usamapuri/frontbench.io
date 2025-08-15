@@ -26,6 +26,9 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
+// Enhanced role system enums
+export const userRoleEnum = pgEnum('user_role', ['teacher', 'finance', 'parent', 'management']);
+
 // User storage table - mandatory for Replit Auth
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -33,7 +36,10 @@ export const users = pgTable("users", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
-  role: varchar("role").notNull(), // finance, teacher, parent, management
+  role: userRoleEnum("role").notNull(), // Primary role: teacher, finance, parent, management
+  isSuperAdmin: boolean("is_super_admin").default(false), // Super admin privileges
+  isTeacher: boolean("is_teacher").default(false), // Whether they teach (for super admins who are also teachers)
+  teacherSubjects: text("teacher_subjects").array(), // Array of subject IDs they teach (for teachers/super admin teachers)
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -699,6 +705,11 @@ export const studentNotificationsRelations = relations(studentNotifications, ({ 
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const upsertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
   updatedAt: true,
 });

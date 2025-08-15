@@ -1,11 +1,10 @@
-import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
-import { useAuth } from "@/hooks/useAuth";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
+import { useState, useEffect } from 'react';
+import { useLocation } from 'wouter';
+import { useAuth } from '@/hooks/useAuth';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
 
 interface DashboardOption {
   role: string;
@@ -51,15 +50,7 @@ const dashboardOptions: DashboardOption[] = [
   }
 ];
 
-// Demo role options for testing
-const demoRoleOptions = [
-  { value: 'teacher', label: 'Regular Teacher' },
-  { value: 'super-admin-teacher', label: 'Super Admin (Teacher)' },
-  { value: 'super-admin-management', label: 'Super Admin (Management)' },
-  { value: 'finance', label: 'Finance Staff' }
-];
-
-export default function RoleSelector() {
+export default function RoleSelection() {
   const [, setLocation] = useLocation();
   const { user, isLoading } = useAuth();
   const { toast } = useToast();
@@ -89,11 +80,6 @@ export default function RoleSelector() {
         variant: "destructive",
       });
     }
-  };
-
-  const handleDemoRoleChange = (role: string) => {
-    // Reload the page with the new role parameter
-    window.location.href = `/?role=${role}`;
   };
 
   const getAccessibleDashboards = () => {
@@ -148,30 +134,8 @@ export default function RoleSelector() {
   const accessibleDashboards = getAccessibleDashboards();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12">
+    <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-6xl mx-auto px-4">
-        {/* Demo Role Selector */}
-        <div className="mb-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-medium text-yellow-800">Demo Mode</h3>
-              <p className="text-xs text-yellow-700">Switch between different user roles to test the system</p>
-            </div>
-            <Select onValueChange={handleDemoRoleChange}>
-              <SelectTrigger className="w-64" data-testid="select-demo-role">
-                <SelectValue placeholder="Select demo role" />
-              </SelectTrigger>
-              <SelectContent>
-                {demoRoleOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value} data-testid={`option-${option.value}`}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
             Welcome to Primax School Management
@@ -203,7 +167,7 @@ export default function RoleSelector() {
               data-testid={`card-dashboard-${dashboard.role}`}
             >
               <CardHeader className="text-center pb-2">
-                <div className={`w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-sm`}>
+                <div className={`w-16 h-16 mx-auto mb-4 rounded-full ${dashboard.bgColor} flex items-center justify-center`}>
                   <i className={`${dashboard.icon} text-2xl ${dashboard.textColor}`}></i>
                 </div>
                 <CardTitle className={`text-lg ${dashboard.textColor}`}>

@@ -1,8 +1,13 @@
 # Overview
 
-Primax School Management System is a comprehensive web application designed to digitize school processes, replacing paper-based systems and Google Sheets. It provides tailored interfaces for four user roles: Finance/Front Desk, Teachers, Parents, and Management. The system integrates enrollment, attendance, grade management, billing, payments, and financial reporting into a single platform. Its core vision is to streamline administrative tasks, enhance communication, and provide a unified digital environment for all stakeholders, with a strong focus on a flexible and auditable financial management system.
+Primax School Management System is a comprehensive web application designed to digitize school processes, replacing paper-based systems and Google Sheets. It provides tailored interfaces with advanced role-based access control supporting three user types: TEACHER (limited access), SUPER ADMIN TEACHER (full access including teaching), and SUPER ADMIN MANAGEMENT (full access excluding teaching). The system integrates enrollment, attendance, grade management, billing, payments, and financial reporting into a single platform. Its core vision is to streamline administrative tasks, enhance communication, and provide a unified digital environment for all stakeholders, with a strong focus on a flexible and auditable financial management system.
 
-**CRITICAL FEATURE**: Teacher Data Isolation - Each teacher has their own isolated dashboard showing only data for subjects they teach, including earnings, gradebook, attendance, and Digital Diary messages restricted to their specific students. This ensures complete data privacy and security between teachers.
+**CRITICAL FEATURE**: Teacher Data Isolation - Regular teachers have their own isolated dashboard showing only data for subjects they teach, including earnings, gradebook, attendance, and Digital Diary messages restricted to their specific students. Super admins have full access across all areas while maintaining the same data integrity principles.
+
+**NEW FEATURE**: Advanced Role-Based Access Control
+- **TEACHER**: Access only to Teacher Dashboard with data isolation for assigned subjects
+- **SUPER ADMIN (Teacher)**: Full access to Teacher, Finance, Management, and Parent dashboards with complete system oversight
+- **SUPER ADMIN (Management)**: Access to Finance, Management, and Parent dashboards, excluding Teacher dashboard (for non-teaching administrators)
 
 # User Preferences
 

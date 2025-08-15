@@ -39,34 +39,104 @@ import { db } from "./db";
 import { and, desc, eq, gte, lte, sql } from 'drizzle-orm';
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Add demo authentication bypass middleware
+  // Enhanced demo authentication with role-based access control
   app.use((req: any, res, next) => {
-    // Check if teacher role is requested via URL param for testing
-    const isTeacherDemo = req.path.includes('/teacher') || req.query.role === 'teacher';
+    // Parse role from URL or query for demo purposes
+    const urlRole = req.query.role || 'finance';
+    const isTeacherPath = req.path.includes('/teacher');
     
-    // Mock authentication for demo purposes
+    // Demo user configurations for different role types
+    const demoUsers = {
+      // Regular teacher - only sees teacher dashboard
+      'teacher': {
+        id: 'demo-teacher-1',
+        role: 'teacher',
+        isSuperAdmin: false,
+        isTeacher: true,
+        teacherSubjects: ['99c0039b-c3cb-4182-b311-5d69a755d548', '747f8a50-8cb0-4090-aaf0-1a6dda90103b'],
+        firstName: 'Ahmed',
+        lastName: 'Khan',
+        email: 'teacher1@primax.edu'
+      },
+      // Super admin who is also a teacher - sees everything
+      'super-admin-teacher': {
+        id: 'demo-super-admin-teacher',
+        role: 'teacher',
+        isSuperAdmin: true,
+        isTeacher: true,
+        teacherSubjects: ['99c0039b-c3cb-4182-b311-5d69a755d548', '747f8a50-8cb0-4090-aaf0-1a6dda90103b'],
+        firstName: 'Sarah',
+        lastName: 'Ahmed',
+        email: 'sarah.admin@primax.edu'
+      },
+      // Super admin management (not teacher) - sees finance, management, parent
+      'super-admin-management': {
+        id: 'demo-super-admin-mgmt',
+        role: 'management',
+        isSuperAdmin: true,
+        isTeacher: false,
+        teacherSubjects: [],
+        firstName: 'Hassan',
+        lastName: 'Ali',
+        email: 'hassan.admin@primax.edu'
+      },
+      // Regular finance user
+      'finance': {
+        id: 'demo-finance-user',
+        role: 'finance',
+        isSuperAdmin: false,
+        isTeacher: false,
+        teacherSubjects: [],
+        firstName: 'Demo',
+        lastName: 'User',
+        email: 'demo@primax.school'
+      }
+    };
+
+    // Select user based on role parameter or path
+    const selectedRole = isTeacherPath ? 'teacher' : urlRole;
+    const user = demoUsers[selectedRole] || demoUsers['finance'];
+    
     req.user = {
-      id: isTeacherDemo ? 'demo-teacher-1' : 'demo-user',
-      role: isTeacherDemo ? 'teacher' : 'finance',
-      firstName: isTeacherDemo ? 'Ahmed' : 'Demo',
-      lastName: isTeacherDemo ? 'Khan' : 'User',
-      email: isTeacherDemo ? 'teacher1@primax.edu' : 'demo@primax.school',
+      ...user,
       expires_at: Math.floor(Date.now() / 1000) + 3600 // 1 hour from now
     };
     req.isAuthenticated = () => true;
     next();
   });
 
-  // Mock auth route for demo
+  // Enhanced auth route with role-based access info
   app.get('/api/auth/user', async (req: any, res) => {
+    const user = req.user;
+    
+    // Determine accessible dashboards based on role and permissions
+    const accessibleDashboards = getUserAccessibleDashboards(user);
+    
     res.json({
-      id: 'demo-user',
-      role: 'finance',
-      firstName: 'Demo',
-      lastName: 'User',
-      email: 'demo@primax.school'
+      ...user,
+      accessibleDashboards
     });
   });
+
+  // Helper function to determine accessible dashboards
+  function getUserAccessibleDashboards(user: any): string[] {
+    const dashboards = [];
+    
+    if (user.isSuperAdmin) {
+      // Super admins get access to finance, management, and parent dashboards
+      dashboards.push('finance', 'management', 'parent');
+      
+      // Super admin teachers also get teacher dashboard
+      if (user.isTeacher) {
+        dashboards.push('teacher');
+      }
+    } else {
+      // Regular users only get their primary role dashboard
+      dashboards.push(user.role);
+    }
+    
+    return dashboards;
+  }
 
   // Dashboard stats
   app.get("/api/dashboard/stats", async (req, res) => {
