@@ -66,9 +66,14 @@ export default function RoleSelector() {
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
 
   useEffect(() => {
-    // Clear any existing role selection when component mounts
-    localStorage.removeItem('selectedRole');
-    console.log('RoleSelector mounted, cleared selectedRole');
+    // Only clear role selection if we're definitely on the home page
+    const currentPath = window.location.pathname;
+    if (currentPath === '/' || currentPath === '') {
+      localStorage.removeItem('selectedRole');
+      console.log('RoleSelector mounted on home page, cleared selectedRole');
+    } else {
+      console.log('RoleSelector mounted on', currentPath, '- not clearing selectedRole');
+    }
   }, []);
 
   const handleDashboardSelect = (dashboardRole: string, event?: React.MouseEvent) => {
@@ -79,10 +84,15 @@ export default function RoleSelector() {
     
     try {
       console.log('Navigating to dashboard:', dashboardRole);
+      
+      // Set localStorage first
       localStorage.setItem('selectedRole', dashboardRole);
       setSelectedRole(dashboardRole);
       
-      // Navigate to the selected dashboard
+      // Dispatch custom event to notify router
+      window.dispatchEvent(new Event('roleChanged'));
+      
+      // Navigate immediately - the state management will handle timing
       setLocation('/dashboard');
       
       toast({

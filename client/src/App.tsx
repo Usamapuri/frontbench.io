@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -34,8 +35,31 @@ import Expenses from "@/pages/management/Expenses";
 import PayoutSummary from "@/pages/management/PayoutSummary";
 
 function Router() {
-  // Get selected role from localStorage
-  const selectedRole = typeof window !== 'undefined' ? localStorage.getItem('selectedRole') : null;
+  // Use state to track selected role instead of direct localStorage access
+  const [selectedRole, setSelectedRole] = useState<string | null>(() => {
+    // Initialize with current localStorage value
+    return typeof window !== 'undefined' ? localStorage.getItem('selectedRole') : null;
+  });
+  
+  useEffect(() => {
+    // Listen for localStorage changes (for when dashboard is selected)
+    const handleStorageChange = () => {
+      const newRole = localStorage.getItem('selectedRole');
+      console.log('Storage changed, new role:', newRole);
+      setSelectedRole(newRole);
+    };
+    
+    // Listen for custom storage events
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also listen for our custom event when localStorage is set programmatically
+    window.addEventListener('roleChanged', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('roleChanged', handleStorageChange);
+    };
+  }, []);
 
   return (
     <Switch>
