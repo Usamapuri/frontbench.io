@@ -1000,10 +1000,10 @@ export class DatabaseStorage implements IStorage {
       name: addOnData.name,
       description: addOnData.description || '',
       price: addOnData.price.toString(),
-      isActive: addOnData.isActive ?? true,
+      is_active: addOnData.isActive ?? true,
       category: addOnData.category || 'other',
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      created_at: new Date(),
+      updated_at: new Date(),
     }).returning();
     return addOn;
   }

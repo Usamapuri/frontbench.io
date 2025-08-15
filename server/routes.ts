@@ -1117,12 +1117,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create new announcement
   app.post("/api/announcements", async (req: any, res) => {
     try {
-      const validatedData = insertAnnouncementSchema.parse({
-        ...req.body,
-        createdBy: req.body.createdBy || 'demo-user',
-      });
+      console.log("Creating announcement with data:", req.body);
       
-      const announcement = await storage.createAnnouncement(validatedData);
+      const announcementData = {
+        id: crypto.randomUUID(),
+        title: req.body.title,
+        content: req.body.content,
+        type: req.body.type,
+        priority: req.body.priority,
+        subjectId: req.body.subjectId || null,
+        classId: req.body.classId || null,
+        dueDate: req.body.dueDate ? new Date(req.body.dueDate) : null,
+        createdBy: req.body.createdBy || 'demo-user',
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      
+      const announcement = await storage.createAnnouncement(announcementData);
       
       // If recipients are provided, add them
       if (req.body.recipients && req.body.recipients.length > 0) {
@@ -1132,7 +1144,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(announcement);
     } catch (error) {
       console.error("Error creating announcement:", error);
-      res.status(400).json({ message: "Failed to create announcement" });
+      res.status(400).json({ 
+        message: "Failed to create announcement", 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        details: error 
+      });
     }
   });
 
