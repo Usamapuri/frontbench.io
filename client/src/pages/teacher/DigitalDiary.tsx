@@ -24,6 +24,7 @@ const announcementSchema = z.object({
   classId: z.string().optional(),
   dueDate: z.string().optional(),
   recipients: z.array(z.string()).optional(),
+  broadcastType: z.enum(["all", "class", "specific"]).default("all"),
 });
 
 type AnnouncementFormData = z.infer<typeof announcementSchema>;
@@ -31,6 +32,7 @@ type AnnouncementFormData = z.infer<typeof announcementSchema>;
 export default function DigitalDiary() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<"all" | "homework" | "notice" | "reminder" | "announcement">("all");
+  const [broadcastType, setBroadcastType] = useState<"all" | "class" | "specific">("all");
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -45,6 +47,7 @@ export default function DigitalDiary() {
       classId: "",
       dueDate: "",
       recipients: [],
+      broadcastType: "all",
     },
   });
 
@@ -85,10 +88,31 @@ export default function DigitalDiary() {
   // Create announcement mutation
   const createAnnouncementMutation = useMutation({
     mutationFn: async (data: AnnouncementFormData) => {
+      // Prepare announcement data with recipient logic
+      const announcementData = { ...data };
+      
+      // Determine recipients based on broadcast type
+      if (data.broadcastType === "all") {
+        // Get all students for broadcast to all
+        const studentsResponse = await fetch("/api/students");
+        const allStudents = await studentsResponse.json();
+        announcementData.recipients = allStudents.map((student: any) => student.id);
+      } else if (data.broadcastType === "class" && data.classId) {
+        // Get students in specific class
+        const studentsResponse = await fetch(`/api/classes/${data.classId}/students`);
+        const classStudents = await studentsResponse.json();
+        announcementData.recipients = classStudents.map((student: any) => student.id);
+      } else if (data.broadcastType === "specific") {
+        // Use manually selected recipients
+        announcementData.recipients = data.recipients || [];
+      }
+      
+      console.log("Creating announcement with data:", announcementData);
+      
       const response = await fetch("/api/announcements", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(announcementData),
       });
       if (!response.ok) throw new Error("Failed to create announcement");
       return response.json();
@@ -97,6 +121,7 @@ export default function DigitalDiary() {
       queryClient.invalidateQueries({ queryKey: ["/api/announcements"] });
       setIsCreateDialogOpen(false);
       form.reset();
+      setBroadcastType("all");
       toast({
         title: "Success",
         description: "Announcement created successfully!",
@@ -130,7 +155,9 @@ export default function DigitalDiary() {
   });
 
   const onSubmit = (data: AnnouncementFormData) => {
-    createAnnouncementMutation.mutate(data);
+    // Add broadcast type from state to form data
+    const submitData = { ...data, broadcastType };
+    createAnnouncementMutation.mutate(submitData);
   };
 
   const filteredAnnouncements = Array.isArray(announcements) 
@@ -294,6 +321,117 @@ export default function DigitalDiary() {
                       </FormItem>
                     )}
                   />
+                </div>
+
+                {/* Recipients Section */}
+                <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
+                  <h4 className="font-medium text-gray-900 flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    Recipients
+                  </h4>
+                  
+                  <div className="space-y-3">
+                    <label className="text-sm font-medium">Send to:</label>
+                    <div className="space-y-2">
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="radio"
+                          name="broadcast"
+                          value="all"
+                          checked={broadcastType === "all"}
+                          onChange={(e) => setBroadcastType(e.target.value as "all" | "class" | "specific")}
+                          className="text-blue-600"
+                        />
+                        <span className="text-sm">All Students</span>
+                      </label>
+                      
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="radio"
+                          name="broadcast"
+                          value="class"
+                          checked={broadcastType === "class"}
+                          onChange={(e) => setBroadcastType(e.target.value as "all" | "class" | "specific")}
+                          className="text-blue-600"
+                        />
+                        <span className="text-sm">Specific Class</span>
+                      </label>
+                      
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="radio"
+                          name="broadcast"
+                          value="specific"
+                          checked={broadcastType === "specific"}
+                          onChange={(e) => setBroadcastType(e.target.value as "all" | "class" | "specific")}
+                          className="text-blue-600"
+                        />
+                        <span className="text-sm">Select Specific Students</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Class selector for class broadcast */}
+                  {broadcastType === "class" && (
+                    <FormField
+                      control={form.control}
+                      name="classId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Select Class</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger data-testid="select-class">
+                                <SelectValue placeholder="Choose a class" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {Array.isArray(classes) && classes.map((cls: any) => (
+                                <SelectItem key={cls.id} value={cls.id}>
+                                  {cls.name} - {cls.level}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+
+                  {/* Student multi-selector for specific broadcast */}
+                  {broadcastType === "specific" && (
+                    <FormField
+                      control={form.control}
+                      name="recipients"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Select Students</FormLabel>
+                          <div className="max-h-32 overflow-y-auto border rounded-md p-2 space-y-1">
+                            {Array.isArray(students) && students.map((student: any) => (
+                              <label key={student.id} className="flex items-center space-x-2 text-sm">
+                                <input
+                                  type="checkbox"
+                                  checked={field.value?.includes(student.id) || false}
+                                  onChange={(e) => {
+                                    const currentValue = field.value || [];
+                                    if (e.target.checked) {
+                                      field.onChange([...currentValue, student.id]);
+                                    } else {
+                                      field.onChange(currentValue.filter(id => id !== student.id));
+                                    }
+                                  }}
+                                  className="text-blue-600"
+                                />
+                                <span>{student.firstName} {student.lastName} ({student.classLevel})</span>
+                              </label>
+                            ))}
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
                 </div>
 
                 <div className="flex justify-end space-x-2">
