@@ -22,7 +22,16 @@ export function useAuth() {
   
   const { data: user, isLoading, refetch } = useQuery<User>({
     queryKey: ["/api/auth/user", currentRole],
+    queryFn: async () => {
+      const response = await fetch(`/api/auth/user?role=${currentRole}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch user');
+      }
+      return response.json();
+    },
     retry: false,
+    staleTime: 0, // Always refetch when query key changes
+    gcTime: 0, // Don't cache the result
   });
 
   return {

@@ -106,7 +106,12 @@ export default function RoleSelector() {
   const getAccessibleDashboards = () => {
     if (!user) return [];
     
-    // Return all dashboards for super admins, filtered by their access level
+    // Use the accessibleDashboards array from the backend if available
+    if (user.accessibleDashboards && user.accessibleDashboards.length > 0) {
+      return dashboardOptions.filter(d => user.accessibleDashboards.includes(d.role));
+    }
+    
+    // Fallback logic for backward compatibility
     if (user.isSuperAdmin) {
       if (user.isTeacher) {
         // Super admin teachers can access all dashboards
