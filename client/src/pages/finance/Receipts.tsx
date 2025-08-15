@@ -13,10 +13,410 @@ export default function Receipts() {
     queryKey: ['/api/payments'],
   });
 
-  const filteredPayments = payments?.filter((payment: any) =>
+  const { data: students } = useQuery({
+    queryKey: ['/api/students'],
+  });
+
+  // Helper function to get student name
+  const getStudentName = (studentId: string) => {
+    const student = students?.find((s: any) => s.id === studentId);
+    return student ? `${student.firstName} ${student.lastName}` : 'Unknown Student';
+  };
+
+  // Handle receipt PDF view with format options (same as invoice system)
+  const handleViewReceiptPDF = async (payment: any) => {
+    // Create format selection dialog first
+    const formatChoice = window.confirm("Choose Receipt Format:\n\nOK = Full PDF Format (A4)\nCancel = Thermal Receipt Format");
+    
+    if (formatChoice) {
+      await generatePDFReceipt(payment);
+    } else {
+      await generateThermalReceipt(payment);
+    }
+  };
+
+  // Generate full PDF receipt format
+  const generatePDFReceipt = async (payment: any) => {
+    const studentName = getStudentName(payment.studentId);
+    const currentDate = new Date().toLocaleDateString();
+    const paymentDate = new Date(payment.paymentDate).toLocaleDateString();
+    const paymentTime = new Date(payment.paymentDate).toLocaleTimeString();
+    
+    const pdfHTML = `
+      <html>
+        <head>
+          <title>Receipt ${payment.receiptNumber}</title>
+          <style>
+            @page { 
+              size: A4; 
+              margin: 15mm; 
+            }
+            body { 
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+              margin: 0; 
+              padding: 0; 
+              color: #333;
+              line-height: 1.4;
+            }
+            .receipt-container {
+              max-width: 210mm;
+              margin: 0 auto;
+              background: white;
+              box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            }
+            .header {
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              color: white;
+              padding: 20px;
+              text-align: center;
+              border-radius: 8px 8px 0 0;
+            }
+            .header h1 {
+              margin: 0 0 8px 0;
+              font-size: 28px;
+              font-weight: 600;
+            }
+            .header p {
+              margin: 0;
+              font-size: 14px;
+              opacity: 0.9;
+            }
+            .receipt-details {
+              padding: 30px;
+              background: #f8f9fa;
+              border-bottom: 2px solid #e9ecef;
+            }
+            .receipt-grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 30px;
+              margin-bottom: 20px;
+            }
+            .receipt-info h3 {
+              margin: 0 0 15px 0;
+              font-size: 16px;
+              color: #495057;
+              border-bottom: 2px solid #667eea;
+              padding-bottom: 8px;
+            }
+            .info-row {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 8px;
+              padding: 6px 0;
+              border-bottom: 1px solid #e9ecef;
+            }
+            .info-label {
+              font-weight: 500;
+              color: #6c757d;
+            }
+            .info-value {
+              font-weight: 600;
+              color: #212529;
+            }
+            .payment-summary {
+              background: white;
+              padding: 30px;
+              border-radius: 8px;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+              margin: 20px 0;
+            }
+            .amount-display {
+              text-align: center;
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              color: white;
+              padding: 25px;
+              border-radius: 8px;
+              margin: 20px 0;
+            }
+            .amount-display .amount {
+              font-size: 36px;
+              font-weight: 700;
+              margin: 10px 0;
+            }
+            .amount-display .label {
+              font-size: 14px;
+              opacity: 0.9;
+              text-transform: uppercase;
+              letter-spacing: 1px;
+            }
+            .footer {
+              padding: 30px;
+              text-align: center;
+              background: #f8f9fa;
+              border-top: 2px solid #e9ecef;
+            }
+            .footer-note {
+              font-size: 12px;
+              color: #6c757d;
+              margin-bottom: 15px;
+              line-height: 1.6;
+            }
+            .footer-signature {
+              font-size: 11px;
+              color: #868e96;
+              font-style: italic;
+            }
+            @media print {
+              body { print-color-adjust: exact; }
+              .receipt-container { box-shadow: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="receipt-container">
+            <div class="header">
+              <h1>PRIMAX</h1>
+              <p>Educational Institution - Payment Receipt</p>
+            </div>
+            
+            <div class="receipt-details">
+              <div class="receipt-grid">
+                <div class="receipt-info">
+                  <h3>Receipt Information</h3>
+                  <div class="info-row">
+                    <span class="info-label">Receipt #:</span>
+                    <span class="info-value">${payment.receiptNumber}</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-label">Payment Date:</span>
+                    <span class="info-value">${paymentDate}</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-label">Payment Time:</span>
+                    <span class="info-value">${paymentTime}</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-label">Payment Method:</span>
+                    <span class="info-value">${payment.paymentMethod === 'bank_transfer' ? 'Bank Transfer' : payment.paymentMethod === 'cash' ? 'Cash' : payment.paymentMethod?.toUpperCase()}</span>
+                  </div>
+                  ${payment.transactionNumber ? `
+                  <div class="info-row">
+                    <span class="info-label">Transaction #:</span>
+                    <span class="info-value">${payment.transactionNumber}</span>
+                  </div>
+                  ` : ''}
+                </div>
+                
+                <div class="receipt-info">
+                  <h3>Student Information</h3>
+                  <div class="info-row">
+                    <span class="info-label">Student Name:</span>
+                    <span class="info-value">${studentName}</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-label">Student ID:</span>
+                    <span class="info-value">${payment.studentId}</span>
+                  </div>
+                  ${payment.notes ? `
+                  <div class="info-row">
+                    <span class="info-label">Notes:</span>
+                    <span class="info-value">${payment.notes}</span>
+                  </div>
+                  ` : ''}
+                </div>
+              </div>
+            </div>
+            
+            <div class="payment-summary">
+              <div class="amount-display">
+                <div class="label">Amount Received</div>
+                <div class="amount">Rs. ${Number(payment.amount).toLocaleString()}</div>
+                <div class="label">Payment Confirmed</div>
+              </div>
+            </div>
+            
+            <div class="footer">
+              <div class="footer-note">
+                <strong>Thank you for your payment!</strong><br>
+                This receipt serves as proof of payment. Please retain for your records.<br>
+                For any queries, contact our finance office during business hours.
+              </div>
+              <div class="footer-signature">
+                Primax Educational Institution<br>
+                Generated on ${currentDate} | This is a computer-generated receipt
+              </div>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+    
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(pdfHTML);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => printWindow.print(), 500);
+    }
+  };
+
+  // Generate thermal receipt format
+  const generateThermalReceipt = async (payment: any) => {
+    const studentName = getStudentName(payment.studentId);
+    const currentDate = new Date().toLocaleDateString();
+    const currentTime = new Date().toLocaleTimeString();
+    const paymentDate = new Date(payment.paymentDate).toLocaleDateString();
+    const paymentTime = new Date(payment.paymentDate).toLocaleTimeString();
+    
+    const thermalHTML = `
+      <html>
+        <head>
+          <title>Receipt ${payment.receiptNumber} - Thermal</title>
+          <style>
+            @page { 
+              size: 80mm 150mm; 
+              margin: 2mm; 
+            }
+            body { 
+              font-family: 'Courier New', monospace; 
+              margin: 0; 
+              padding: 2mm; 
+              font-size: 10px;
+              line-height: 1.2;
+              color: #000;
+            }
+            .receipt {
+              width: 76mm;
+              margin: 0 auto;
+            }
+            .header {
+              text-align: center;
+              margin-bottom: 3mm;
+              border-bottom: 1px dashed #000;
+              padding-bottom: 2mm;
+            }
+            .header h1 {
+              margin: 0;
+              font-size: 14px;
+              font-weight: bold;
+            }
+            .header p {
+              margin: 1mm 0 0 0;
+              font-size: 8px;
+            }
+            .section {
+              margin: 2mm 0;
+              border-bottom: 1px dashed #ccc;
+              padding-bottom: 2mm;
+            }
+            .row {
+              display: flex;
+              justify-content: space-between;
+              margin: 1mm 0;
+              font-size: 9px;
+            }
+            .row-label {
+              font-weight: bold;
+            }
+            .amount-section {
+              text-align: center;
+              margin: 3mm 0;
+              background: #f0f0f0;
+              padding: 2mm;
+              border: 1px solid #000;
+            }
+            .amount {
+              font-size: 16px;
+              font-weight: bold;
+              margin: 1mm 0;
+            }
+            .footer {
+              text-align: center;
+              margin-top: 3mm;
+              font-size: 7px;
+              border-top: 1px dashed #000;
+              padding-top: 2mm;
+            }
+            @media print {
+              body { print-color-adjust: exact; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="receipt">
+            <div class="header">
+              <h1>PRIMAX</h1>
+              <p>Educational Institution</p>
+              <p>PAYMENT RECEIPT</p>
+            </div>
+            
+            <div class="section">
+              <div class="row">
+                <span class="row-label">Receipt #:</span>
+                <span>${payment.receiptNumber}</span>
+              </div>
+              <div class="row">
+                <span class="row-label">Date:</span>
+                <span>${paymentDate}</span>
+              </div>
+              <div class="row">
+                <span class="row-label">Time:</span>
+                <span>${paymentTime}</span>
+              </div>
+            </div>
+            
+            <div class="section">
+              <div class="row">
+                <span class="row-label">Student:</span>
+                <span style="font-size: 8px;">${studentName}</span>
+              </div>
+              <div class="row">
+                <span class="row-label">ID:</span>
+                <span>${payment.studentId.substring(0, 8)}...</span>
+              </div>
+            </div>
+            
+            <div class="section">
+              <div class="row">
+                <span class="row-label">Method:</span>
+                <span>${payment.paymentMethod === 'bank_transfer' ? 'Bank Transfer' : payment.paymentMethod === 'cash' ? 'Cash' : payment.paymentMethod?.toUpperCase()}</span>
+              </div>
+              ${payment.transactionNumber ? `
+              <div class="row">
+                <span class="row-label">Trans #:</span>
+                <span style="font-size: 7px;">${payment.transactionNumber}</span>
+              </div>
+              ` : ''}
+            </div>
+            
+            <div class="amount-section">
+              <div style="font-size: 10px;">AMOUNT RECEIVED</div>
+              <div class="amount">Rs. ${Number(payment.amount).toLocaleString()}</div>
+              <div style="font-size: 8px;">PAYMENT CONFIRMED</div>
+            </div>
+            
+            ${payment.notes ? `
+            <div class="section">
+              <div style="font-size: 8px; text-align: center;">
+                ${payment.notes}
+              </div>
+            </div>
+            ` : ''}
+            
+            <div class="footer">
+              <p>Thank you for your payment!</p>
+              <p>Generated: ${currentDate} ${currentTime}</p>
+              <p>This is a computer-generated receipt</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+    
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(thermalHTML);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => printWindow.print(), 500);
+    }
+  };
+
+  const filteredPayments = (payments || []).filter((payment: any) =>
     payment.receiptNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     payment.notes?.toLowerCase().includes(searchQuery.toLowerCase())
-  ) || [];
+  );
 
   const getPaymentMethodColor = (method: string) => {
     switch (method) {
@@ -133,10 +533,7 @@ export default function Receipts() {
                         <Button 
                           size="sm" 
                           variant="ghost"
-                          onClick={() => {
-                            // In real app, this would print/download receipt
-                            window.print();
-                          }}
+                          onClick={() => handleViewReceiptPDF(payment)}
                           data-testid={`button-print-receipt-${payment.id}`}
                         >
                           <i className="fas fa-print"></i>
