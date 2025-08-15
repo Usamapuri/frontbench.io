@@ -387,7 +387,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createPayment(paymentData: any): Promise<Payment> {
-    const [payment] = await db.insert(payments).values(paymentData).returning();
+    // Ensure receiptNumber is provided or generate one
+    const paymentDataWithReceipt = {
+      ...paymentData,
+      receiptNumber: paymentData.receiptNumber || `RCP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    };
+    const [payment] = await db.insert(payments).values(paymentDataWithReceipt).returning();
     return payment;
   }
 
@@ -414,6 +419,7 @@ export class DatabaseStorage implements IStorage {
 
     // Create payment record  
     const [payment] = await db.insert(payments).values({
+      receiptNumber: `RCP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       studentId: paymentData.studentId,
       amount: paymentData.paymentAmount.toFixed(2),
       paymentMethod: paymentData.paymentMethod as "cash" | "bank_transfer" | "card" | "cheque",
@@ -1028,13 +1034,12 @@ export class DatabaseStorage implements IStorage {
         id: crypto.randomUUID(),
         invoiceId: invoice.id,
         type: item.type,
-        itemId: item.itemId,
-        name: item.name,
-        description: item.description || '',
+        subjectId: item.type === 'subject' ? item.itemId : null,
+        addOnId: item.type === 'addon' ? item.itemId : null,
+        description: item.description || item.name || '',
         quantity: item.quantity || 1,
         unitPrice: item.unitPrice,
-        totalPrice: item.totalPrice,
-        createdAt: new Date(),
+        total: item.totalPrice,
       }));
       
       await db.insert(invoiceItems).values(itemsToInsert);
@@ -1066,13 +1071,12 @@ export class DatabaseStorage implements IStorage {
         id: crypto.randomUUID(),
         invoiceId: invoice.id,
         type: item.type,
-        itemId: item.itemId,
-        name: item.name,
-        description: item.description || '',
+        subjectId: item.type === 'subject' ? item.itemId : null,
+        addOnId: item.type === 'addon' ? item.itemId : null,
+        description: item.description || item.name || '',
         quantity: item.quantity || 1,
         unitPrice: item.unitPrice,
-        totalPrice: item.totalPrice,
-        createdAt: new Date(),
+        total: item.totalPrice,
       }));
       
       await db.insert(invoiceItems).values(itemsToInsert);
