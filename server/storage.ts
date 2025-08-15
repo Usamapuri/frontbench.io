@@ -412,15 +412,11 @@ export class DatabaseStorage implements IStorage {
       throw new Error('Payment amount cannot exceed invoice balance');
     }
 
-    // Generate receipt number
-    const receiptNumber = `RCP-${Date.now()}`;
-
-    // Create payment record
+    // Create payment record  
     const [payment] = await db.insert(payments).values({
-      receiptNumber: receiptNumber,
       studentId: paymentData.studentId,
       amount: paymentData.paymentAmount.toFixed(2),
-      paymentMethod: paymentData.paymentMethod,
+      paymentMethod: paymentData.paymentMethod as "cash" | "bank_transfer" | "card" | "cheque",
       paymentDate: typeof paymentData.paymentDate === 'string' ? new Date(paymentData.paymentDate) : paymentData.paymentDate,
       receivedBy: paymentData.receivedBy || 'system',
       notes: paymentData.notes,
@@ -516,10 +512,6 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAttendanceRecord(classId: string, studentId: string, date: string): Promise<Attendance | undefined> {
-    const targetDate = new Date(date);
-    const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
-    const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
-
     const result = await db
       .select()
       .from(attendance)
@@ -527,8 +519,7 @@ export class DatabaseStorage implements IStorage {
         and(
           eq(attendance.classId, classId),
           eq(attendance.studentId, studentId),
-          gte(attendance.date, startOfDay),
-          lte(attendance.date, endOfDay)
+          eq(attendance.attendanceDate, date)
         )
       );
 
@@ -540,7 +531,6 @@ export class DatabaseStorage implements IStorage {
       .update(attendance)
       .set({
         ...updates,
-        updatedAt: new Date(),
       })
       .where(eq(attendance.id, attendanceId))
       .returning();
@@ -855,7 +845,11 @@ export class DatabaseStorage implements IStorage {
 
   // Digital Diary - Announcement Implementation
   async getAnnouncements(teacherId?: string): Promise<Announcement[]> {
-    let query = db
+    const whereCondition = teacherId 
+      ? and(eq(announcements.isActive, true), eq(announcements.createdBy, teacherId))
+      : eq(announcements.isActive, true);
+
+    return await db
       .select({
         id: announcements.id,
         title: announcements.title,
@@ -871,14 +865,8 @@ export class DatabaseStorage implements IStorage {
         updatedAt: announcements.updatedAt,
       })
       .from(announcements)
-      .where(eq(announcements.isActive, true))
+      .where(whereCondition)
       .orderBy(desc(announcements.createdAt));
-
-    if (teacherId) {
-      query = query.where(eq(announcements.createdBy, teacherId));
-    }
-
-    return await query;
   }
 
   async createAnnouncement(announcement: InsertAnnouncement): Promise<Announcement> {
@@ -996,14 +984,11 @@ export class DatabaseStorage implements IStorage {
 
   async createAddOn(addOnData: any): Promise<any> {
     const [addOn] = await db.insert(addOns).values({
-      id: crypto.randomUUID(),
       name: addOnData.name,
       description: addOnData.description || '',
       price: addOnData.price.toString(),
-      is_active: addOnData.isActive ?? true,
+      isActive: addOnData.isActive ?? true,
       category: addOnData.category || 'other',
-      created_at: new Date(),
-      updated_at: new Date(),
     }).returning();
     return addOn;
   }
@@ -1021,21 +1006,20 @@ export class DatabaseStorage implements IStorage {
 
     // Create invoice
     const [invoice] = await db.insert(invoices).values({
-      id: crypto.randomUUID(),
       invoiceNumber,
       studentId: invoiceData.studentId,
-      issueDate: new Date(invoiceData.dueDate),
-      dueDate: new Date(invoiceData.dueDate),
+      billingPeriodStart: invoiceData.billingPeriodStart || invoiceData.dueDate,
+      billingPeriodEnd: invoiceData.billingPeriodEnd || invoiceData.dueDate,
+      issueDate: invoiceData.dueDate,
+      dueDate: invoiceData.dueDate,
       subtotal: subtotal.toFixed(2),
-      discountAmount: discountAmount.toFixed(2),
+      discount: discountAmount.toFixed(2),
       total: total.toFixed(2),
       amountPaid: '0.00',
       balanceDue: total.toFixed(2),
       status: 'sent',
       notes: invoiceData.notes || '',
       createdBy: invoiceData.createdBy || 'system',
-      createdAt: new Date(),
-      updatedAt: new Date(),
     }).returning();
 
     // Create invoice items
@@ -1064,13 +1048,12 @@ export class DatabaseStorage implements IStorage {
     const [invoice] = await db
       .update(invoices)
       .set({
-        dueDate: new Date(invoiceData.dueDate),
+        dueDate: invoiceData.dueDate,
         subtotal: invoiceData.subtotal,
-        discountAmount: invoiceData.discountAmount || '0.00',
+        discount: invoiceData.discountAmount || '0.00',
         total: invoiceData.total,
         balanceDue: invoiceData.total,
         notes: invoiceData.notes || '',
-        updatedAt: new Date(),
       })
       .where(eq(invoices.id, invoiceId))
       .returning();
