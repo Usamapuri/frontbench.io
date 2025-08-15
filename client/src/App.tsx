@@ -51,9 +51,12 @@ function Router() {
         {(params) => {
           // If no role selected, redirect to home
           if (!selectedRole) {
+            console.log('No selectedRole found, redirecting to home');
             window.location.href = '/';
             return null;
           }
+          
+          console.log('Router: selectedRole is', selectedRole);
           
           // Special handling for parent role - no layout/sidebar needed
           if (selectedRole === 'parent') {

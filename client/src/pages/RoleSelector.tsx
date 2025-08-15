@@ -68,21 +68,29 @@ export default function RoleSelector() {
   useEffect(() => {
     // Clear any existing role selection when component mounts
     localStorage.removeItem('selectedRole');
+    console.log('RoleSelector mounted, cleared selectedRole');
   }, []);
 
-  const handleRoleSelect = (role: string) => {
+  const handleDashboardSelect = (dashboardRole: string, event?: React.MouseEvent) => {
+    // Prevent event bubbling if this was called from a button click
+    if (event) {
+      event.stopPropagation();
+    }
+    
     try {
-      localStorage.setItem('selectedRole', role);
-      setSelectedRole(role);
+      console.log('Navigating to dashboard:', dashboardRole);
+      localStorage.setItem('selectedRole', dashboardRole);
+      setSelectedRole(dashboardRole);
       
       // Navigate to the selected dashboard
       setLocation('/dashboard');
       
       toast({
         title: "Dashboard Selected",
-        description: `Switched to ${dashboardOptions.find(d => d.role === role)?.title}`,
+        description: `Switched to ${dashboardOptions.find(d => d.role === dashboardRole)?.title}`,
       });
     } catch (error) {
+      console.error('Dashboard selection error:', error);
       toast({
         title: "Error",
         description: "Failed to select dashboard",
@@ -97,7 +105,9 @@ export default function RoleSelector() {
   };
 
   const handleDemoRoleChange = (role: string) => {
-    // Store the selected demo role in localStorage
+    console.log('Switching demo role to:', role);
+    // Clear any existing dashboard selection first
+    localStorage.removeItem('selectedRole');
     localStorage.setItem('demoRole', role);
     // Reload the page with the new role parameter to refresh authentication
     window.location.href = `/?role=${role}`;
@@ -211,7 +221,7 @@ export default function RoleSelector() {
             <Card 
               key={dashboard.role}
               className={`hover:shadow-lg transition-all duration-200 cursor-pointer border-2 hover:border-blue-300 ${dashboard.bgColor}`}
-              onClick={() => handleRoleSelect(dashboard.role)}
+              onClick={() => handleDashboardSelect(dashboard.role)}
               data-testid={`card-dashboard-${dashboard.role}`}
             >
               <CardHeader className="text-center pb-2">
@@ -229,6 +239,7 @@ export default function RoleSelector() {
                 <Button 
                   className="w-full"
                   variant="outline"
+                  onClick={(e) => handleDashboardSelect(dashboard.role, e)}
                   data-testid={`button-select-${dashboard.role}`}
                 >
                   Access Dashboard
