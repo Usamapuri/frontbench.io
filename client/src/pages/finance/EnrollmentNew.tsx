@@ -58,6 +58,11 @@ interface EnrollmentFormData {
   // Enrollment Details
   selectedSubjects: string[];
   addOns: string[];
+  subjectDiscounts: Record<string, {
+    discountType: 'none' | 'percentage' | 'fixed';
+    discountValue: number;
+    discountReason: string;
+  }>;
 }
 
 const classLevelOptions = [
@@ -72,6 +77,7 @@ export default function EnrollmentNew() {
     classLevels: [],
     selectedSubjects: [],
     addOns: [],
+    subjectDiscounts: {},
   });
   const [currentStep, setCurrentStep] = useState(1);
   
@@ -109,7 +115,7 @@ export default function EnrollmentNew() {
       queryClient.invalidateQueries({ queryKey: ['/api/students'] });
       queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
       // Reset form
-      setFormData({ classLevels: [], selectedSubjects: [], addOns: [] });
+      setFormData({ classLevels: [], selectedSubjects: [], addOns: [], subjectDiscounts: {} });
       setCurrentStep(1);
     },
     onError: (error: any) => {
@@ -187,15 +193,34 @@ export default function EnrollmentNew() {
         additionalParentEmail: formData.additionalParentEmail,
       });
       
+      // Process add-ons into additionalFees format
+      const additionalFees = (formData.addOns || []).map(addon => {
+        switch(addon) {
+          case 'registration':
+            return { type: 'registration', amount: 5000, description: 'Registration Fees' };
+          case 'resource-pack':
+            return { type: 'resource-pack', amount: 4000, description: 'Resource Pack' };
+          case 'online-access':
+            return { type: 'online-access', amount: 6900, description: 'Online Access' };
+          default:
+            return { type: addon, amount: 0, description: addon };
+        }
+      });
+
       const enrollmentData = {
-        student: studentData,
-        selectedSubjects: formData.selectedSubjects?.map(subjectId => ({
-          subjectId,
-          discountType: 'none',
-          discountValue: 0,
-          discountReason: ''
-        })) || [],
-        addOns: formData.addOns || [],
+        studentData,
+        selectedSubjects: formData.selectedSubjects?.map(subjectId => {
+          const subjectDiscounts = formData.subjectDiscounts || {};
+          const subjectDiscount = subjectDiscounts[subjectId] || { discountType: 'none', discountValue: 0, discountReason: '' };
+          
+          return {
+            subjectId,
+            discountType: subjectDiscount.discountType,
+            discountValue: subjectDiscount.discountValue,
+            discountReason: subjectDiscount.discountReason
+          };
+        }) || [],
+        additionalFees
       };
 
       createEnrollmentMutation.mutate(enrollmentData);
@@ -225,8 +250,8 @@ export default function EnrollmentNew() {
 
         {/* Progress Indicator */}
         <div className="mb-8">
-          <div className="flex items-center justify-between max-w-md mx-auto">
-            {[1, 2, 3].map((step, index) => (
+          <div className="flex items-center justify-between max-w-2xl mx-auto">
+            {[1, 2, 3, 4, 5].map((step, index) => (
               <div key={step} className="flex items-center">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium ${
                   step <= currentStep 
@@ -235,7 +260,7 @@ export default function EnrollmentNew() {
                 }`}>
                   {step}
                 </div>
-                {index < 2 && (
+                {index < 4 && (
                   <ChevronRight className={`w-5 h-5 mx-2 ${
                     step < currentStep ? 'text-blue-600' : 'text-gray-400'
                   }`} />
@@ -243,9 +268,11 @@ export default function EnrollmentNew() {
               </div>
             ))}
           </div>
-          <div className="flex justify-between text-sm text-gray-600 mt-2 max-w-md mx-auto">
+          <div className="flex justify-between text-sm text-gray-600 mt-2 max-w-2xl mx-auto">
             <span>Student Info</span>
             <span>Subjects</span>
+            <span>Add-Ons</span>
+            <span>Discounts</span>
             <span>Review</span>
           </div>
         </div>
@@ -528,8 +555,219 @@ export default function EnrollmentNew() {
               </div>
             )}
 
-            {/* Step 3: Review */}
+            {/* Step 3: Add-Ons */}
             {currentStep === 3 && (
+              <div className="space-y-6">
+                <h2 className="text-xl font-semibold text-gray-900">Add-Ons</h2>
+                <p className="text-gray-600">Select optional services (one-time fees)</p>
+                
+                <div className="space-y-4">
+                  <label className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <div className="flex items-start space-x-3">
+                      <Checkbox
+                        checked={formData.addOns?.includes('registration') || false}
+                        onCheckedChange={(checked) => {
+                          const current = formData.addOns || [];
+                          if (checked) {
+                            updateFormData('addOns', [...current, 'registration']);
+                          } else {
+                            updateFormData('addOns', current.filter(addon => addon !== 'registration'));
+                          }
+                        }}
+                        className="mt-1"
+                      />
+                      <div>
+                        <div className="font-medium text-gray-900">Registration Fees</div>
+                        <div className="text-sm text-gray-600">One-time enrollment fee</div>
+                      </div>
+                    </div>
+                    <div className="text-lg font-semibold text-gray-900">Rs. 5,000</div>
+                  </label>
+                  
+                  <label className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <div className="flex items-start space-x-3">
+                      <Checkbox
+                        checked={formData.addOns?.includes('resource-pack') || false}
+                        onCheckedChange={(checked) => {
+                          const current = formData.addOns || [];
+                          if (checked) {
+                            updateFormData('addOns', [...current, 'resource-pack']);
+                          } else {
+                            updateFormData('addOns', current.filter(addon => addon !== 'resource-pack'));
+                          }
+                        }}
+                        className="mt-1"
+                      />
+                      <div>
+                        <div className="font-medium text-gray-900">Resource Pack</div>
+                        <div className="text-sm text-gray-600">Study materials and textbooks</div>
+                      </div>
+                    </div>
+                    <div className="text-lg font-semibold text-gray-900">Rs. 4,000</div>
+                  </label>
+                  
+                  <label className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <div className="flex items-start space-x-3">
+                      <Checkbox
+                        checked={formData.addOns?.includes('online-access') || false}
+                        onCheckedChange={(checked) => {
+                          const current = formData.addOns || [];
+                          if (checked) {
+                            updateFormData('addOns', [...current, 'online-access']);
+                          } else {
+                            updateFormData('addOns', current.filter(addon => addon !== 'online-access'));
+                          }
+                        }}
+                        className="mt-1"
+                      />
+                      <div>
+                        <div className="font-medium text-gray-900">Online Access</div>
+                        <div className="text-sm text-gray-600">Digital learning platform access</div>
+                      </div>
+                    </div>
+                    <div className="text-lg font-semibold text-gray-900">Rs. 6,900</div>
+                  </label>
+                </div>
+
+                {formData.addOns && formData.addOns.length > 0 && (
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="text-sm font-medium text-blue-800">
+                      Total Add-On Fees: Rs. {
+                        formData.addOns.reduce((total, addon) => {
+                          switch(addon) {
+                            case 'registration': return total + 5000;
+                            case 'resource-pack': return total + 4000;
+                            case 'online-access': return total + 6900;
+                            default: return total;
+                          }
+                        }, 0).toLocaleString()
+                      }
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Step 4: Subject-Specific Discounts */}
+            {currentStep === 4 && (
+              <div className="space-y-6">
+                <h2 className="text-xl font-semibold text-gray-900">Subject-Specific Discounts</h2>
+                <p className="text-gray-600">Apply discounts to individual subjects</p>
+                
+                <div className="space-y-4">
+                  {formData.selectedSubjects?.map((subjectId) => {
+                    const subject = subjects?.find(s => s.id === subjectId);
+                    if (!subject) return null;
+                    
+                    const subjectDiscounts = formData.subjectDiscounts || {};
+                    const subjectDiscount = subjectDiscounts[subjectId] || { discountType: 'none', discountValue: 0, discountReason: '' };
+                    
+                    return (
+                      <div key={subjectId} className="p-4 border rounded-lg bg-gray-50">
+                        <div className="flex items-center justify-between mb-3">
+                          <div>
+                            <h4 className="font-medium text-gray-800">{subject.name}</h4>
+                            <p className="text-sm text-gray-600">Base Fee: Rs. {subject.baseFee}/month</p>
+                          </div>
+                          <div className="text-right">
+                            {subjectDiscount.discountType !== 'none' && (
+                              <div className="text-sm text-green-600 font-medium">
+                                Discount: {subjectDiscount.discountType === 'percentage' 
+                                  ? `${subjectDiscount.discountValue}%` 
+                                  : `Rs. ${subjectDiscount.discountValue}`}
+                              </div>
+                            )}
+                            <div className="text-lg font-semibold">
+                              Final: Rs. {(
+                                subjectDiscount.discountType === 'percentage' 
+                                  ? Number(subject.baseFee) - (Number(subject.baseFee) * Number(subjectDiscount.discountValue) / 100)
+                                  : Number(subject.baseFee) - Number(subjectDiscount.discountValue)
+                              ).toLocaleString()}/month
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <Label className="text-sm text-gray-700">Discount Type</Label>
+                            <Select 
+                              value={subjectDiscount.discountType} 
+                              onValueChange={(value) => {
+                                const newDiscounts = { ...formData.subjectDiscounts };
+                                newDiscounts[subjectId] = { 
+                                  ...subjectDiscount, 
+                                  discountType: value as 'none' | 'percentage' | 'fixed' 
+                                };
+                                updateFormData('subjectDiscounts', newDiscounts);
+                              }}
+                            >
+                              <SelectTrigger className="mt-1">
+                                <SelectValue placeholder="Select type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">No Discount</SelectItem>
+                                <SelectItem value="percentage">Percentage</SelectItem>
+                                <SelectItem value="fixed">Fixed Amount</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          {subjectDiscount.discountType !== 'none' && (
+                            <>
+                              <div>
+                                <Label className="text-sm text-gray-700">
+                                  {subjectDiscount.discountType === 'percentage' ? 'Percentage (%)' : 'Amount (Rs.)'}
+                                </Label>
+                                <Input
+                                  type="number"
+                                  placeholder={subjectDiscount.discountType === 'percentage' ? 'e.g., 10' : 'e.g., 1000'}
+                                  value={subjectDiscount.discountValue}
+                                  onChange={(e) => {
+                                    const newDiscounts = { ...formData.subjectDiscounts };
+                                    newDiscounts[subjectId] = { 
+                                      ...subjectDiscount, 
+                                      discountValue: Number(e.target.value) 
+                                    };
+                                    updateFormData('subjectDiscounts', newDiscounts);
+                                  }}
+                                  className="mt-1"
+                                />
+                              </div>
+                              
+                              <div>
+                                <Label className="text-sm text-gray-700">Reason</Label>
+                                <Input
+                                  placeholder="Reason for discount"
+                                  value={subjectDiscount.discountReason}
+                                  onChange={(e) => {
+                                    const newDiscounts = { ...formData.subjectDiscounts };
+                                    newDiscounts[subjectId] = { 
+                                      ...subjectDiscount, 
+                                      discountReason: e.target.value 
+                                    };
+                                    updateFormData('subjectDiscounts', newDiscounts);
+                                  }}
+                                  className="mt-1"
+                                />
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }) || []}
+                  
+                  {(!formData.selectedSubjects || formData.selectedSubjects.length === 0) && (
+                    <div className="text-center py-8 text-gray-500">
+                      No subjects selected. Go back to select subjects first.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Step 5: Review */}
+            {currentStep === 5 && (
               <div className="space-y-6">
                 <h2 className="text-xl font-semibold text-gray-900">Review & Confirm</h2>
                 
@@ -598,7 +836,7 @@ export default function EnrollmentNew() {
                 Previous
               </Button>
               
-              {currentStep < 3 ? (
+              {currentStep < 5 ? (
                 <Button onClick={handleNext}>
                   Next
                 </Button>

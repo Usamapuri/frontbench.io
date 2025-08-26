@@ -64,7 +64,7 @@ export interface IStorage {
   // Roll Number Management
   generateRollNumber(): Promise<string>;
   rollNumberExists(rollNumber: string): Promise<boolean>;
-  getNextRollNumber(classLevel: string): Promise<string>;
+  getNextRollNumber(): Promise<string>;
   assignRollNumbersToExistingStudents(): Promise<{ updated: number; errors: string[] }>;
   
   // Subjects
@@ -237,33 +237,32 @@ export class DatabaseStorage implements IStorage {
 
   // Roll number generation system
   async generateRollNumber(): Promise<string> {
-    // Use "PMX" prefix for Primax followed by sequential numbers
-    const prefix = 'PMX';
+    const currentYear = new Date().getFullYear();
+    const yearSuffix = currentYear.toString().slice(-2); // Last 2 digits (e.g., "25" for 2025)
     
-    // Get all existing roll numbers with PMX prefix
-    const existingRollNumbers = await db
-      .select({ rollNumber: students.rollNumber })
-      .from(students)
-      .where(sql`${students.rollNumber} LIKE ${prefix + '%'}`);
+    let rollNumber: string;
+    let attempts = 0;
+    const maxAttempts = 100;
     
-    // Extract sequence numbers and find the highest
-    let highestSequence = 0;
-    existingRollNumbers.forEach(record => {
-      const rollNumber = record.rollNumber;
-      if (rollNumber && rollNumber.startsWith(prefix)) {
-        const sequenceStr = rollNumber.slice(3); // Remove "PMX" prefix
-        const sequence = parseInt(sequenceStr, 10);
-        if (!isNaN(sequence) && sequence > highestSequence) {
-          highestSequence = sequence;
-        }
+    do {
+      // Generate random 4-digit number
+      const randomNum = Math.floor(Math.random() * 9000) + 1000; // 1000-9999
+      rollNumber = `PMX${yearSuffix}-${randomNum}`;
+      attempts++;
+      
+      // Check if this roll number already exists
+      const exists = await this.rollNumberExists(rollNumber);
+      if (!exists) {
+        break;
       }
-    });
+    } while (attempts < maxAttempts);
     
-    // Generate next sequence number (pad with zeros to make it 4 digits)
-    const nextSequence = (highestSequence + 1).toString().padStart(4, '0');
+    if (attempts >= maxAttempts) {
+      throw new Error('Unable to generate unique roll number after maximum attempts');
+    }
     
-    // Format: PMX#### (e.g., PMX0001, PMX0002)
-    return `${prefix}${nextSequence}`;
+    // Format: PMXyy-#### (e.g., PMX25-4782, PMX25-8391)
+    return rollNumber;
   }
 
   // Check if roll number exists

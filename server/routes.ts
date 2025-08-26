@@ -164,8 +164,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const nextRollNumber = await storage.getNextRollNumber();
       res.json({ 
         nextRollNumber,
-        format: "PMX#### (PMX + 4-digit sequence)",
-        example: "PMX0001"
+        format: "PMXyy-#### (PMX + year + random 4-digit number)",
+        example: "PMX25-4782"
       });
     } catch (error) {
       console.error("Error generating next roll number:", error);
