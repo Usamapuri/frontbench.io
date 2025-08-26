@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,9 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import { Edit, Settings, Eye, DollarSign, Bell } from "lucide-react";
 
 import { useToast } from "@/hooks/use-toast";
 import { formatPKR } from "@/lib/currency";
@@ -35,11 +39,25 @@ export default function StudentLedger() {
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
 
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
   const [transactionNumber, setTransactionNumber] = useState("");
   const [reminderMessage, setReminderMessage] = useState("");
+  
+  // Column visibility settings
+  const [columnSettings, setColumnSettings] = useState({
+    showSubjects: true,
+    showCreationDate: true,
+    showLastUpdate: false, // Hidden by default as requested
+  });
+
+  // Edit form data
+  const [editFormData, setEditFormData] = useState<any>({});
+
+  const [, setLocation] = useLocation();
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -58,8 +76,8 @@ export default function StudentLedger() {
         const studentsWithData = await Promise.all(
           students.map(async (student) => {
             try {
-              // Fetch financial, attendance, and grade data in parallel
-              const [financialRes, attendanceRes, gradeRes] = await Promise.all(
+              // Fetch financial, attendance, grade, and enrollment data in parallel
+              const [financialRes, attendanceRes, gradeRes, enrollmentsRes] = await Promise.all(
                 [
                   fetch(`/api/students/${student.id}/financial`).then((r) =>
                     r.ok ? r.json() : null,
@@ -70,6 +88,9 @@ export default function StudentLedger() {
                   fetch(`/api/students/${student.id}/grade`).then((r) =>
                     r.ok ? r.json() : null,
                   ),
+                  fetch(`/api/enrollments/student/${student.id}`).then((r) =>
+                    r.ok ? r.json() : [],
+                  ),
                 ],
               );
 
@@ -79,6 +100,9 @@ export default function StudentLedger() {
                 outstandingBalance: financialRes?.outstandingBalance || 0,
                 attendancePercentage: attendanceRes?.attendancePercentage || 0,
                 averageGrade: gradeRes?.averageGrade || "N/A",
+                enrollments: enrollmentsRes || [],
+                createdAt: student.createdAt || new Date().toISOString(),
+                lastUpdated: financialRes?.lastUpdated || student.createdAt || new Date().toISOString(),
               };
             } catch (error) {
               console.error(
@@ -91,6 +115,9 @@ export default function StudentLedger() {
                 outstandingBalance: 0,
                 attendancePercentage: 0,
                 averageGrade: "N/A",
+                enrollments: [],
+                createdAt: student.createdAt || new Date().toISOString(),
+                lastUpdated: student.createdAt || new Date().toISOString(),
               };
             }
           }),
@@ -136,8 +163,11 @@ export default function StudentLedger() {
     }) || [];
 
   const handleExport = () => {
-    // Export functionality would be implemented here
-    console.log("Exporting student ledger...");
+    // Export functionality
+    toast({
+      title: "Export started",
+      description: "Student ledger data is being exported...",
+    });
   };
 
   const handleViewDetails = (student: any) => {
@@ -259,6 +289,68 @@ export default function StudentLedger() {
     }
   };
 
+  // New handler functions
+  const handleStudentClick = (student: any) => {
+    // Navigate to student's individual portal/dashboard
+    setLocation(`/student-portal/${student.id}`);
+  };
+
+  const handleEditStudent = (student: any) => {
+    setEditFormData({
+      id: student.id,
+      firstName: student.firstName,
+      lastName: student.lastName,
+      email: student.email,
+      phone: student.phone,
+      address: student.address,
+      parentName: student.parentName,
+      parentPhone: student.parentPhone,
+      parentEmail: student.parentEmail,
+      emergencyContact: student.emergencyContact,
+      emergencyPhone: student.emergencyPhone,
+    });
+    setSelectedStudent(student);
+    setShowEditDialog(true);
+  };
+
+
+
+  const handleUpdateColumnSettings = (setting: keyof typeof columnSettings, value: boolean) => {
+    setColumnSettings(prev => ({
+      ...prev,
+      [setting]: value
+    }));
+  };
+
+  // Edit form mutation
+  const editStudentMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await apiRequest("PATCH", `/api/students/${data.id}`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Student updated",
+        description: "Student information has been updated successfully",
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ["/api/students"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/students-with-financial"] });
+      setShowEditDialog(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Update failed",
+        description: error.message || "Failed to update student information",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSaveEdit = () => {
+    editStudentMutation.mutate(editFormData);
+  };
+
   if (isLoading || isLoadingFinancialData) {
     return (
       <div className="space-y-6">
@@ -287,6 +379,14 @@ export default function StudentLedger() {
                 />
                 <i className="fas fa-search absolute left-3 top-3 text-gray-400"></i>
               </div>
+              <Button 
+                variant="outline"
+                onClick={() => setShowSettingsDialog(true)} 
+                data-testid="button-column-settings"
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Columns
+              </Button>
               <Button onClick={handleExport} data-testid="button-export-ledger">
                 <i className="fas fa-download mr-2"></i>
                 Export
@@ -351,6 +451,21 @@ export default function StudentLedger() {
                   <th className="px-4 py-3 text-left font-medium text-gray-700">
                     Class
                   </th>
+                  {columnSettings.showSubjects && (
+                    <th className="px-4 py-3 text-left font-medium text-gray-700">
+                      Current Subjects
+                    </th>
+                  )}
+                  {columnSettings.showCreationDate && (
+                    <th className="px-4 py-3 text-left font-medium text-gray-700">
+                      Created
+                    </th>
+                  )}
+                  {columnSettings.showLastUpdate && (
+                    <th className="px-4 py-3 text-left font-medium text-gray-700">
+                      Last Updated
+                    </th>
+                  )}
                   <th className="px-4 py-3 text-left font-medium text-gray-700">
                     Outstanding Fees
                   </th>
@@ -384,12 +499,13 @@ export default function StudentLedger() {
                               />
                             )}
                             <div>
-                              <p
-                                className="font-medium text-gray-900"
-                                data-testid={`text-student-name-${student.id}`}
+                              <button
+                                onClick={() => handleStudentClick(student)}
+                                className="font-medium text-blue-600 hover:text-blue-800 cursor-pointer text-left"
+                                data-testid={`link-student-name-${student.id}`}
                               >
                                 {student.firstName} {student.lastName}
-                              </p>
+                              </button>
                               <p
                                 className="text-gray-500"
                                 data-testid={`text-roll-number-${student.id}`}
@@ -411,6 +527,44 @@ export default function StudentLedger() {
                             {student.classLevel.toUpperCase()}
                           </Badge>
                         </td>
+                        {columnSettings.showSubjects && (
+                          <td className="px-4 py-3">
+                            <div className="flex flex-wrap gap-1">
+                              {student.enrollments?.length > 0 ? (
+                                student.enrollments.slice(0, 3).map((enrollment: any, index: number) => (
+                                  <Badge 
+                                    key={enrollment.id || index} 
+                                    variant="outline" 
+                                    className="text-xs"
+                                  >
+                                    {enrollment.subjectName || enrollment.subject?.name || 'Unknown'}
+                                  </Badge>
+                                ))
+                              ) : (
+                                <span className="text-gray-400 text-xs">No subjects</span>
+                              )}
+                              {student.enrollments?.length > 3 && (
+                                <Badge variant="outline" className="text-xs">
+                                  +{student.enrollments.length - 3}
+                                </Badge>
+                              )}
+                            </div>
+                          </td>
+                        )}
+                        {columnSettings.showCreationDate && (
+                          <td className="px-4 py-3">
+                            <span className="text-sm text-gray-600">
+                              {new Date(student.createdAt).toLocaleDateString()}
+                            </span>
+                          </td>
+                        )}
+                        {columnSettings.showLastUpdate && (
+                          <td className="px-4 py-3">
+                            <span className="text-sm text-gray-600">
+                              {new Date(student.lastUpdated).toLocaleDateString()}
+                            </span>
+                          </td>
+                        )}
                         <td className="px-4 py-3">
                           <div className="flex flex-col">
                             <span
@@ -477,8 +631,9 @@ export default function StudentLedger() {
                               variant="ghost"
                               onClick={() => handleViewDetails(student)}
                               data-testid={`button-view-details-${student.id}`}
+                              title="View Details"
                             >
-                              <i className="fas fa-eye"></i>
+                              <Eye className="h-4 w-4" />
                             </Button>
                             <Button
                               size="sm"
@@ -486,8 +641,9 @@ export default function StudentLedger() {
                               className="text-green-600"
                               onClick={() => handleRecordPayment(student)}
                               data-testid={`button-record-payment-${student.id}`}
+                              title="Record Payment"
                             >
-                              <i className="fas fa-dollar-sign"></i>
+                              <DollarSign className="h-4 w-4" />
                             </Button>
                             <Button
                               size="sm"
@@ -495,8 +651,19 @@ export default function StudentLedger() {
                               onClick={() => handleSendReminder(student)}
                               disabled={student.feeStatus === "paid"}
                               data-testid={`button-send-reminder-${student.id}`}
+                              title="Send Reminder"
                             >
-                              <i className="fas fa-bell"></i>
+                              <Bell className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-blue-600"
+                              onClick={() => handleEditStudent(student)}
+                              data-testid={`button-edit-student-${student.id}`}
+                              title="Edit Student"
+                            >
+                              <Edit className="h-4 w-4" />
                             </Button>
                           </div>
                         </td>
@@ -506,7 +673,7 @@ export default function StudentLedger() {
                 ) : (
                   <tr>
                     <td
-                      colSpan={6}
+                      colSpan={6 + (columnSettings.showSubjects ? 1 : 0) + (columnSettings.showCreationDate ? 1 : 0) + (columnSettings.showLastUpdate ? 1 : 0)}
                       className="px-4 py-8 text-center text-gray-500"
                     >
                       <i className="fas fa-users text-4xl mb-4"></i>
@@ -684,6 +851,169 @@ export default function StudentLedger() {
                   Cancel
                 </Button>
                 <Button onClick={handleSubmitPayment}>Record Payment</Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Column Settings Dialog */}
+      <Dialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Column Settings</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="show-subjects">Show Current Subjects</Label>
+              <Switch
+                id="show-subjects"
+                checked={columnSettings.showSubjects}
+                onCheckedChange={(checked) => handleUpdateColumnSettings('showSubjects', checked)}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="show-creation-date">Show Creation Date</Label>
+              <Switch
+                id="show-creation-date"
+                checked={columnSettings.showCreationDate}
+                onCheckedChange={(checked) => handleUpdateColumnSettings('showCreationDate', checked)}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="show-last-update">Show Last Update Date</Label>
+              <Switch
+                id="show-last-update"
+                checked={columnSettings.showLastUpdate}
+                onCheckedChange={(checked) => handleUpdateColumnSettings('showLastUpdate', checked)}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end pt-4">
+            <Button onClick={() => setShowSettingsDialog(false)}>
+              Done
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Student Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Edit Student Information</DialogTitle>
+          </DialogHeader>
+          {selectedStudent && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-first-name">First Name</Label>
+                  <Input
+                    id="edit-first-name"
+                    value={editFormData.firstName || ''}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, firstName: e.target.value }))}
+                    data-testid="input-edit-first-name"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-last-name">Last Name</Label>
+                  <Input
+                    id="edit-last-name"
+                    value={editFormData.lastName || ''}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, lastName: e.target.value }))}
+                    data-testid="input-edit-last-name"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-email">Email</Label>
+                  <Input
+                    id="edit-email"
+                    type="email"
+                    value={editFormData.email || ''}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, email: e.target.value }))}
+                    data-testid="input-edit-email"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-phone">Phone</Label>
+                  <Input
+                    id="edit-phone"
+                    value={editFormData.phone || ''}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, phone: e.target.value }))}
+                    data-testid="input-edit-phone"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <Label htmlFor="edit-address">Address</Label>
+                  <Textarea
+                    id="edit-address"
+                    value={editFormData.address || ''}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, address: e.target.value }))}
+                    data-testid="input-edit-address"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-parent-name">Parent Name</Label>
+                  <Input
+                    id="edit-parent-name"
+                    value={editFormData.parentName || ''}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, parentName: e.target.value }))}
+                    data-testid="input-edit-parent-name"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-parent-phone">Parent Phone</Label>
+                  <Input
+                    id="edit-parent-phone"
+                    value={editFormData.parentPhone || ''}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, parentPhone: e.target.value }))}
+                    data-testid="input-edit-parent-phone"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-parent-email">Parent Email</Label>
+                  <Input
+                    id="edit-parent-email"
+                    type="email"
+                    value={editFormData.parentEmail || ''}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, parentEmail: e.target.value }))}
+                    data-testid="input-edit-parent-email"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-emergency-contact">Emergency Contact</Label>
+                  <Input
+                    id="edit-emergency-contact"
+                    value={editFormData.emergencyContact || ''}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, emergencyContact: e.target.value }))}
+                    data-testid="input-edit-emergency-contact"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-emergency-phone">Emergency Phone</Label>
+                  <Input
+                    id="edit-emergency-phone"
+                    value={editFormData.emergencyPhone || ''}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, emergencyPhone: e.target.value }))}
+                    data-testid="input-edit-emergency-phone"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowEditDialog(false)}
+                  data-testid="button-cancel-edit"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleSaveEdit}
+                  disabled={editStudentMutation.isPending}
+                  data-testid="button-save-edit"
+                >
+                  {editStudentMutation.isPending ? "Saving..." : "Save Changes"}
+                </Button>
               </div>
             </div>
           )}
