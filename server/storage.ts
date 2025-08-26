@@ -62,7 +62,7 @@ export interface IStorage {
   updateStudent(id: string, student: Partial<InsertStudent>): Promise<Student>;
   
   // Roll Number Management
-  generateRollNumber(classLevel: string): Promise<string>;
+  generateRollNumber(): Promise<string>;
   rollNumberExists(rollNumber: string): Promise<boolean>;
   getNextRollNumber(classLevel: string): Promise<string>;
   assignRollNumbersToExistingStudents(): Promise<{ updated: number; errors: string[] }>;
@@ -227,8 +227,8 @@ export class DatabaseStorage implements IStorage {
 
   async createStudent(student: InsertStudent): Promise<Student> {
     // Generate roll number if not provided
-    if (!student.rollNumber && student.classLevels && student.classLevels.length > 0) {
-      student.rollNumber = await this.generateRollNumber(student.classLevels[0]);
+    if (!student.rollNumber) {
+      student.rollNumber = await this.generateRollNumber();
     }
     
     const [newStudent] = await db.insert(students).values(student).returning();
@@ -236,28 +236,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Roll number generation system
-  async generateRollNumber(classLevel: string): Promise<string> {
-    const currentYear = new Date().getFullYear();
-    const yearPrefix = currentYear.toString().slice(-2); // Last 2 digits of year (e.g., "25" for 2025)
+  async generateRollNumber(): Promise<string> {
+    // Use "PMX" prefix for Primax followed by sequential numbers
+    const prefix = 'PMX';
     
-    // Class level prefix: O for O-Level, I for IGCSE, AS for AS-Level, A2 for A2-Level
-    const levelPrefix = classLevel === 'o-level' ? 'O' : 
-                       classLevel === 'igcse' ? 'I' :
-                       classLevel === 'as-level' ? 'AS' :
-                       classLevel === 'a2-level' ? 'A2' : 'O';
-    
-    // Get the highest existing roll number for this class level and year
+    // Get all existing roll numbers with PMX prefix
     const existingRollNumbers = await db
       .select({ rollNumber: students.rollNumber })
       .from(students)
-      .where(sql`${students.rollNumber} LIKE ${yearPrefix + levelPrefix + '%'}`);
+      .where(sql`${students.rollNumber} LIKE ${prefix + '%'}`);
     
     // Extract sequence numbers and find the highest
     let highestSequence = 0;
     existingRollNumbers.forEach(record => {
       const rollNumber = record.rollNumber;
-      if (rollNumber && rollNumber.startsWith(yearPrefix + levelPrefix)) {
-        const sequenceStr = rollNumber.slice(3); // Remove year + level prefix
+      if (rollNumber && rollNumber.startsWith(prefix)) {
+        const sequenceStr = rollNumber.slice(3); // Remove "PMX" prefix
         const sequence = parseInt(sequenceStr, 10);
         if (!isNaN(sequence) && sequence > highestSequence) {
           highestSequence = sequence;
@@ -268,8 +262,8 @@ export class DatabaseStorage implements IStorage {
     // Generate next sequence number (pad with zeros to make it 4 digits)
     const nextSequence = (highestSequence + 1).toString().padStart(4, '0');
     
-    // Format: YYLSSSS (e.g., 25O0001, 25A0001)
-    return `${yearPrefix}${levelPrefix}${nextSequence}`;
+    // Format: PMX#### (e.g., PMX0001, PMX0002)
+    return `${prefix}${nextSequence}`;
   }
 
   // Check if roll number exists
@@ -284,8 +278,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Get next available roll number for preview
-  async getNextRollNumber(classLevel: string): Promise<string> {
-    return await this.generateRollNumber(classLevel);
+  async getNextRollNumber(): Promise<string> {
+    return await this.generateRollNumber();
   }
 
   // Bulk assign roll numbers to existing students without them
@@ -300,7 +294,7 @@ export class DatabaseStorage implements IStorage {
     
     for (const student of studentsWithoutRollNumbers) {
       try {
-        const newRollNumber = await this.generateRollNumber(student.classLevels?.[0] || 'o-level');
+        const newRollNumber = await this.generateRollNumber();
         await db
           .update(students)
           .set({ 

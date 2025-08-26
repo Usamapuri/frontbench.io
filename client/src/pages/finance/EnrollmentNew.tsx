@@ -26,7 +26,6 @@ interface Subject {
 }
 
 interface RollNumberResponse {
-  classLevel: string;
   nextRollNumber: string;
   format: string;
   example: string;
@@ -84,18 +83,18 @@ export default function EnrollmentNew() {
     enabled: currentStep >= 2,
   });
 
-  // Auto-generate roll number when class level is selected
+  // Auto-generate roll number when form loads
   const { data: nextRollNumberData } = useQuery<RollNumberResponse>({
-    queryKey: ['/api/roll-numbers/next', formData.classLevels?.[0]],
-    enabled: !!(formData.classLevels && formData.classLevels.length > 0),
+    queryKey: ['/api/roll-numbers/next'],
+    enabled: currentStep === 1, // Only fetch when on first step
   });
 
-  // Update roll number when class level changes
+  // Update roll number when data is fetched
   useEffect(() => {
-    if (nextRollNumberData?.nextRollNumber && formData.classLevels && formData.classLevels.length > 0) {
+    if (nextRollNumberData?.nextRollNumber && !formData.rollNumber) {
       updateFormData('rollNumber', nextRollNumberData.nextRollNumber);
     }
-  }, [nextRollNumberData, formData.classLevels]);
+  }, [nextRollNumberData, formData.rollNumber]);
 
   const createEnrollmentMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -340,27 +339,25 @@ export default function EnrollmentNew() {
                   </div>
 
                   {/* Roll Number */}
-                  {formData.classLevels && formData.classLevels.length > 0 && (
-                    <div className="mb-8">
-                      <Label className="text-sm font-medium text-gray-700 mb-2 block">Roll Number (Auto-Generated)</Label>
-                      <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                        {formData.rollNumber ? (
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <div className="text-lg font-semibold text-blue-700">{formData.rollNumber}</div>
-                              <div className="text-sm text-blue-600">Generated for {formData.classLevels[0]?.toUpperCase()}</div>
-                            </div>
-                            <Badge variant="secondary" className="bg-blue-100 text-blue-800">Confirmed</Badge>
+                  <div className="mb-8">
+                    <Label className="text-sm font-medium text-gray-700 mb-2 block">Roll Number (Auto-Generated)</Label>
+                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      {formData.rollNumber ? (
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="text-lg font-semibold text-blue-700">{formData.rollNumber}</div>
+                            <div className="text-sm text-blue-600">Unique identifier for Primax School</div>
                           </div>
-                        ) : (
-                          <div className="flex items-center space-x-2">
-                            <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
-                            <span className="text-blue-600">Generating roll number...</span>
-                          </div>
-                        )}
-                      </div>
+                          <Badge variant="secondary" className="bg-blue-100 text-blue-800">Confirmed</Badge>
+                        </div>
+                      ) : (
+                        <div className="flex items-center space-x-2">
+                          <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                          <span className="text-blue-600">Generating roll number...</span>
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
 
                   <Separator className="my-6" />
 
