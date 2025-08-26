@@ -47,6 +47,19 @@ export default function Enrollment() {
     enabled: currentStep >= 2,
   });
 
+  // Auto-generate roll number when class level is selected
+  const { data: nextRollNumberData, refetch: refetchRollNumber } = useQuery({
+    queryKey: ['/api/roll-numbers/next', formData.classLevel],
+    enabled: !!formData.classLevel,
+  });
+
+  // Update roll number when class level changes or roll number data is fetched
+  useEffect(() => {
+    if (nextRollNumberData?.nextRollNumber && formData.classLevel) {
+      updateFormData('rollNumber', nextRollNumberData.nextRollNumber);
+    }
+  }, [nextRollNumberData, formData.classLevel]);
+
   const createEnrollmentMutation = useMutation({
     mutationFn: async (data: any) => {
       return await apiRequest('POST', '/api/enrollments', data);
@@ -316,14 +329,32 @@ export default function Enrollment() {
                 </div>
                 
                 <div>
-                  <Label htmlFor="rollNumber">Roll Number *</Label>
-                  <Input
-                    id="rollNumber"
-                    placeholder="Enter roll number"
-                    value={formData.rollNumber || ''}
-                    onChange={(e) => updateFormData('rollNumber', e.target.value)}
-                    data-testid="input-roll-number"
-                  />
+                  <Label htmlFor="rollNumber">Roll Number (Auto-Generated)</Label>
+                  <div className="p-3 bg-gray-50 border rounded-lg">
+                    <div className="flex items-center justify-between">
+                      {formData.classLevel ? (
+                        formData.rollNumber ? (
+                          <div>
+                            <div className="text-lg font-semibold text-blue-600" data-testid="text-auto-roll-number">
+                              {formData.rollNumber}
+                            </div>
+                            <div className="text-sm text-gray-600">
+                              Automatically assigned for {formData.classLevel?.toUpperCase()}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center space-x-2">
+                            <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                            <span className="text-gray-600">Generating roll number...</span>
+                          </div>
+                        )
+                      ) : (
+                        <div className="text-gray-500">
+                          Please select class level first
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
               
