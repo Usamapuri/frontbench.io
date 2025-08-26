@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
@@ -18,9 +19,15 @@ interface EnrollmentFormData {
   gender: 'male' | 'female';
   classLevel: 'o-level' | 'a-level';
   rollNumber: string;
+  studentPhone: string;
+  studentEmail: string;
+  homeAddress: string;
   parentName: string;
   parentPhone: string;
   parentEmail: string;
+  additionalParentName: string;
+  additionalParentPhone: string;
+  additionalParentEmail: string;
   selectedSubjects: string[];
   addOns: string[];
   discounts: string[];
@@ -104,7 +111,7 @@ export default function Enrollment() {
     switch (step) {
       case 1:
         // Validate required fields for Step 1
-        const requiredFields = ['firstName', 'lastName', 'dateOfBirth', 'gender', 'classLevel', 'rollNumber', 'parentName', 'parentPhone'];
+        const requiredFields = ['firstName', 'lastName', 'dateOfBirth', 'gender', 'classLevel', 'rollNumber', 'studentPhone', 'studentEmail', 'parentName', 'parentPhone'];
         const missingFields = requiredFields.filter(field => !formData[field as keyof EnrollmentFormData]);
         
         if (missingFields.length > 0) {
@@ -126,13 +133,13 @@ export default function Enrollment() {
           return false;
         }
         
-        // Validate Pakistani phone number format
-        if (formData.parentPhone) {
+        // Validate Pakistani phone number format for student phone
+        if (formData.studentPhone) {
           const phoneRegex = /^(\+92|0092|92|0)?(3[0-9]{2}|4[0-9]{2}|5[0-9]{2}|6[0-9]{2}|7[0-9]{2}|8[0-9]{2}|9[0-9]{2})[0-9]{7}$/;
-          const cleanPhone = formData.parentPhone.replace(/[\s\-]/g, '');
+          const cleanPhone = formData.studentPhone.replace(/[\s\-]/g, '');
           if (!phoneRegex.test(cleanPhone)) {
             toast({
-              title: "Invalid Phone Number",
+              title: "Invalid Student Phone Number",
               description: "Please enter a valid Pakistani phone number (e.g., +92 300 1234567)",
               variant: "destructive",
             });
@@ -140,12 +147,39 @@ export default function Enrollment() {
           }
         }
         
-        // Validate email format
+        // Validate Pakistani phone number format for parent phone
+        if (formData.parentPhone) {
+          const phoneRegex = /^(\+92|0092|92|0)?(3[0-9]{2}|4[0-9]{2}|5[0-9]{2}|6[0-9]{2}|7[0-9]{2}|8[0-9]{2}|9[0-9]{2})[0-9]{7}$/;
+          const cleanPhone = formData.parentPhone.replace(/[\s\-]/g, '');
+          if (!phoneRegex.test(cleanPhone)) {
+            toast({
+              title: "Invalid Parent Phone Number",
+              description: "Please enter a valid Pakistani phone number (e.g., +92 300 1234567)",
+              variant: "destructive",
+            });
+            return false;
+          }
+        }
+        
+        // Validate student email format
+        if (formData.studentEmail) {
+          const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+          if (!emailRegex.test(formData.studentEmail)) {
+            toast({
+              title: "Invalid Student Email",
+              description: "Please enter a valid email address (e.g., student@example.com)",
+              variant: "destructive",
+            });
+            return false;
+          }
+        }
+        
+        // Validate parent email format
         if (formData.parentEmail) {
           const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
           if (!emailRegex.test(formData.parentEmail)) {
             toast({
-              title: "Invalid Email",
+              title: "Invalid Parent Email",
               description: "Please enter a valid email address (e.g., parent@example.com)",
               variant: "destructive",
             });
@@ -223,13 +257,13 @@ export default function Enrollment() {
       // Transform selectedSubjects to include discount information
       const selectedSubjectsWithDiscounts = (formData.selectedSubjects || []).map(subjectId => {
         const subjectDiscounts = formData.subjectDiscounts || {};
-        const subjectDiscount = subjectDiscounts[subjectId] || { type: 'none', value: 0, reason: '' };
+        const subjectDiscount = subjectDiscounts[subjectId] || { discountType: 'none', discountValue: 0, discountReason: '' };
         
         return {
           subjectId,
-          discountType: subjectDiscount.type,
-          discountValue: subjectDiscount.value,
-          discountReason: subjectDiscount.reason
+          discountType: subjectDiscount.discountType,
+          discountValue: subjectDiscount.discountValue,
+          discountReason: subjectDiscount.discountReason
         };
       });
 
@@ -371,6 +405,49 @@ export default function Enrollment() {
                 </div>
               </div>
               
+              {/* Student Contact Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="studentPhone">Student Phone Number *</Label>
+                  <Input
+                    id="studentPhone"
+                    placeholder="+92 300 1234567"
+                    value={formData.studentPhone || ''}
+                    onChange={(e) => updateFormData('studentPhone', e.target.value)}
+                    className={!formData.studentPhone ? "border-gray-300 focus:border-blue-500" : "border-green-300 focus:border-green-500"}
+                    data-testid="input-student-phone"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="studentEmail">Student Email Address *</Label>
+                  <Input
+                    id="studentEmail"
+                    type="email"
+                    placeholder="student@example.com"
+                    value={formData.studentEmail || ''}
+                    onChange={(e) => updateFormData('studentEmail', e.target.value)}
+                    className={!formData.studentEmail ? "border-gray-300 focus:border-blue-500" : "border-green-300 focus:border-green-500"}
+                    data-testid="input-student-email"
+                    required
+                  />
+                </div>
+                
+                <div className="md:col-span-2">
+                  <Label htmlFor="homeAddress">Home Address</Label>
+                  <Textarea
+                    id="homeAddress"
+                    placeholder="Enter complete home address"
+                    value={formData.homeAddress || ''}
+                    onChange={(e) => updateFormData('homeAddress', e.target.value)}
+                    data-testid="input-home-address"
+                    rows={3}
+                  />
+                </div>
+              </div>
+              
+              {/* Parent/Guardian Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="parentName">Parent/Guardian Name *</Label>
@@ -403,6 +480,43 @@ export default function Enrollment() {
                     value={formData.parentEmail || ''}
                     onChange={(e) => updateFormData('parentEmail', e.target.value)}
                     data-testid="input-parent-email"
+                  />
+                </div>
+              </div>
+              
+              {/* Additional Parent/Guardian Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="additionalParentName">Additional Parent/Guardian Name</Label>
+                  <Input
+                    id="additionalParentName"
+                    placeholder="Enter additional parent/guardian name"
+                    value={formData.additionalParentName || ''}
+                    onChange={(e) => updateFormData('additionalParentName', e.target.value)}
+                    data-testid="input-additional-parent-name"
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="additionalParentPhone">Additional Parent/Guardian Contact Number</Label>
+                  <Input
+                    id="additionalParentPhone"
+                    placeholder="+92 300 1234567"
+                    value={formData.additionalParentPhone || ''}
+                    onChange={(e) => updateFormData('additionalParentPhone', e.target.value)}
+                    data-testid="input-additional-parent-phone"
+                  />
+                </div>
+                
+                <div className="md:col-span-2">
+                  <Label htmlFor="additionalParentEmail">Additional Parent/Guardian Email Address</Label>
+                  <Input
+                    id="additionalParentEmail"
+                    type="email"
+                    placeholder="additional.parent@example.com"
+                    value={formData.additionalParentEmail || ''}
+                    onChange={(e) => updateFormData('additionalParentEmail', e.target.value)}
+                    data-testid="input-additional-parent-email"
                   />
                 </div>
               </div>
@@ -722,7 +836,7 @@ export default function Enrollment() {
                   <div><strong>Add-Ons:</strong> {formData.addOns.length} selected</div>
                 )}
                 {formData.subjectDiscounts && Object.keys(formData.subjectDiscounts).some(id => 
-                  formData.subjectDiscounts![id].type !== 'none' && formData.subjectDiscounts![id].value > 0
+                  formData.subjectDiscounts![id].discountType !== 'none' && formData.subjectDiscounts![id].discountValue > 0
                 ) && (
                   <div><strong>Subject Discounts:</strong> Applied to specific subjects</div>
                 )}
@@ -738,15 +852,15 @@ export default function Enrollment() {
                     
                     // Calculate discount for this subject
                     const subjectDiscounts = formData.subjectDiscounts || {};
-                    const subjectDiscount = subjectDiscounts[subjectId] || { type: 'none', value: 0 };
+                    const subjectDiscount = subjectDiscounts[subjectId] || { discountType: 'none', discountValue: 0 };
                     
                     let discountAmount = 0;
-                    const discountValue = parseFloat(String(subjectDiscount.value)) || 0;
+                    const discountValue = parseFloat(String(subjectDiscount.discountValue)) || 0;
                     const baseFee = parseFloat(String(subject.baseFee)) || 0;
                     
-                    if (subjectDiscount.type === 'percentage') {
+                    if (subjectDiscount.discountType === 'percentage') {
                       discountAmount = (baseFee * discountValue) / 100;
-                    } else if (subjectDiscount.type === 'fixed') {
+                    } else if (subjectDiscount.discountType === 'fixed') {
                       discountAmount = discountValue;
                     }
                     
@@ -762,10 +876,10 @@ export default function Enrollment() {
                           <>
                             <div className="flex justify-between text-xs text-green-600 ml-4">
                               <span>
-                                Discount ({subjectDiscount.type === 'percentage' 
+                                Discount ({subjectDiscount.discountType === 'percentage' 
                                   ? `${discountValue}%` 
                                   : `Rs.${discountValue}`}
-                                {subjectDiscount.reason && ` - ${subjectDiscount.reason}`})
+                                {subjectDiscount.discountReason && ` - ${subjectDiscount.discountReason}`})
                               </span>
                               <span>-{formatPKR(discountAmount)}</span>
                             </div>
@@ -791,15 +905,15 @@ export default function Enrollment() {
                             
                             // Apply subject-specific discounts
                             const subjectDiscounts = formData.subjectDiscounts || {};
-                            const subjectDiscount = subjectDiscounts[subjectId] || { type: 'none', value: 0 };
+                            const subjectDiscount = subjectDiscounts[subjectId] || { discountType: 'none', discountValue: 0 };
                             
                             const baseFee = parseFloat(String(subject.baseFee)) || 0;
-                            const discountValue = parseFloat(String(subjectDiscount.value)) || 0;
+                            const discountValue = parseFloat(String(subjectDiscount.discountValue)) || 0;
                             
                             let discountAmount = 0;
-                            if (subjectDiscount.type === 'percentage') {
+                            if (subjectDiscount.discountType === 'percentage') {
                               discountAmount = (baseFee * discountValue) / 100;
-                            } else if (subjectDiscount.type === 'fixed') {
+                            } else if (subjectDiscount.discountType === 'fixed') {
                               discountAmount = discountValue;
                             }
                             

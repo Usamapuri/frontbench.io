@@ -2,7 +2,15 @@
 
 Primax School Management System is a comprehensive web application designed to digitize school processes, replacing paper-based systems and Google Sheets. It provides tailored interfaces with advanced role-based access control supporting three user types: TEACHER (limited access), SUPER ADMIN TEACHER (full access including teaching), and SUPER ADMIN MANAGEMENT (full access excluding teaching). The system integrates enrollment, attendance, grade management, billing, payments, and financial reporting into a single platform. Its core vision is to streamline administrative tasks, enhance communication, and provide a unified digital environment for all stakeholders, with a strong focus on a flexible and auditable financial management system.
 
-**RECENT UPDATE (Aug 26, 2025)**: Completed full data consistency alignment between New Student Enrollment form and Edit Student Information modal, ensuring both forms work with identical field structures for seamless data integrity.
+**RECENT UPDATE (Aug 26, 2025)**: Successfully completed enhancement of both New Student Enrollment form and Edit Student Information modal with 6 additional fields:
+- ✅ Student Phone Number* (mandatory)
+- ✅ Student Email Address* (mandatory) 
+- ✅ Home Address (optional)
+- ✅ Additional Parent/Guardian Name (optional)
+- ✅ Additional Parent/Guardian Contact Number (optional)
+- ✅ Additional Parent/Guardian Email Address (optional)
+
+Both forms maintain complete data consistency with identical field structures, proper validation for mandatory fields, and resolved all TypeScript field name mismatches for seamless data integrity.
 
 **CRITICAL FEATURE**: Teacher Data Isolation - Regular teachers have their own isolated dashboard showing only data for subjects they teach, including earnings, gradebook, attendance, and Digital Diary messages restricted to their specific students. Super admins have full access across all areas while maintaining the same data integrity principles.
 

@@ -304,9 +304,15 @@ export default function StudentLedger() {
       gender: student.gender,
       classLevel: student.classLevel,
       rollNumber: student.rollNumber,
+      studentPhone: student.studentPhone,
+      studentEmail: student.studentEmail,
+      homeAddress: student.homeAddress,
       parentName: student.parentName,
       parentPhone: student.parentPhone,
       parentEmail: student.parentEmail,
+      additionalParentName: student.additionalParentName,
+      additionalParentPhone: student.additionalParentPhone,
+      additionalParentEmail: student.additionalParentEmail,
     });
     setSelectedStudent(student);
     setShowEditDialog(true);
@@ -1007,6 +1013,79 @@ export default function StudentLedger() {
                     value={editFormData.parentEmail || ''}
                     onChange={(e) => setEditFormData(prev => ({ ...prev, parentEmail: e.target.value }))}
                     data-testid="input-edit-parent-email"
+                  />
+                </div>
+              </div>
+              
+              {/* Student Contact Information */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-student-phone">Student Phone Number *</Label>
+                  <Input
+                    id="edit-student-phone"
+                    placeholder="+92 300 1234567"
+                    value={editFormData.studentPhone || ''}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, studentPhone: e.target.value }))}
+                    data-testid="input-edit-student-phone"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-student-email">Student Email Address *</Label>
+                  <Input
+                    id="edit-student-email"
+                    type="email"
+                    placeholder="student@example.com"
+                    value={editFormData.studentEmail || ''}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, studentEmail: e.target.value }))}
+                    data-testid="input-edit-student-email"
+                    required
+                  />
+                </div>
+                <div className="col-span-2">
+                  <Label htmlFor="edit-home-address">Home Address</Label>
+                  <Textarea
+                    id="edit-home-address"
+                    placeholder="Enter complete home address"
+                    value={editFormData.homeAddress || ''}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, homeAddress: e.target.value }))}
+                    data-testid="input-edit-home-address"
+                    rows={3}
+                  />
+                </div>
+              </div>
+              
+              {/* Additional Parent/Guardian Information */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-additional-parent-name">Additional Parent/Guardian Name</Label>
+                  <Input
+                    id="edit-additional-parent-name"
+                    placeholder="Enter additional parent/guardian name"
+                    value={editFormData.additionalParentName || ''}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, additionalParentName: e.target.value }))}
+                    data-testid="input-edit-additional-parent-name"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-additional-parent-phone">Additional Parent/Guardian Contact Number</Label>
+                  <Input
+                    id="edit-additional-parent-phone"
+                    placeholder="+92 300 1234567"
+                    value={editFormData.additionalParentPhone || ''}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, additionalParentPhone: e.target.value }))}
+                    data-testid="input-edit-additional-parent-phone"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <Label htmlFor="edit-additional-parent-email">Additional Parent/Guardian Email Address</Label>
+                  <Input
+                    id="edit-additional-parent-email"
+                    type="email"
+                    placeholder="additional.parent@example.com"
+                    value={editFormData.additionalParentEmail || ''}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, additionalParentEmail: e.target.value }))}
+                    data-testid="input-edit-additional-parent-email"
                   />
                 </div>
               </div>
