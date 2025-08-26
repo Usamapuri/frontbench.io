@@ -37,7 +37,7 @@ export default function StudentLedger() {
   const [feeStatusFilter, setFeeStatusFilter] = useState("");
   const [attendanceFilter, setAttendanceFilter] = useState("");
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
-  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
@@ -170,10 +170,7 @@ export default function StudentLedger() {
     });
   };
 
-  const handleViewDetails = (student: any) => {
-    setSelectedStudent(student);
-    setShowDetailsDialog(true);
-  };
+
 
   const handleRecordPayment = async (student: any) => {
     setSelectedStudent(student);
@@ -642,15 +639,7 @@ export default function StudentLedger() {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex space-x-2">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleViewDetails(student)}
-                              data-testid={`button-view-details-${student.id}`}
-                              title="View Details"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
+
                             <Button
                               size="sm"
                               variant="ghost"
@@ -732,84 +721,7 @@ export default function StudentLedger() {
         </CardContent>
       </Card>
 
-      {/* Student Details Dialog */}
-      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Student Details</DialogTitle>
-          </DialogHeader>
-          {selectedStudent && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="font-semibold">Name</Label>
-                  <p>
-                    {selectedStudent.firstName} {selectedStudent.lastName}
-                  </p>
-                </div>
-                <div>
-                  <Label className="font-semibold">Roll Number</Label>
-                  <p>{selectedStudent.rollNumber}</p>
-                </div>
-                <div>
-                  <Label className="font-semibold">Class Level</Label>
-                  <div className="flex flex-wrap gap-1">
-                    {selectedStudent.classLevels && selectedStudent.classLevels.length > 0 ? (
-                      selectedStudent.classLevels.map((level, index) => (
-                        <Badge key={index} variant="secondary" className="text-xs">
-                          {level.toUpperCase()}
-                        </Badge>
-                      ))
-                    ) : (
-                      <p>No class levels assigned</p>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <Label className="font-semibold">Fee Status</Label>
-                  <Badge
-                    variant={
-                      selectedStudent.feeStatus === "paid"
-                        ? "default"
-                        : selectedStudent.feeStatus === "overdue"
-                          ? "destructive"
-                          : "outline"
-                    }
-                  >
-                    {selectedStudent.feeStatus ? selectedStudent.feeStatus.charAt(0).toUpperCase() + selectedStudent.feeStatus.slice(1) : 'Unknown'}
-                  </Badge>
-                </div>
-                <div>
-                  <Label className="font-semibold">Outstanding Balance</Label>
-                  <p
-                    className={
-                      selectedStudent.outstandingBalance > 0
-                        ? "text-red-600 font-semibold"
-                        : "text-green-600"
-                    }
-                  >
-                    {formatPKR(selectedStudent.outstandingBalance)}
-                  </p>
-                </div>
-                <div>
-                  <Label className="font-semibold">Attendance</Label>
-                  <p
-                    className={
-                      selectedStudent.attendancePercentage >= 90
-                        ? "text-green-600"
-                        : selectedStudent.attendancePercentage >= 75
-                          ? "text-yellow-600"
-                          : "text-red-600"
-                    }
-                  >
-                    {selectedStudent.attendancePercentage}%
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+
 
       {/* Record Payment Dialog */}
       <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>

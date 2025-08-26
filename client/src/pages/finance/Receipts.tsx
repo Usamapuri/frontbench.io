@@ -30,19 +30,8 @@ export default function Receipts() {
     return student ? `${student.firstName} ${student.lastName}` : 'Unknown Student';
   };
 
-  // Handle receipt PDF view with format options (same as invoice system)
-  const handleViewReceiptPDF = async (payment: any) => {
-    // Create format selection dialog first
-    const formatChoice = window.confirm("Choose Receipt Format:\n\nOK = Full PDF Format (A4)\nCancel = Thermal Receipt Format");
-    
-    if (formatChoice) {
-      await generatePDFReceipt(payment);
-    } else {
-      await generateThermalReceipt(payment);
-    }
-  };
 
-  // Generate full PDF receipt format
+
   const generatePDFReceipt = async (payment: any) => {
     const studentName = getStudentName(payment.studentId);
     const currentDate = new Date().toLocaleDateString();
@@ -695,17 +684,15 @@ export default function Receipts() {
                           size="sm" 
                           variant="ghost"
                           onClick={() => {
-                            // In real app, this would generate/view receipt
-                            window.alert(`Receipt ${payment.receiptNumber}\nAmount: Rs. ${Number(payment.amount).toLocaleString()}\nDate: ${new Date(payment.paymentDate).toLocaleDateString()}`);
+                            // Create format selection dialog first
+                            const formatChoice = window.confirm("Choose Receipt Format:\n\nOK = Full PDF Format (A4)\nCancel = Thermal Receipt Format");
+                            
+                            if (formatChoice) {
+                              generatePDFReceipt(payment);
+                            } else {
+                              generateThermalReceipt(payment);
+                            }
                           }}
-                          data-testid={`button-view-receipt-${payment.id}`}
-                        >
-                          <i className="fas fa-eye"></i>
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="ghost"
-                          onClick={() => handleViewReceiptPDF(payment)}
                           data-testid={`button-print-receipt-${payment.id}`}
                         >
                           <i className="fas fa-print"></i>
