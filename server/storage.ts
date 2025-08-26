@@ -65,6 +65,7 @@ export interface IStorage {
   generateRollNumber(): Promise<string>;
   rollNumberExists(rollNumber: string): Promise<boolean>;
   getNextRollNumber(): Promise<string>;
+  reserveRollNumber(): Promise<{ rollNumber: string; expiresAt: Date }>;
   assignRollNumbersToExistingStudents(): Promise<{ updated: number; errors: string[] }>;
   
   // Subjects
@@ -265,20 +266,65 @@ export class DatabaseStorage implements IStorage {
     return rollNumber;
   }
 
-  // Check if roll number exists
+
+
+  // Get next available roll number for preview
+  async getNextRollNumber(): Promise<string> {
+    return await this.generateRollNumber();
+  }
+
+  // Reserve a roll number for temporary use (30 minutes)
+  async reserveRollNumber(): Promise<{ rollNumber: string; expiresAt: Date }> {
+    const rollNumber = await this.generateRollNumber();
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes from now
+    
+    // For now, we'll store reservations in memory (in production, use Redis or database)
+    if (!global.rollNumberReservations) {
+      global.rollNumberReservations = new Map();
+    }
+    
+    global.rollNumberReservations.set(rollNumber, expiresAt);
+    
+    // Clean up expired reservations
+    this.cleanupExpiredReservations();
+    
+    return { rollNumber, expiresAt };
+  }
+
+  // Clean up expired roll number reservations
+  private cleanupExpiredReservations() {
+    if (!global.rollNumberReservations) return;
+    
+    const now = new Date();
+    for (const [rollNumber, expiresAt] of global.rollNumberReservations.entries()) {
+      if (expiresAt < now) {
+        global.rollNumberReservations.delete(rollNumber);
+      }
+    }
+  }
+
+  // Check if roll number exists (including reservations)
   async rollNumberExists(rollNumber: string): Promise<boolean> {
+    // Check database
     const [existing] = await db
       .select({ id: students.id })
       .from(students)
       .where(eq(students.rollNumber, rollNumber))
       .limit(1);
     
-    return !!existing;
-  }
-
-  // Get next available roll number for preview
-  async getNextRollNumber(): Promise<string> {
-    return await this.generateRollNumber();
+    if (existing) return true;
+    
+    // Check reservations
+    if (global.rollNumberReservations?.has(rollNumber)) {
+      const expiresAt = global.rollNumberReservations.get(rollNumber);
+      if (expiresAt && expiresAt > new Date()) {
+        return true; // Still reserved
+      } else {
+        global.rollNumberReservations.delete(rollNumber); // Expired, clean up
+      }
+    }
+    
+    return false;
   }
 
   // Bulk assign roll numbers to existing students without them

@@ -173,6 +173,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/roll-numbers/reserve", async (req, res) => {
+    try {
+      const reservation = await storage.reserveRollNumber();
+      res.json({
+        rollNumber: reservation.rollNumber,
+        expiresAt: reservation.expiresAt,
+        format: "PMXyy-#### (PMX + year + random 4-digit number)"
+      });
+    } catch (error) {
+      console.error("Error reserving roll number:", error);
+      res.status(500).json({ message: "Failed to reserve roll number" });
+    }
+  });
+
   app.post("/api/roll-numbers/check", async (req, res) => {
     try {
       const { rollNumber } = req.body;
