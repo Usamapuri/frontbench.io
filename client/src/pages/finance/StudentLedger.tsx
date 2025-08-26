@@ -300,14 +300,13 @@ export default function StudentLedger() {
       id: student.id,
       firstName: student.firstName,
       lastName: student.lastName,
-      email: student.email,
-      phone: student.phone,
-      address: student.address,
+      dateOfBirth: student.dateOfBirth,
+      gender: student.gender,
+      classLevel: student.classLevel,
+      rollNumber: student.rollNumber,
       parentName: student.parentName,
       parentPhone: student.parentPhone,
       parentEmail: student.parentEmail,
-      emergencyContact: student.emergencyContact,
-      emergencyPhone: student.emergencyPhone,
     });
     setSelectedStudent(student);
     setShowEditDialog(true);
@@ -907,95 +906,107 @@ export default function StudentLedger() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="edit-first-name">First Name</Label>
+                  <Label htmlFor="edit-first-name">First Name *</Label>
                   <Input
                     id="edit-first-name"
                     value={editFormData.firstName || ''}
                     onChange={(e) => setEditFormData(prev => ({ ...prev, firstName: e.target.value }))}
                     data-testid="input-edit-first-name"
+                    required
                   />
                 </div>
                 <div>
-                  <Label htmlFor="edit-last-name">Last Name</Label>
+                  <Label htmlFor="edit-last-name">Last Name *</Label>
                   <Input
                     id="edit-last-name"
                     value={editFormData.lastName || ''}
                     onChange={(e) => setEditFormData(prev => ({ ...prev, lastName: e.target.value }))}
                     data-testid="input-edit-last-name"
+                    required
                   />
                 </div>
                 <div>
-                  <Label htmlFor="edit-email">Email</Label>
+                  <Label htmlFor="edit-date-of-birth">Date of Birth *</Label>
                   <Input
-                    id="edit-email"
-                    type="email"
-                    value={editFormData.email || ''}
-                    onChange={(e) => setEditFormData(prev => ({ ...prev, email: e.target.value }))}
-                    data-testid="input-edit-email"
+                    id="edit-date-of-birth"
+                    type="date"
+                    value={editFormData.dateOfBirth || ''}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, dateOfBirth: e.target.value }))}
+                    data-testid="input-edit-date-of-birth"
+                    required
                   />
                 </div>
                 <div>
-                  <Label htmlFor="edit-phone">Phone</Label>
+                  <Label htmlFor="edit-gender">Gender *</Label>
+                  <Select 
+                    value={editFormData.gender || ''} 
+                    onValueChange={(value) => setEditFormData(prev => ({ ...prev, gender: value }))}
+                  >
+                    <SelectTrigger data-testid="select-edit-gender">
+                      <SelectValue placeholder="Select gender" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="male">Male</SelectItem>
+                      <SelectItem value="female">Female</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="edit-class-level">Class Level *</Label>
+                  <Select 
+                    value={editFormData.classLevel || ''} 
+                    onValueChange={(value) => setEditFormData(prev => ({ ...prev, classLevel: value }))}
+                  >
+                    <SelectTrigger data-testid="select-edit-class-level">
+                      <SelectValue placeholder="Select class level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="o-level">O-Level</SelectItem>
+                      <SelectItem value="a-level">A-Level</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="edit-roll-number">Roll Number</Label>
                   <Input
-                    id="edit-phone"
-                    value={editFormData.phone || ''}
-                    onChange={(e) => setEditFormData(prev => ({ ...prev, phone: e.target.value }))}
-                    data-testid="input-edit-phone"
+                    id="edit-roll-number"
+                    value={editFormData.rollNumber || ''}
+                    disabled
+                    className="bg-gray-50"
+                    data-testid="input-edit-roll-number"
                   />
-                </div>
-                <div className="col-span-2">
-                  <Label htmlFor="edit-address">Address</Label>
-                  <Textarea
-                    id="edit-address"
-                    value={editFormData.address || ''}
-                    onChange={(e) => setEditFormData(prev => ({ ...prev, address: e.target.value }))}
-                    data-testid="input-edit-address"
-                  />
+                  <p className="text-xs text-gray-500 mt-1">Roll number cannot be changed</p>
                 </div>
                 <div>
-                  <Label htmlFor="edit-parent-name">Parent Name</Label>
+                  <Label htmlFor="edit-parent-name">Parent/Guardian Name *</Label>
                   <Input
                     id="edit-parent-name"
                     value={editFormData.parentName || ''}
                     onChange={(e) => setEditFormData(prev => ({ ...prev, parentName: e.target.value }))}
                     data-testid="input-edit-parent-name"
+                    required
                   />
                 </div>
                 <div>
-                  <Label htmlFor="edit-parent-phone">Parent Phone</Label>
+                  <Label htmlFor="edit-parent-phone">Contact Number *</Label>
                   <Input
                     id="edit-parent-phone"
+                    placeholder="+92 300 1234567"
                     value={editFormData.parentPhone || ''}
                     onChange={(e) => setEditFormData(prev => ({ ...prev, parentPhone: e.target.value }))}
                     data-testid="input-edit-parent-phone"
+                    required
                   />
                 </div>
-                <div>
-                  <Label htmlFor="edit-parent-email">Parent Email</Label>
+                <div className="col-span-2">
+                  <Label htmlFor="edit-parent-email">Email Address</Label>
                   <Input
                     id="edit-parent-email"
                     type="email"
+                    placeholder="parent@example.com"
                     value={editFormData.parentEmail || ''}
                     onChange={(e) => setEditFormData(prev => ({ ...prev, parentEmail: e.target.value }))}
                     data-testid="input-edit-parent-email"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="edit-emergency-contact">Emergency Contact</Label>
-                  <Input
-                    id="edit-emergency-contact"
-                    value={editFormData.emergencyContact || ''}
-                    onChange={(e) => setEditFormData(prev => ({ ...prev, emergencyContact: e.target.value }))}
-                    data-testid="input-edit-emergency-contact"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="edit-emergency-phone">Emergency Phone</Label>
-                  <Input
-                    id="edit-emergency-phone"
-                    value={editFormData.emergencyPhone || ''}
-                    onChange={(e) => setEditFormData(prev => ({ ...prev, emergencyPhone: e.target.value }))}
-                    data-testid="input-edit-emergency-phone"
                   />
                 </div>
               </div>
