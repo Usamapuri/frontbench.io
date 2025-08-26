@@ -69,6 +69,19 @@ export const students = pgTable("students", {
   dateOfBirth: date("date_of_birth").notNull(),
   gender: genderEnum("gender").notNull(),
   classLevel: classLevelEnum("class_level").notNull(),
+  // Student contact information
+  studentPhone: varchar("student_phone"),
+  studentEmail: varchar("student_email"),
+  homeAddress: text("home_address"),
+  // Parent/Guardian information
+  parentName: varchar("parent_name"),
+  parentPhone: varchar("parent_phone"),
+  parentEmail: varchar("parent_email"),
+  // Additional Parent/Guardian information
+  additionalParentName: varchar("additional_parent_name"),
+  additionalParentPhone: varchar("additional_parent_phone"),
+  additionalParentEmail: varchar("additional_parent_email"),
+  // System fields
   parentId: varchar("parent_id").references(() => users.id),
   profileImageUrl: varchar("profile_image_url"),
   isActive: boolean("is_active").default(true),
