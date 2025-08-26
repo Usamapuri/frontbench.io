@@ -35,6 +35,9 @@ interface InvoiceFormData {
     name: string;
     price: number;
     selected: boolean;
+    discountType: 'none' | 'percentage' | 'amount';
+    discountValue: number;
+    discountReason: string;
   }>;
   selectedAddOns: Array<{
     id: string;
@@ -42,8 +45,6 @@ interface InvoiceFormData {
     price: number;
     selected: boolean;
   }>;
-  discountType: 'percentage' | 'amount';
-  discountValue: number;
   notes: string;
 }
 
@@ -54,8 +55,6 @@ export default function InvoiceWizard({ open, onOpenChange, editingInvoice }: In
     dueDate: '',
     selectedSubjects: [],
     selectedAddOns: [],
-    discountType: 'percentage',
-    discountValue: 0,
     notes: '',
   });
 
@@ -93,8 +92,6 @@ export default function InvoiceWizard({ open, onOpenChange, editingInvoice }: In
         dueDate: editingInvoice.dueDate || '',
         selectedSubjects: [],
         selectedAddOns: [],
-        discountType: 'percentage',
-        discountValue: editingInvoice.discount ? parseFloat(editingInvoice.discount) : 0,
         notes: editingInvoice.notes || '',
       });
     }
@@ -109,8 +106,6 @@ export default function InvoiceWizard({ open, onOpenChange, editingInvoice }: In
         dueDate: '',
         selectedSubjects: [],
         selectedAddOns: [],
-        discountType: 'percentage',
-        discountValue: 0,
         notes: '',
       });
     }
@@ -170,31 +165,57 @@ export default function InvoiceWizard({ open, onOpenChange, editingInvoice }: In
     },
   });
 
-  // Calculate totals
+  // Calculate totals with subject-specific discounts
   const calculateTotals = () => {
-    const subjectTotal = formData.selectedSubjects
+    let subjectTotal = 0;
+    let totalDiscountAmount = 0;
+    
+    // Calculate subject totals with individual discounts
+    const subjectDetails = formData.selectedSubjects
       .filter(s => s.selected)
-      .reduce((sum, s) => sum + s.price, 0);
+      .map(subject => {
+        const basePrice = subject.price;
+        let discountAmount = 0;
+        
+        if (subject.discountType === 'percentage') {
+          discountAmount = (basePrice * subject.discountValue) / 100;
+        } else if (subject.discountType === 'amount') {
+          discountAmount = subject.discountValue;
+        }
+        
+        const finalPrice = Math.max(0, basePrice - discountAmount);
+        subjectTotal += finalPrice;
+        totalDiscountAmount += discountAmount;
+        
+        return {
+          ...subject,
+          basePrice,
+          discountAmount,
+          finalPrice
+        };
+      });
     
     const addOnTotal = formData.selectedAddOns
       .filter(a => a.selected)
       .reduce((sum, a) => sum + a.price, 0);
     
-    const subtotal = subjectTotal + addOnTotal;
+    const subtotal = formData.selectedSubjects
+      .filter(s => s.selected)
+      .reduce((sum, s) => sum + s.price, 0) + addOnTotal;
     
-    let discountAmount = 0;
-    if (formData.discountType === 'percentage') {
-      discountAmount = (subtotal * formData.discountValue) / 100;
-    } else {
-      discountAmount = formData.discountValue;
-    }
+    const total = subjectTotal + addOnTotal;
     
-    const total = Math.max(0, subtotal - discountAmount);
-    
-    return { subtotal, discountAmount, total, subjectTotal, addOnTotal };
+    return { 
+      subtotal, 
+      discountAmount: totalDiscountAmount, 
+      total, 
+      subjectTotal, 
+      addOnTotal,
+      subjectDetails 
+    };
   };
 
-  const { subtotal, discountAmount, total } = calculateTotals();
+  const { subtotal, discountAmount, total, subjectDetails } = calculateTotals();
 
   // Step validation
   const isStepValid = (step: number) => {
@@ -250,14 +271,24 @@ export default function InvoiceWizard({ open, onOpenChange, editingInvoice }: In
     formData.selectedSubjects
       .filter(s => s.selected)
       .forEach(subject => {
+        const discountAmount = subject.discountType === 'percentage' 
+          ? (subject.price * subject.discountValue) / 100
+          : subject.discountType === 'amount' 
+            ? subject.discountValue 
+            : 0;
+        const finalPrice = Math.max(0, subject.price - discountAmount);
+        
         items.push({
           type: 'subject',
           itemId: subject.id,
           name: subject.name,
-          description: `Subject: ${subject.name}`,
+          description: `Subject: ${subject.name}${subject.discountReason ? ` (${subject.discountReason})` : ''}`,
           quantity: 1,
           unitPrice: subject.price.toFixed(2),
-          totalPrice: subject.price.toFixed(2),
+          discountType: subject.discountType,
+          discountValue: subject.discountValue,
+          discountAmount: discountAmount.toFixed(2),
+          totalPrice: finalPrice.toFixed(2),
         });
       });
     
@@ -305,6 +336,9 @@ export default function InvoiceWizard({ open, onOpenChange, editingInvoice }: In
           name: subject.name,
           price: parseFloat(subject.baseFee),
           selected: false,
+          discountType: 'none' as const,
+          discountValue: 0,
+          discountReason: '',
         })),
       }));
     }
@@ -560,12 +594,40 @@ export default function InvoiceWizard({ open, onOpenChange, editingInvoice }: In
                         <div className="space-y-2">
                           {formData.selectedSubjects
                             .filter(s => s.selected)
-                            .map(subject => (
-                              <div key={subject.id} className="flex justify-between text-sm">
-                                <span>{subject.name}</span>
-                                <span>Rs.{subject.price.toLocaleString()}</span>
-                              </div>
-                            ))}
+                            .map(subject => {
+                              const discountAmount = subject.discountType === 'percentage' 
+                                ? (subject.price * subject.discountValue) / 100
+                                : subject.discountType === 'amount' 
+                                  ? subject.discountValue 
+                                  : 0;
+                              const finalPrice = Math.max(0, subject.price - discountAmount);
+                              
+                              return (
+                                <div key={subject.id} className="text-sm">
+                                  <div className="flex justify-between">
+                                    <span>{subject.name}</span>
+                                    <span>Rs.{subject.price.toLocaleString()}</span>
+                                  </div>
+                                  {discountAmount > 0 && (
+                                    <div className="flex justify-between text-xs text-green-600 ml-4">
+                                      <span>
+                                        {subject.discountType === 'percentage' 
+                                          ? `Discount (${subject.discountValue}%)`
+                                          : `Discount`}
+                                        {subject.discountReason && ` - ${subject.discountReason}`}
+                                      </span>
+                                      <span>-Rs.{discountAmount.toLocaleString()}</span>
+                                    </div>
+                                  )}
+                                  {discountAmount > 0 && (
+                                    <div className="flex justify-between text-xs font-medium ml-4">
+                                      <span>Final Price:</span>
+                                      <span>Rs.{finalPrice.toLocaleString()}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
                           {formData.selectedAddOns
                             .filter(a => a.selected)
                             .map(addon => (
@@ -596,47 +658,131 @@ export default function InvoiceWizard({ open, onOpenChange, editingInvoice }: In
                     </CardContent>
                   </Card>
 
-                  {/* Discount & Notes */}
+                  {/* Subject-Specific Discounts & Notes */}
                   <Card className="bg-white">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <DollarSign className="h-5 w-5" />
-                        Discount & Notes
+                        Subject Discounts & Notes
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent className="space-y-6">
+                      {/* Subject Discount Controls */}
                       <div>
-                        <Label>Discount Type</Label>
-                        <Select
-                          value={formData.discountType}
-                          onValueChange={(value: 'percentage' | 'amount') => 
-                            setFormData(prev => ({ ...prev, discountType: value }))
-                          }
-                        >
-                          <SelectTrigger className="mt-2">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="percentage">Percentage (%)</SelectItem>
-                            <SelectItem value="amount">Fixed Amount (Rs.)</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <Label className="text-base font-medium">Apply Subject-Specific Discounts</Label>
+                        <p className="text-sm text-gray-600 mb-4">Teachers can give discounts only on their specific subjects.</p>
+                        
+                        <div className="space-y-4">
+                          {formData.selectedSubjects
+                            .filter(s => s.selected)
+                            .map(subject => {
+                              const discountAmount = subject.discountType === 'percentage' 
+                                ? (subject.price * subject.discountValue) / 100
+                                : subject.discountType === 'amount' 
+                                  ? subject.discountValue 
+                                  : 0;
+                              const finalPrice = Math.max(0, subject.price - discountAmount);
+                              
+                              return (
+                                <div key={subject.id} className="p-4 border rounded-lg bg-gray-50">
+                                  <div className="flex items-center justify-between mb-3">
+                                    <div>
+                                      <h4 className="font-medium text-gray-800">{subject.name}</h4>
+                                      <p className="text-sm text-gray-600">Base Fee: Rs.{subject.price.toLocaleString()}/month</p>
+                                    </div>
+                                    <div className="text-right">
+                                      {discountAmount > 0 && (
+                                        <div className="text-sm text-green-600 font-medium">
+                                          Discount: {subject.discountType === 'percentage' 
+                                            ? `${subject.discountValue}%` 
+                                            : `Rs.${discountAmount.toLocaleString()}`}
+                                        </div>
+                                      )}
+                                      <div className="text-lg font-semibold">
+                                        Final: Rs.{finalPrice.toLocaleString()}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                    <div>
+                                      <Label htmlFor={`discount-type-${subject.id}`}>Discount Type</Label>
+                                      <Select
+                                        value={subject.discountType}
+                                        onValueChange={(value: 'none' | 'percentage' | 'amount') => {
+                                          setFormData(prev => ({
+                                            ...prev,
+                                            selectedSubjects: prev.selectedSubjects.map(s =>
+                                              s.id === subject.id ? { ...s, discountType: value, discountValue: 0 } : s
+                                            )
+                                          }));
+                                        }}
+                                      >
+                                        <SelectTrigger className="mt-1">
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="none">No Discount</SelectItem>
+                                          <SelectItem value="percentage">Percentage (%)</SelectItem>
+                                          <SelectItem value="amount">Fixed Amount (Rs.)</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    
+                                    {subject.discountType !== 'none' && (
+                                      <>
+                                        <div>
+                                          <Label htmlFor={`discount-value-${subject.id}`}>
+                                            {subject.discountType === 'percentage' ? 'Percentage (%)' : 'Amount (Rs.)'}
+                                          </Label>
+                                          <Input
+                                            id={`discount-value-${subject.id}`}
+                                            type="number"
+                                            min="0"
+                                            max={subject.discountType === 'percentage' ? "100" : subject.price.toString()}
+                                            placeholder={subject.discountType === 'percentage' ? "0-100" : "0"}
+                                            value={subject.discountValue || ''}
+                                            onChange={(e) => {
+                                              const value = parseFloat(e.target.value) || 0;
+                                              setFormData(prev => ({
+                                                ...prev,
+                                                selectedSubjects: prev.selectedSubjects.map(s =>
+                                                  s.id === subject.id ? { ...s, discountValue: value } : s
+                                                )
+                                              }));
+                                            }}
+                                            className="mt-1"
+                                          />
+                                        </div>
+                                        
+                                        <div>
+                                          <Label htmlFor={`discount-reason-${subject.id}`}>Reason</Label>
+                                          <Input
+                                            id={`discount-reason-${subject.id}`}
+                                            type="text"
+                                            placeholder="e.g. Teacher discount, Sibling discount"
+                                            value={subject.discountReason || ''}
+                                            onChange={(e) => {
+                                              setFormData(prev => ({
+                                                ...prev,
+                                                selectedSubjects: prev.selectedSubjects.map(s =>
+                                                  s.id === subject.id ? { ...s, discountReason: e.target.value } : s
+                                                )
+                                              }));
+                                            }}
+                                            className="mt-1"
+                                          />
+                                        </div>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                        </div>
                       </div>
 
-                      <div>
-                        <Label>Discount Value</Label>
-                        <Input
-                          type="number"
-                          value={formData.discountValue}
-                          onChange={(e) => setFormData(prev => ({ 
-                            ...prev, 
-                            discountValue: parseFloat(e.target.value) || 0 
-                          }))}
-                          placeholder={formData.discountType === 'percentage' ? '0' : '0.00'}
-                          className="mt-2"
-                        />
-                      </div>
-
+                      {/* Notes Section */}
                       <div>
                         <Label>Notes (Optional)</Label>
                         <Textarea
