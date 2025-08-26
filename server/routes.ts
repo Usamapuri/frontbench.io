@@ -163,8 +163,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { classLevel } = req.params;
       
-      if (!['o-level', 'a-level'].includes(classLevel)) {
-        return res.status(400).json({ message: "Invalid class level. Must be 'o-level' or 'a-level'" });
+      if (!['o-level', 'igcse', 'as-level', 'a2-level'].includes(classLevel)) {
+        return res.status(400).json({ message: "Invalid class level. Must be one of: o-level, igcse, as-level, a2-level" });
       }
       
       const nextRollNumber = await storage.getNextRollNumber(classLevel);
@@ -172,7 +172,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         classLevel, 
         nextRollNumber,
         format: "YYLSSSS (YY=Year, L=Level, SSSS=Sequence)",
-        example: classLevel === 'o-level' ? '25O0001' : '25A0001'
+        example: classLevel === 'o-level' ? '25O001' : 
+                 classLevel === 'igcse' ? '25I001' :
+                 classLevel === 'as-level' ? '25AS001' :
+                 classLevel === 'a2-level' ? '25A2001' : '25O001'
       });
     } catch (error) {
       console.error("Error generating next roll number:", error);

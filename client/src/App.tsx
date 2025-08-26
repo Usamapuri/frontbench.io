@@ -10,7 +10,7 @@ import OfflineBanner from "@/components/OfflineBanner";
 
 // Page imports
 import FinanceDashboard from "@/pages/finance/Dashboard";
-import Enrollment from "@/pages/finance/Enrollment";
+import EnrollmentNew from "@/pages/finance/EnrollmentNew";
 import StudentLedger from "@/pages/finance/StudentLedger";
 import Invoices from "@/pages/finance/Invoices";
 import Receipts from "@/pages/finance/Receipts";
@@ -78,7 +78,7 @@ function Router() {
                 {selectedRole === 'finance' && (
                   <>
                     <Route path="/dashboard" component={FinanceDashboard} />
-                    <Route path="/enrollment" component={Enrollment} />
+                    <Route path="/enrollment" component={EnrollmentNew} />
                     <Route path="/students" component={StudentLedger} />
                     <Route path="/invoices" component={Invoices} />
                     <Route path="/receipts" component={Receipts} />
