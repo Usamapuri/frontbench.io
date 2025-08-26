@@ -304,80 +304,67 @@ export default function Invoices() {
     const studentName = getStudentName(invoice.studentId);
     const currentDate = new Date().toLocaleDateString();
     
-    // Fetch enrollment data to show detailed line items
+    // Use saved invoice items to show detailed line items with discounts
     let lineItemsHTML = '';
     let subtotalAmount = 0;
     
     try {
-      // Get student's enrollments to show individual subject fees
-      const enrollmentsResponse = await fetch(`/api/enrollments/student/${invoice.studentId}`);
-      const enrollments = enrollmentsResponse.ok ? await enrollmentsResponse.json() : [];
-      
-      // Get subjects data to show individual fees
-      const subjectsResponse = await fetch('/api/subjects');
-      const subjects = subjectsResponse.ok ? await subjectsResponse.json() : [];
-      
-      // Build line items for subjects
-      for (const enrollment of enrollments) {
-        const subject = subjects.find((s: any) => s.id === enrollment.subjectId);
-        if (subject) {
-          const fee = parseFloat(subject.baseFee);
-          subtotalAmount += fee;
+      // Check if invoice has items array (new format with discount data)
+      if (invoice.items && invoice.items.length > 0) {
+        // Use the saved invoice items that include discount information
+        for (const item of invoice.items) {
+          const unitPrice = parseFloat(item.unitPrice || '0');
+          const discountAmount = parseFloat(item.discountAmount || '0');
+          const totalPrice = parseFloat(item.totalPrice || item.unitPrice || '0');
+          
+          subtotalAmount += unitPrice;
+          
+          // Show original price line
           lineItemsHTML += `
             <div class="line-item">
-              <div class="item-description">${subject.name} - Monthly Tuition</div>
-              <div class="item-amount">Rs. ${fee.toLocaleString()}</div>
+              <div class="item-description">${item.name} - ${item.description || 'Monthly Tuition'}</div>
+              <div class="item-amount">Rs. ${unitPrice.toLocaleString()}</div>
             </div>`;
-        }
-      }
-      
-      // Parse add-ons from invoice notes (add-ons are mentioned in notes)
-      const addOnMatches = invoice.notes?.match(/(Registration Fees|Resource Pack|Online Access)/g) || [];
-      const addOnAmounts = { 'Registration Fees': 5000, 'Resource Pack': 4000, 'Online Access': 6900 };
-      
-      for (const addOn of addOnMatches) {
-        const amount = addOnAmounts[addOn as keyof typeof addOnAmounts];
-        if (amount) {
-          subtotalAmount += amount;
-          lineItemsHTML += `
-            <div class="line-item addon-item">
-              <div class="item-description">${addOn} (One-time fee)</div>
-              <div class="item-amount">Rs. ${amount.toLocaleString()}</div>
-            </div>`;
-        }
-      }
-      
-      // Show discount as negative line item
-      const discountAmount = parseFloat(invoice.discountAmount || '0');
-      if (discountAmount > 0) {
-        const discountText = invoice.notes?.includes('%') 
-          ? invoice.notes.match(/(\d+)% discount/)?.[0] || 'Discount'
-          : `Rs. ${discountAmount.toLocaleString()} Discount`;
           
-        lineItemsHTML += `
-          <div class="line-item discount-item">
-            <div class="item-description">${discountText}</div>
-            <div class="item-amount discount">-Rs. ${discountAmount.toLocaleString()}</div>
+          // Show discount if applicable
+          if (discountAmount > 0) {
+            const discountText = item.discountType === 'percentage' 
+              ? `${item.discountValue}% Discount on ${item.name}`
+              : `Rs. ${discountAmount.toLocaleString()} Discount on ${item.name}`;
+              
+            lineItemsHTML += `
+              <div class="line-item discount-item">
+                <div class="item-description">${discountText}</div>
+                <div class="item-amount discount">-Rs. ${discountAmount.toLocaleString()}</div>
+              </div>`;
+          }
+        }
+      } else {
+        // Fallback for older invoices without items array
+        lineItemsHTML = `
+          <div class="line-item">
+            <div class="item-description">Tuition Fees</div>
+            <div class="item-amount">Rs. ${Number(invoice.subtotal || invoice.total).toLocaleString()}</div>
           </div>`;
+        
+        const discountAmount = parseFloat(invoice.discountAmount || '0');
+        if (discountAmount > 0) {
+          lineItemsHTML += `
+            <div class="line-item discount-item">
+              <div class="item-description">Discount Applied</div>
+              <div class="item-amount discount">-Rs. ${discountAmount.toLocaleString()}</div>
+            </div>`;
+        }
       }
       
     } catch (error) {
-      console.error('Error fetching enrollment data:', error);
+      console.error('Error processing invoice items:', error);
       // Fallback to basic display
       lineItemsHTML = `
         <div class="line-item">
           <div class="item-description">Tuition Fees</div>
           <div class="item-amount">Rs. ${Number(invoice.subtotal || invoice.total).toLocaleString()}</div>
         </div>`;
-      
-      const discountAmount = parseFloat(invoice.discountAmount || '0');
-      if (discountAmount > 0) {
-        lineItemsHTML += `
-          <div class="line-item discount-item">
-            <div class="item-description">Discount Applied</div>
-            <div class="item-amount discount">-Rs. ${discountAmount.toLocaleString()}</div>
-          </div>`;
-      }
     }
     
     const pdfHTML = `
@@ -744,77 +731,64 @@ export default function Invoices() {
     const currentDate = new Date().toLocaleDateString();
     const currentTime = new Date().toLocaleTimeString();
     
-    // Fetch enrollment data to show detailed line items
+    // Use saved invoice items to show detailed line items with discounts
     let lineItemsHTML = '';
     
     try {
-      // Get student's enrollments to show individual subject fees
-      const enrollmentsResponse = await fetch(`/api/enrollments/student/${invoice.studentId}`);
-      const enrollments = enrollmentsResponse.ok ? await enrollmentsResponse.json() : [];
-      
-      // Get subjects data to show individual fees
-      const subjectsResponse = await fetch('/api/subjects');
-      const subjects = subjectsResponse.ok ? await subjectsResponse.json() : [];
-      
-      // Build line items for subjects
-      for (const enrollment of enrollments) {
-        const subject = subjects.find((s: any) => s.id === enrollment.subjectId);
-        if (subject) {
-          const fee = parseFloat(subject.baseFee);
+      // Check if invoice has items array (new format with discount data)
+      if (invoice.items && invoice.items.length > 0) {
+        // Use the saved invoice items that include discount information
+        for (const item of invoice.items) {
+          const unitPrice = parseFloat(item.unitPrice || '0');
+          const discountAmount = parseFloat(item.discountAmount || '0');
+          const totalPrice = parseFloat(item.totalPrice || item.unitPrice || '0');
+          
+          // Show original price line
           lineItemsHTML += `
             <div class="row">
-              <span style="font-size: 9px;">${subject.name}</span>
-              <span>Rs.${fee.toLocaleString()}</span>
+              <span style="font-size: 9px;">${item.name}</span>
+              <span>Rs.${unitPrice.toLocaleString()}</span>
             </div>`;
-        }
-      }
-      
-      // Parse add-ons from invoice notes
-      const addOnMatches = invoice.notes?.match(/(Registration Fees|Resource Pack|Online Access)/g) || [];
-      const addOnAmounts = { 'Registration Fees': 5000, 'Resource Pack': 4000, 'Online Access': 6900 };
-      
-      for (const addOn of addOnMatches) {
-        const amount = addOnAmounts[addOn as keyof typeof addOnAmounts];
-        if (amount) {
-          lineItemsHTML += `
-            <div class="row" style="background: #f0f0f0; padding: 0.5mm;">
-              <span style="font-size: 8px;">${addOn}</span>
-              <span>Rs.${amount.toLocaleString()}</span>
-            </div>`;
-        }
-      }
-      
-      // Show discount as negative line item
-      const discountAmount = parseFloat(invoice.discountAmount || '0');
-      if (discountAmount > 0) {
-        const discountText = invoice.notes?.includes('%') 
-          ? invoice.notes.match(/(\d+)% discount/)?.[0] || 'Discount'
-          : `Rs.${discountAmount.toLocaleString()} Discount`;
           
-        lineItemsHTML += `
-          <div class="row" style="background: #e6ffe6; padding: 0.5mm;">
-            <span style="font-size: 8px;">${discountText}</span>
-            <span style="color: #008000;">-Rs.${discountAmount.toLocaleString()}</span>
+          // Show discount if applicable
+          if (discountAmount > 0) {
+            const discountText = item.discountType === 'percentage' 
+              ? `${item.discountValue}% Off ${item.name}`
+              : `Rs.${discountAmount.toLocaleString()} Off ${item.name}`;
+              
+            lineItemsHTML += `
+              <div class="row" style="background: #e6ffe6; padding: 0.5mm;">
+                <span style="font-size: 8px;">${discountText}</span>
+                <span style="color: #008000;">-Rs.${discountAmount.toLocaleString()}</span>
+              </div>`;
+          }
+        }
+      } else {
+        // Fallback for older invoices without items array
+        lineItemsHTML = `
+          <div class="row">
+            <span style="font-size: 9px;">Tuition Fees</span>
+            <span>Rs.${Number(invoice.subtotal || invoice.total).toLocaleString()}</span>
           </div>`;
+        
+        const discountAmount = parseFloat(invoice.discountAmount || '0');
+        if (discountAmount > 0) {
+          lineItemsHTML += `
+            <div class="row" style="background: #e6ffe6; padding: 0.5mm;">
+              <span style="font-size: 8px;">Discount</span>
+              <span style="color: #008000;">-Rs.${discountAmount.toLocaleString()}</span>
+            </div>`;
+        }
       }
       
     } catch (error) {
-      console.error('Error fetching enrollment data:', error);
+      console.error('Error processing invoice items:', error);
       // Fallback to basic display
       lineItemsHTML = `
         <div class="row">
           <span style="font-size: 9px;">Tuition Fees</span>
           <span>Rs.${Number(invoice.subtotal || invoice.total).toLocaleString()}</span>
         </div>`;
-      
-      const discountAmount = parseFloat(invoice.discountAmount || '0');
-      if (discountAmount > 0) {
-        lineItemsHTML += `
-          <div class="row" style="background: #e6ffe6; padding: 0.5mm;">
-            <span style="font-size: 8px;">Discount</span>
-            <span style="color: #008000;">-Rs.${discountAmount.toLocaleString()}</span>
-          </div>`;
-      }
     }
     
     const thermalHTML = `
