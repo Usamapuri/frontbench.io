@@ -140,7 +140,7 @@ export default function StudentLedger() {
       const matchesClass =
         classFilter === "all" ||
         classFilter === "" ||
-        student.classLevel === classFilter;
+        student.classLevels && student.classLevels.includes(classFilter);
       const matchesFeeStatus =
         feeStatusFilter === "all" ||
         feeStatusFilter === "" ||
@@ -302,7 +302,7 @@ export default function StudentLedger() {
       lastName: student.lastName,
       dateOfBirth: student.dateOfBirth,
       gender: student.gender,
-      classLevel: student.classLevel,
+      classLevels: student.classLevels,
       rollNumber: student.rollNumber,
       studentPhone: student.studentPhone,
       studentEmail: student.studentEmail,
@@ -521,16 +521,28 @@ export default function StudentLedger() {
                           </div>
                         </td>
                         <td className="px-4 py-3">
-                          <Badge
-                            variant={
-                              student.classLevel === "a-level"
-                                ? "default"
-                                : "secondary"
-                            }
-                            data-testid={`badge-class-${student.id}`}
-                          >
-                            {student.classLevel.toUpperCase()}
-                          </Badge>
+                          <div className="flex flex-wrap gap-1">
+                            {student.classLevels && student.classLevels.length > 0 ? (
+                              student.classLevels.map((level, index) => (
+                                <Badge
+                                  key={index}
+                                  variant={
+                                    level === "a2-level"
+                                      ? "default"
+                                      : "secondary"
+                                  }
+                                  data-testid={`badge-class-${student.id}-${index}`}
+                                  className="text-xs"
+                                >
+                                  {level.toUpperCase()}
+                                </Badge>
+                              ))
+                            ) : (
+                              <Badge variant="secondary" className="text-xs">
+                                No Class
+                              </Badge>
+                            )}
+                          </div>
                         </td>
                         {columnSettings.showSubjects && (
                           <td className="px-4 py-3">
@@ -590,8 +602,7 @@ export default function StudentLedger() {
                               }
                               className="w-fit mt-1"
                             >
-                              {student.feeStatus.charAt(0).toUpperCase() +
-                                student.feeStatus.slice(1)}
+                              {student.feeStatus ? student.feeStatus.charAt(0).toUpperCase() + student.feeStatus.slice(1) : 'Unknown'}
                             </Badge>
                           </div>
                         </td>
@@ -742,7 +753,17 @@ export default function StudentLedger() {
                 </div>
                 <div>
                   <Label className="font-semibold">Class Level</Label>
-                  <p>{selectedStudent.classLevel.toUpperCase()}</p>
+                  <div className="flex flex-wrap gap-1">
+                    {selectedStudent.classLevels && selectedStudent.classLevels.length > 0 ? (
+                      selectedStudent.classLevels.map((level, index) => (
+                        <Badge key={index} variant="secondary" className="text-xs">
+                          {level.toUpperCase()}
+                        </Badge>
+                      ))
+                    ) : (
+                      <p>No class levels assigned</p>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <Label className="font-semibold">Fee Status</Label>
@@ -755,8 +776,7 @@ export default function StudentLedger() {
                           : "outline"
                     }
                   >
-                    {selectedStudent.feeStatus.charAt(0).toUpperCase() +
-                      selectedStudent.feeStatus.slice(1)}
+                    {selectedStudent.feeStatus ? selectedStudent.feeStatus.charAt(0).toUpperCase() + selectedStudent.feeStatus.slice(1) : 'Unknown'}
                   </Badge>
                 </div>
                 <div>
@@ -960,8 +980,8 @@ export default function StudentLedger() {
                 <div>
                   <Label htmlFor="edit-class-level">Class Level *</Label>
                   <Select 
-                    value={editFormData.classLevel || ''} 
-                    onValueChange={(value) => setEditFormData(prev => ({ ...prev, classLevel: value }))}
+                    value={editFormData.classLevels?.[0] || ''} 
+                    onValueChange={(value) => setEditFormData(prev => ({ ...prev, classLevels: [value] }))}
                   >
                     <SelectTrigger data-testid="select-edit-class-level">
                       <SelectValue placeholder="Select class level" />
