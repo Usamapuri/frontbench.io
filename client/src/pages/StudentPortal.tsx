@@ -31,7 +31,7 @@ interface Student {
   lastName: string;
   dateOfBirth: string;
   gender: string;
-  classLevel: string;
+  classLevels: string[];
   parentId: string | null;
   profileImageUrl: string | null;
   isActive: boolean;
@@ -253,7 +253,7 @@ export default function StudentPortal(props: StudentPortalProps = {}) {
                 </div>
                 <div className="flex items-center space-x-2">
                   <GraduationCap className="h-4 w-4" />
-                  <span>Class: {student.classLevel.toUpperCase()}</span>
+                  <span>Class: {student.classLevels && student.classLevels.length > 0 ? student.classLevels.map(level => level.toUpperCase()).join(', ') : 'No Class'}</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Calendar className="h-4 w-4" />
