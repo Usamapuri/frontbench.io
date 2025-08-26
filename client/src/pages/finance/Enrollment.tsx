@@ -17,7 +17,7 @@ interface EnrollmentFormData {
   lastName: string;
   dateOfBirth: string;
   gender: 'male' | 'female';
-  classLevel: 'o-level' | 'a-level';
+  classLevels: string[];
   rollNumber: string;
   studentPhone: string;
   studentEmail: string;
@@ -51,6 +51,7 @@ interface RollNumberResponse {
 export default function Enrollment() {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<Partial<EnrollmentFormData>>({
+    classLevels: [],
     selectedSubjects: [],
     addOns: [],
     discounts: [],
@@ -69,16 +70,16 @@ export default function Enrollment() {
 
   // Auto-generate roll number when class level is selected
   const { data: nextRollNumberData, refetch: refetchRollNumber } = useQuery<RollNumberResponse>({
-    queryKey: ['/api/roll-numbers/next', formData.classLevel],
-    enabled: !!formData.classLevel,
+    queryKey: ['/api/roll-numbers/next', formData.classLevels?.[0]],
+    enabled: !!(formData.classLevels && formData.classLevels.length > 0),
   });
 
   // Update roll number when class level changes or roll number data is fetched
   useEffect(() => {
-    if (nextRollNumberData?.nextRollNumber && formData.classLevel) {
+    if (nextRollNumberData?.nextRollNumber && formData.classLevels && formData.classLevels.length > 0) {
       updateFormData('rollNumber', nextRollNumberData.nextRollNumber);
     }
-  }, [nextRollNumberData, formData.classLevel]);
+  }, [nextRollNumberData, formData.classLevels]);
 
   const createEnrollmentMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -111,8 +112,13 @@ export default function Enrollment() {
     switch (step) {
       case 1:
         // Validate required fields for Step 1
-        const requiredFields = ['firstName', 'lastName', 'dateOfBirth', 'gender', 'classLevel', 'rollNumber', 'studentPhone', 'studentEmail', 'parentName', 'parentPhone'];
+        const requiredFields = ['firstName', 'lastName', 'dateOfBirth', 'gender', 'studentPhone', 'studentEmail', 'parentName', 'parentPhone'];
         const missingFields = requiredFields.filter(field => !formData[field as keyof EnrollmentFormData]);
+        
+        // Validate classLevels separately since it's an array
+        if (!formData.classLevels || formData.classLevels.length === 0) {
+          missingFields.push('classLevels');
+        }
         
         if (missingFields.length > 0) {
           toast({
@@ -235,8 +241,17 @@ export default function Enrollment() {
         lastName: formData.lastName,
         dateOfBirth: formData.dateOfBirth,
         gender: formData.gender,
-        classLevel: formData.classLevel,
+        classLevels: formData.classLevels,
         rollNumber: formData.rollNumber,
+        studentPhone: formData.studentPhone,
+        studentEmail: formData.studentEmail,
+        homeAddress: formData.homeAddress,
+        parentName: formData.parentName,
+        parentPhone: formData.parentPhone,
+        parentEmail: formData.parentEmail,
+        additionalParentName: formData.additionalParentName,
+        additionalParentPhone: formData.additionalParentPhone,
+        additionalParentEmail: formData.additionalParentEmail,
       });
       
       // Prepare complete enrollment data
@@ -363,30 +378,48 @@ export default function Enrollment() {
                 </div>
                 
                 <div>
-                  <Label htmlFor="classLevel">Class Level *</Label>
-                  <Select onValueChange={(value) => updateFormData('classLevel', value)}>
-                    <SelectTrigger data-testid="select-class-level">
-                      <SelectValue placeholder="Select class level" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="o-level">O-Level</SelectItem>
-                      <SelectItem value="a-level">A-Level</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="classLevels">Class Level(s) *</Label>
+                  <div className="space-y-2">
+                    {['o-level', 'igcse', 'as-level', 'a2-level'].map((level) => (
+                      <div key={level} className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id={`class-${level}`}
+                          checked={formData.classLevels?.includes(level) || false}
+                          onChange={(e) => {
+                            const currentLevels = formData.classLevels || [];
+                            if (e.target.checked) {
+                              updateFormData('classLevels', [...currentLevels, level]);
+                            } else {
+                              updateFormData('classLevels', currentLevels.filter(l => l !== level));
+                            }
+                          }}
+                          className="rounded border-gray-300"
+                          data-testid={`checkbox-class-${level}`}
+                        />
+                        <label htmlFor={`class-${level}`} className="text-sm font-medium">
+                          {level === 'o-level' ? 'O-Level' :
+                           level === 'igcse' ? 'IGCSE' :
+                           level === 'as-level' ? 'AS-Level' :
+                           level === 'a2-level' ? 'A2-Level' : level}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
                 </div>
                 
                 <div>
                   <Label htmlFor="rollNumber">Roll Number (Auto-Generated)</Label>
                   <div className="p-3 bg-gray-50 border rounded-lg">
                     <div className="flex items-center justify-between">
-                      {formData.classLevel ? (
+                      {formData.classLevels && formData.classLevels.length > 0 ? (
                         formData.rollNumber ? (
                           <div>
                             <div className="text-lg font-semibold text-blue-600" data-testid="text-auto-roll-number">
                               {formData.rollNumber}
                             </div>
                             <div className="text-sm text-gray-600">
-                              Automatically assigned for {formData.classLevel?.toUpperCase()}
+                              Automatically assigned for {formData.classLevels[0]?.toUpperCase()}
                             </div>
                           </div>
                         ) : (
@@ -397,7 +430,7 @@ export default function Enrollment() {
                         )
                       ) : (
                         <div className="text-gray-500">
-                          Please select class level first
+                          Please select at least one class level first
                         </div>
                       )}
                     </div>
@@ -529,7 +562,11 @@ export default function Enrollment() {
               <h3 className="text-lg font-medium text-gray-800">Select Subjects</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {subjects?.filter(s => s.classLevel === formData.classLevel).map((subject) => (
+                {subjects?.filter(s => 
+                  formData.classLevels && formData.classLevels.some(level => 
+                    s.classLevels && s.classLevels.includes(level)
+                  )
+                ).map((subject) => (
                   <div key={subject.id} className="flex items-center space-x-2 p-3 border rounded-lg">
                     <input
                       type="checkbox"

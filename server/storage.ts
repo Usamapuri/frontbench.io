@@ -227,8 +227,8 @@ export class DatabaseStorage implements IStorage {
 
   async createStudent(student: InsertStudent): Promise<Student> {
     // Generate roll number if not provided
-    if (!student.rollNumber) {
-      student.rollNumber = await this.generateRollNumber(student.classLevel);
+    if (!student.rollNumber && student.classLevels && student.classLevels.length > 0) {
+      student.rollNumber = await this.generateRollNumber(student.classLevels[0]);
     }
     
     const [newStudent] = await db.insert(students).values(student).returning();
@@ -240,8 +240,11 @@ export class DatabaseStorage implements IStorage {
     const currentYear = new Date().getFullYear();
     const yearPrefix = currentYear.toString().slice(-2); // Last 2 digits of year (e.g., "25" for 2025)
     
-    // Class level prefix: O for O-Level, A for A-Level
-    const levelPrefix = classLevel === 'o-level' ? 'O' : 'A';
+    // Class level prefix: O for O-Level, I for IGCSE, AS for AS-Level, A2 for A2-Level
+    const levelPrefix = classLevel === 'o-level' ? 'O' : 
+                       classLevel === 'igcse' ? 'I' :
+                       classLevel === 'as-level' ? 'AS' :
+                       classLevel === 'a2-level' ? 'A2' : 'O';
     
     // Get the highest existing roll number for this class level and year
     const existingRollNumbers = await db
@@ -297,7 +300,7 @@ export class DatabaseStorage implements IStorage {
     
     for (const student of studentsWithoutRollNumbers) {
       try {
-        const newRollNumber = await this.generateRollNumber(student.classLevel);
+        const newRollNumber = await this.generateRollNumber(student.classLevels?.[0] || 'o-level');
         await db
           .update(students)
           .set({ 
@@ -332,7 +335,7 @@ export class DatabaseStorage implements IStorage {
     return await db
       .select()
       .from(subjects)
-      .where(and(eq(subjects.classLevel, classLevel as any), eq(subjects.isActive, true)));
+      .where(and(sql`${classLevel} = ANY(${subjects.classLevels})`, eq(subjects.isActive, true)));
   }
 
   // Classes

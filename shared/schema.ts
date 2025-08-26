@@ -45,7 +45,7 @@ export const users = pgTable("users", {
 });
 
 // Enums
-export const classLevelEnum = pgEnum('class_level', ['o-level', 'a-level']);
+export const classLevelEnum = pgEnum('class_level', ['o-level', 'igcse', 'as-level', 'a2-level']);
 export const genderEnum = pgEnum('gender', ['male', 'female']);
 export const feeStatusEnum = pgEnum('fee_status', ['paid', 'pending', 'overdue', 'partial']);
 export const attendanceStatusEnum = pgEnum('attendance_status', ['present', 'absent', 'late']);
@@ -68,7 +68,7 @@ export const students = pgTable("students", {
   lastName: varchar("last_name").notNull(),
   dateOfBirth: date("date_of_birth").notNull(),
   gender: genderEnum("gender").notNull(),
-  classLevel: classLevelEnum("class_level").notNull(),
+  classLevels: text("class_levels").array().notNull(),
   // Student contact information
   studentPhone: varchar("student_phone"),
   studentEmail: varchar("student_email"),
@@ -94,7 +94,7 @@ export const subjects = pgTable("subjects", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: varchar("name").notNull(),
   code: varchar("code").notNull().unique(),
-  classLevel: classLevelEnum("class_level").notNull(),
+  classLevels: text("class_levels").array().notNull(),
   baseFee: decimal("base_fee", { precision: 10, scale: 2 }).notNull(),
   description: text("description"),
   isActive: boolean("is_active").default(true),
@@ -105,7 +105,7 @@ export const subjects = pgTable("subjects", {
 export const subjectCombos = pgTable("subject_combos", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: varchar("name").notNull(),
-  classLevel: classLevelEnum("class_level").notNull(),
+  classLevels: text("class_levels").array().notNull(),
   discountedFee: decimal("discounted_fee", { precision: 10, scale: 2 }).notNull(),
   description: text("description"),
   isActive: boolean("is_active").default(true),
@@ -739,6 +739,8 @@ export const insertStudentSchema = createInsertSchema(students).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  classLevels: z.array(z.string()).min(1, "At least one class level is required"),
 });
 
 export const insertSubjectSchema = createInsertSchema(subjects).omit({
