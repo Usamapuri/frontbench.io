@@ -45,6 +45,7 @@ export default function Sidebar({ selectedRole }: SidebarProps) {
           { path: '/dashboard', icon: 'fas fa-chart-pie', label: 'Overview' },
           { path: '/expenses', icon: 'fas fa-receipt', label: 'Expenses' },
           { path: '/payouts', icon: 'fas fa-money-bill', label: 'Payout Summary' },
+          { path: '/roll-numbers', icon: 'fas fa-id-card', label: 'Roll Numbers' },
         ];
       default:
         return [];

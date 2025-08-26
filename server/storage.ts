@@ -61,6 +61,12 @@ export interface IStorage {
   createStudent(student: InsertStudent): Promise<Student>;
   updateStudent(id: string, student: Partial<InsertStudent>): Promise<Student>;
   
+  // Roll Number Management
+  generateRollNumber(classLevel: string): Promise<string>;
+  rollNumberExists(rollNumber: string): Promise<boolean>;
+  getNextRollNumber(classLevel: string): Promise<string>;
+  assignRollNumbersToExistingStudents(): Promise<{ updated: number; errors: string[] }>;
+  
   // Subjects
   getSubjects(): Promise<Subject[]>;
   getSubjectsByClassLevel(classLevel: string): Promise<Subject[]>;
@@ -220,8 +226,92 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createStudent(student: InsertStudent): Promise<Student> {
+    // Generate roll number if not provided
+    if (!student.rollNumber) {
+      student.rollNumber = await this.generateRollNumber(student.classLevel);
+    }
+    
     const [newStudent] = await db.insert(students).values(student).returning();
     return newStudent;
+  }
+
+  // Roll number generation system
+  async generateRollNumber(classLevel: string): Promise<string> {
+    const currentYear = new Date().getFullYear();
+    const yearPrefix = currentYear.toString().slice(-2); // Last 2 digits of year (e.g., "25" for 2025)
+    
+    // Class level prefix: O for O-Level, A for A-Level
+    const levelPrefix = classLevel === 'o-level' ? 'O' : 'A';
+    
+    // Get the highest existing roll number for this class level and year
+    const existingRollNumbers = await db
+      .select({ rollNumber: students.rollNumber })
+      .from(students)
+      .where(sql`${students.rollNumber} LIKE ${yearPrefix + levelPrefix + '%'}`);
+    
+    // Extract sequence numbers and find the highest
+    let highestSequence = 0;
+    existingRollNumbers.forEach(record => {
+      const rollNumber = record.rollNumber;
+      if (rollNumber && rollNumber.startsWith(yearPrefix + levelPrefix)) {
+        const sequenceStr = rollNumber.slice(3); // Remove year + level prefix
+        const sequence = parseInt(sequenceStr, 10);
+        if (!isNaN(sequence) && sequence > highestSequence) {
+          highestSequence = sequence;
+        }
+      }
+    });
+    
+    // Generate next sequence number (pad with zeros to make it 4 digits)
+    const nextSequence = (highestSequence + 1).toString().padStart(4, '0');
+    
+    // Format: YYLSSSS (e.g., 25O0001, 25A0001)
+    return `${yearPrefix}${levelPrefix}${nextSequence}`;
+  }
+
+  // Check if roll number exists
+  async rollNumberExists(rollNumber: string): Promise<boolean> {
+    const [existing] = await db
+      .select({ id: students.id })
+      .from(students)
+      .where(eq(students.rollNumber, rollNumber))
+      .limit(1);
+    
+    return !!existing;
+  }
+
+  // Get next available roll number for preview
+  async getNextRollNumber(classLevel: string): Promise<string> {
+    return await this.generateRollNumber(classLevel);
+  }
+
+  // Bulk assign roll numbers to existing students without them
+  async assignRollNumbersToExistingStudents(): Promise<{ updated: number; errors: string[] }> {
+    const studentsWithoutRollNumbers = await db
+      .select()
+      .from(students)
+      .where(sql`${students.rollNumber} IS NULL OR ${students.rollNumber} = '' OR ${students.rollNumber} ~ '^[0-9]+$'`);
+    
+    let updated = 0;
+    const errors: string[] = [];
+    
+    for (const student of studentsWithoutRollNumbers) {
+      try {
+        const newRollNumber = await this.generateRollNumber(student.classLevel);
+        await db
+          .update(students)
+          .set({ 
+            rollNumber: newRollNumber, 
+            updatedAt: new Date() 
+          })
+          .where(eq(students.id, student.id));
+        updated++;
+      } catch (error) {
+        errors.push(`Failed to update student ${student.firstName} ${student.lastName}: ${error}`);
+      }
+    }
+    
+    return { updated, errors };
   }
 
   async updateStudent(id: string, student: Partial<InsertStudent>): Promise<Student> {

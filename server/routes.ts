@@ -158,6 +158,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Roll number management endpoints
+  app.get("/api/roll-numbers/next/:classLevel", async (req, res) => {
+    try {
+      const { classLevel } = req.params;
+      
+      if (!['o-level', 'a-level'].includes(classLevel)) {
+        return res.status(400).json({ message: "Invalid class level. Must be 'o-level' or 'a-level'" });
+      }
+      
+      const nextRollNumber = await storage.getNextRollNumber(classLevel);
+      res.json({ 
+        classLevel, 
+        nextRollNumber,
+        format: "YYLSSSS (YY=Year, L=Level, SSSS=Sequence)",
+        example: classLevel === 'o-level' ? '25O0001' : '25A0001'
+      });
+    } catch (error) {
+      console.error("Error generating next roll number:", error);
+      res.status(500).json({ message: "Failed to generate roll number" });
+    }
+  });
+
+  app.post("/api/roll-numbers/check", async (req, res) => {
+    try {
+      const { rollNumber } = req.body;
+      
+      if (!rollNumber) {
+        return res.status(400).json({ message: "Roll number is required" });
+      }
+      
+      const exists = await storage.rollNumberExists(rollNumber);
+      res.json({ 
+        rollNumber, 
+        exists,
+        available: !exists 
+      });
+    } catch (error) {
+      console.error("Error checking roll number:", error);
+      res.status(500).json({ message: "Failed to check roll number" });
+    }
+  });
+
+  app.post("/api/roll-numbers/assign-bulk", async (req, res) => {
+    try {
+      const result = await storage.assignRollNumbersToExistingStudents();
+      res.json({
+        message: `Successfully assigned roll numbers to ${result.updated} students`,
+        ...result
+      });
+    } catch (error) {
+      console.error("Error in bulk roll number assignment:", error);
+      res.status(500).json({ message: "Failed to assign roll numbers" });
+    }
+  });
+
   app.post("/api/students", async (req, res) => {
     try {
       const validatedData = insertStudentSchema.parse(req.body);

@@ -32,6 +32,7 @@ import StudentPortal from "@/pages/StudentPortal";
 import ManagementDashboard from "@/pages/management/Dashboard";
 import Expenses from "@/pages/management/Expenses";
 import PayoutSummary from "@/pages/management/PayoutSummary";
+import RollNumberManager from "@/components/RollNumberManager";
 
 function Router() {
   // Get selected role from localStorage - simple and reliable
@@ -107,6 +108,7 @@ function Router() {
                     <Route path="/dashboard" component={ManagementDashboard} />
                     <Route path="/expenses" component={Expenses} />
                     <Route path="/payouts" component={PayoutSummary} />
+                    <Route path="/roll-numbers" component={RollNumberManager} />
                   </>
                 )}
                 
