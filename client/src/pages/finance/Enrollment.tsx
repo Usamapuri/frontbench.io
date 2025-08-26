@@ -732,31 +732,34 @@ export default function Enrollment() {
                     
                     // Calculate discount for this subject
                     const subjectDiscounts = formData.subjectDiscounts || {};
-                    const subjectDiscount = subjectDiscounts[subjectId] || { discountType: 'none', discountValue: 0 };
+                    const subjectDiscount = subjectDiscounts[subjectId] || { type: 'none', value: 0 };
                     
                     let discountAmount = 0;
-                    if (subjectDiscount.discountType === 'percentage') {
-                      discountAmount = (subject.baseFee * subjectDiscount.discountValue) / 100;
-                    } else if (subjectDiscount.discountType === 'fixed') {
-                      discountAmount = subjectDiscount.discountValue;
+                    const discountValue = parseFloat(String(subjectDiscount.value)) || 0;
+                    const baseFee = parseFloat(String(subject.baseFee)) || 0;
+                    
+                    if (subjectDiscount.type === 'percentage') {
+                      discountAmount = (baseFee * discountValue) / 100;
+                    } else if (subjectDiscount.type === 'fixed') {
+                      discountAmount = discountValue;
                     }
                     
-                    const finalPrice = subject.baseFee - discountAmount;
+                    const finalPrice = baseFee - discountAmount;
                     
                     return (
                       <div key={subject.id} className="space-y-1">
                         <div className="flex justify-between text-sm">
                           <span>{subject.name}</span>
-                          <span>{formatPKR(subject.baseFee)}</span>
+                          <span>{formatPKR(baseFee)}</span>
                         </div>
                         {discountAmount > 0 && (
                           <>
                             <div className="flex justify-between text-xs text-green-600 ml-4">
                               <span>
-                                Discount ({subjectDiscount.discountType === 'percentage' 
-                                  ? `${subjectDiscount.discountValue}%` 
-                                  : `Rs.${subjectDiscount.discountValue}`}
-                                {subjectDiscount.discountReason && ` - ${subjectDiscount.discountReason}`})
+                                Discount ({subjectDiscount.type === 'percentage' 
+                                  ? `${discountValue}%` 
+                                  : `Rs.${discountValue}`}
+                                {subjectDiscount.reason && ` - ${subjectDiscount.reason}`})
                               </span>
                               <span>-{formatPKR(discountAmount)}</span>
                             </div>
@@ -782,16 +785,19 @@ export default function Enrollment() {
                             
                             // Apply subject-specific discounts
                             const subjectDiscounts = formData.subjectDiscounts || {};
-                            const subjectDiscount = subjectDiscounts[subjectId] || { discountType: 'none', discountValue: 0 };
+                            const subjectDiscount = subjectDiscounts[subjectId] || { type: 'none', value: 0 };
+                            
+                            const baseFee = parseFloat(String(subject.baseFee)) || 0;
+                            const discountValue = parseFloat(String(subjectDiscount.value)) || 0;
                             
                             let discountAmount = 0;
-                            if (subjectDiscount.discountType === 'percentage') {
-                              discountAmount = (subject.baseFee * subjectDiscount.discountValue) / 100;
-                            } else if (subjectDiscount.discountType === 'fixed') {
-                              discountAmount = subjectDiscount.discountValue;
+                            if (subjectDiscount.type === 'percentage') {
+                              discountAmount = (baseFee * discountValue) / 100;
+                            } else if (subjectDiscount.type === 'fixed') {
+                              discountAmount = discountValue;
                             }
                             
-                            return total + (subject.baseFee - discountAmount);
+                            return total + (baseFee - discountAmount);
                           }, 0)
                         )}</span>
                       </div>
@@ -818,7 +824,23 @@ export default function Enrollment() {
                             <span>{formatPKR(
                               formData.selectedSubjects.reduce((total, subjectId) => {
                                 const subject = subjects.find(s => s.id === subjectId);
-                                return total + (subject ? parseFloat(subject.baseFee) : 0);
+                                if (!subject) return total;
+                                
+                                // Apply subject-specific discounts
+                                const subjectDiscounts = formData.subjectDiscounts || {};
+                                const subjectDiscount = subjectDiscounts[subjectId] || { type: 'none', value: 0 };
+                                
+                                const baseFee = parseFloat(String(subject.baseFee)) || 0;
+                                const discountValue = parseFloat(String(subjectDiscount.value)) || 0;
+                                
+                                let discountAmount = 0;
+                                if (subjectDiscount.type === 'percentage') {
+                                  discountAmount = (baseFee * discountValue) / 100;
+                                } else if (subjectDiscount.type === 'fixed') {
+                                  discountAmount = discountValue;
+                                }
+                                
+                                return total + (baseFee - discountAmount);
                               }, 0) + 
                               (formData.addOns?.reduce((total, addon) => {
                                 switch(addon) {
@@ -848,8 +870,24 @@ export default function Enrollment() {
                                 ? parseFloat(formData.customDiscountAmount)
                                 : (formData.selectedSubjects.reduce((total, subjectId) => {
                                     const subject = subjects.find(s => s.id === subjectId);
-                                    return total + (subject ? parseFloat(subject.baseFee) : 0);
-                                  }, 0) * (parseFloat(formData.discountPercentage) / 100))
+                                    if (!subject) return total;
+                                    
+                                    // Apply subject-specific discounts first
+                                    const subjectDiscounts = formData.subjectDiscounts || {};
+                                    const subjectDiscount = subjectDiscounts[subjectId] || { type: 'none', value: 0 };
+                                    
+                                    const baseFee = parseFloat(String(subject.baseFee)) || 0;
+                                    const discountValue = parseFloat(String(subjectDiscount.value)) || 0;
+                                    
+                                    let discountAmount = 0;
+                                    if (subjectDiscount.type === 'percentage') {
+                                      discountAmount = (baseFee * discountValue) / 100;
+                                    } else if (subjectDiscount.type === 'fixed') {
+                                      discountAmount = discountValue;
+                                    }
+                                    
+                                    return total + (baseFee - discountAmount);
+                                  }, 0) * (parseFloat(formData.discountPercentage || '0') / 100))
                             )}</span>
                           </div>
                           <hr className="my-2" />
@@ -858,7 +896,23 @@ export default function Enrollment() {
                             <span>{formatPKR((() => {
                               const tuitionTotal = formData.selectedSubjects.reduce((total, subjectId) => {
                                 const subject = subjects.find(s => s.id === subjectId);
-                                return total + (subject ? parseFloat(subject.baseFee) : 0);
+                                if (!subject) return total;
+                                
+                                // Apply subject-specific discounts
+                                const subjectDiscounts = formData.subjectDiscounts || {};
+                                const subjectDiscount = subjectDiscounts[subjectId] || { type: 'none', value: 0 };
+                                
+                                const baseFee = parseFloat(String(subject.baseFee)) || 0;
+                                const discountValue = parseFloat(String(subjectDiscount.value)) || 0;
+                                
+                                let discountAmount = 0;
+                                if (subjectDiscount.type === 'percentage') {
+                                  discountAmount = (baseFee * discountValue) / 100;
+                                } else if (subjectDiscount.type === 'fixed') {
+                                  discountAmount = discountValue;
+                                }
+                                
+                                return total + (baseFee - discountAmount);
                               }, 0);
                               const addOnTotal = formData.addOns?.reduce((total, addon) => {
                                 switch(addon) {
@@ -871,7 +925,7 @@ export default function Enrollment() {
                               const subtotal = tuitionTotal + addOnTotal;
                               const discountAmount = formData.customDiscountAmount && parseFloat(formData.customDiscountAmount) > 0 
                                 ? parseFloat(formData.customDiscountAmount)
-                                : (tuitionTotal * (parseFloat(formData.discountPercentage) / 100));
+                                : (tuitionTotal * (parseFloat(formData.discountPercentage || '0') / 100));
                               return subtotal - discountAmount;
                             })())}</span>
                           </div>
