@@ -658,12 +658,15 @@ export default function Enrollment() {
                       if (!subject) return null;
                       
                       const subjectDiscounts = formData.subjectDiscounts || {};
-                      const subjectDiscount = subjectDiscounts[subjectId] || { type: 'none', value: 0 };
+                      const subjectDiscount = subjectDiscounts[subjectId] || { discountType: 'none', discountValue: 0 };
                       
-                      const discountAmount = subjectDiscount.type === 'percentage' 
-                        ? (subject.baseFee * subjectDiscount.value / 100)
-                        : subjectDiscount.value;
-                      const finalFee = subject.baseFee - discountAmount;
+                      const baseFee = parseFloat(String(subject.baseFee)) || 0;
+                      const discountValue = parseFloat(String(subjectDiscount.discountValue)) || 0;
+                      
+                      const discountAmount = subjectDiscount.discountType === 'percentage' 
+                        ? (baseFee * discountValue / 100)
+                        : discountValue;
+                      const finalFee = baseFee - discountAmount;
                       
                       return (
                         <div key={subjectId} className="flex justify-between">
@@ -685,12 +688,15 @@ export default function Enrollment() {
                           if (!subject) return total;
                           
                           const subjectDiscounts = formData.subjectDiscounts || {};
-                          const subjectDiscount = subjectDiscounts[subjectId] || { type: 'none', value: 0 };
+                          const subjectDiscount = subjectDiscounts[subjectId] || { discountType: 'none', discountValue: 0 };
                           
-                          const discountAmount = subjectDiscount.type === 'percentage' 
-                            ? (subject.baseFee * subjectDiscount.value / 100)
-                            : subjectDiscount.value;
-                          return total + (subject.baseFee - discountAmount);
+                          const baseFee = parseFloat(String(subject.baseFee)) || 0;
+                          const discountValue = parseFloat(String(subjectDiscount.discountValue)) || 0;
+                          
+                          const discountAmount = subjectDiscount.discountType === 'percentage' 
+                            ? (baseFee * discountValue / 100)
+                            : discountValue;
+                          return total + (baseFee - discountAmount);
                         }, 0)
                       )}</span>
                     </div>
