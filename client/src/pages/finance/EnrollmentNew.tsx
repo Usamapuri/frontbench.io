@@ -250,30 +250,34 @@ export default function EnrollmentNew() {
 
         {/* Progress Indicator */}
         <div className="mb-8">
-          <div className="flex items-center justify-between max-w-2xl mx-auto">
-            {[1, 2, 3, 4, 5].map((step, index) => (
-              <div key={step} className="flex items-center">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium ${
-                  step <= currentStep 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-gray-200 text-gray-600'
-                }`}>
-                  {step}
+          <div className="flex items-center justify-center max-w-4xl mx-auto">
+            {[
+              { step: 1, label: 'Student Info' },
+              { step: 2, label: 'Subjects' },
+              { step: 3, label: 'Add-Ons' },
+              { step: 4, label: 'Discounts' },
+              { step: 5, label: 'Review' }
+            ].map((item, index) => (
+              <div key={item.step} className="flex items-center">
+                <div className="flex flex-col items-center">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium ${
+                    item.step <= currentStep 
+                      ? 'bg-blue-600 text-white' 
+                      : 'bg-gray-200 text-gray-600'
+                  }`}>
+                    {item.step}
+                  </div>
+                  <span className="text-sm text-gray-600 mt-2 text-center whitespace-nowrap">
+                    {item.label}
+                  </span>
                 </div>
                 {index < 4 && (
-                  <ChevronRight className={`w-5 h-5 mx-2 ${
-                    step < currentStep ? 'text-blue-600' : 'text-gray-400'
+                  <ChevronRight className={`w-5 h-5 mx-6 mt-[-20px] ${
+                    item.step < currentStep ? 'text-blue-600' : 'text-gray-400'
                   }`} />
                 )}
               </div>
             ))}
-          </div>
-          <div className="flex justify-between text-sm text-gray-600 mt-2 max-w-2xl mx-auto">
-            <span>Student Info</span>
-            <span>Subjects</span>
-            <span>Add-Ons</span>
-            <span>Discounts</span>
-            <span>Review</span>
           </div>
         </div>
 
