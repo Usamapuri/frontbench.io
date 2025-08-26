@@ -22,7 +22,7 @@ interface Student {
   firstName: string;
   lastName: string;
   parentId: string | null;
-  classLevel: string;
+  classLevels: string[];
   isActive: boolean;
 }
 
@@ -150,7 +150,7 @@ export default function PortalLinks() {
                   </div>
                   <div className="text-sm text-gray-600">
                     <p>Roll: {student.rollNumber}</p>
-                    <p>Level: {student.classLevel.toUpperCase()}</p>
+                    <p>Level: {student.classLevels && student.classLevels.length > 0 ? student.classLevels.map(level => level.toUpperCase()).join(', ') : 'No Class'}</p>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
