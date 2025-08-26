@@ -244,49 +244,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { 
         studentData, 
-        selectedSubjects, 
-        discountPercentage = 0, 
-        customDiscountAmount = 0,
+        selectedSubjects, // Now includes discount info per subject
         additionalFees = [] 
       } = req.body;
 
-      console.log("Processing complete enrollment:", { studentData, selectedSubjects, discountPercentage, customDiscountAmount });
+      console.log("Processing complete enrollment:", { studentData, selectedSubjects, additionalFees });
 
       // 1. Create the student
       const validatedStudentData = insertStudentSchema.parse(studentData);
       const student = await storage.createStudent(validatedStudentData);
       console.log("Student created:", student.id);
 
-      // 2. Create enrollments for selected subjects
+      // 2. Create enrollments for selected subjects with per-subject discounts
       const enrollments = [];
       let totalTuition = 0;
-      let subjectNames = [];
+      let totalDiscount = 0;
+      const subjectDetails = [];
 
-      for (const subjectId of selectedSubjects) {
+      for (const subjectSelection of selectedSubjects) {
+        const { subjectId, discountType = 'none', discountValue = 0, discountReason = '' } = subjectSelection;
         const subject = await storage.getSubjectById(subjectId);
+        
         if (subject) {
-          // Create enrollment
+          // Calculate subject-specific discount
+          const baseFee = parseFloat(subject.baseFee);
+          let discountAmount = 0;
+          
+          if (discountType === 'percentage') {
+            discountAmount = (baseFee * parseFloat(discountValue)) / 100;
+          } else if (discountType === 'fixed') {
+            discountAmount = parseFloat(discountValue);
+          }
+          
+          const finalSubjectFee = baseFee - discountAmount;
+          
+          // Create enrollment with discount information
           const enrollment = await storage.createEnrollment({
             studentId: student.id,
             subjectId: subjectId,
+            discountType,
+            discountValue: discountValue.toString(),
+            discountReason,
+            discountApprovedBy: 'system', // In real app, this would be the current user
             enrolledAt: new Date(),
             isActive: true
           });
           enrollments.push(enrollment);
           
-          totalTuition += parseFloat(subject.baseFee);
-          subjectNames.push(subject.name);
-          console.log(`Enrolled in ${subject.name} - Fee: Rs.${subject.baseFee}`);
+          totalTuition += baseFee;
+          totalDiscount += discountAmount;
+          subjectDetails.push({
+            name: subject.name,
+            baseFee,
+            discountAmount,
+            finalFee: finalSubjectFee,
+            discountType,
+            discountValue,
+            discountReason
+          });
+          
+          console.log(`Enrolled in ${subject.name} - Base Fee: Rs.${baseFee}, Discount: Rs.${discountAmount}, Final: Rs.${finalSubjectFee}`);
         }
       }
 
-      // 3. Calculate final amount with discounts
-      // Use custom discount amount if provided, otherwise use percentage
-      const discountAmount = customDiscountAmount > 0 
-        ? customDiscountAmount 
-        : (totalTuition * discountPercentage) / 100;
+      // 3. Calculate final amount with subject-specific discounts
       const additionalFeesTotal = additionalFees.reduce((sum: number, fee: any) => sum + parseFloat(fee.amount || 0), 0);
-      const finalTotal = totalTuition - discountAmount + additionalFeesTotal;
+      const finalTotal = totalTuition - totalDiscount + additionalFeesTotal;
 
       // 4. Generate initial invoice
       if (finalTotal > 0) {
@@ -306,12 +329,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           issueDate: currentDate.toISOString().split('T')[0],
           dueDate: dueDate.toISOString().split('T')[0],
           subtotal: totalTuition.toFixed(2),
-          discountAmount: discountAmount.toFixed(2),
+          discountAmount: totalDiscount.toFixed(2),
           total: finalTotal.toFixed(2),
           amountPaid: '0.00',
           balanceDue: finalTotal.toFixed(2),
           status: 'sent',
-          notes: `Initial enrollment invoice for ${subjectNames.join(', ')}${discountAmount > 0 ? (customDiscountAmount > 0 ? ` (Rs.${customDiscountAmount} discount applied)` : ` (${discountPercentage}% discount applied)`) : ''}`,
+          notes: `Initial enrollment invoice for ${subjectDetails.map(s => s.name).join(', ')}${totalDiscount > 0 ? ` (Rs.${totalDiscount.toFixed(2)} total subject discounts applied)` : ''}`,
           createdBy: 'system'
         });
         
@@ -324,7 +347,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           summary: {
             totalSubjects: selectedSubjects.length,
             subtotal: totalTuition,
-            discount: discountAmount,
+            totalDiscount: totalDiscount,
+            subjectDetails: subjectDetails,
             total: finalTotal
           }
         });
@@ -335,7 +359,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           summary: {
             totalSubjects: selectedSubjects.length,
             subtotal: totalTuition,
-            discount: discountAmount,
+            totalDiscount: totalDiscount,
+            subjectDetails: subjectDetails,
             total: finalTotal
           }
         });

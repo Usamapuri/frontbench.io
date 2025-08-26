@@ -106,13 +106,17 @@ export const comboSubjects = pgTable("combo_subjects", {
   subjectId: varchar("subject_id").references(() => subjects.id).notNull(),
 });
 
-// Student enrollments
+// Student enrollments with subject-specific discount tracking
 export const enrollments = pgTable("enrollments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   studentId: varchar("student_id").references(() => students.id).notNull(),
   subjectId: varchar("subject_id").references(() => subjects.id),
   comboId: varchar("combo_id").references(() => subjectCombos.id),
   teacherId: varchar("teacher_id").references(() => users.id),
+  discountType: varchar("discount_type").default('none'), // 'none', 'percentage', 'fixed'
+  discountValue: decimal("discount_value", { precision: 10, scale: 2 }).default('0'),
+  discountReason: varchar("discount_reason"), // why discount was given
+  discountApprovedBy: varchar("discount_approved_by").references(() => users.id), // who approved discount
   enrolledAt: timestamp("enrolled_at").defaultNow(),
   isActive: boolean("is_active").default(true),
 });
@@ -154,7 +158,7 @@ export const addOns = pgTable("add_ons", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Enhanced invoice line items
+// Enhanced invoice line items with subject-specific discounts
 export const invoiceItems = pgTable("invoice_items", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   invoiceId: varchar("invoice_id").references(() => invoices.id).notNull(),
@@ -164,7 +168,11 @@ export const invoiceItems = pgTable("invoice_items", {
   description: text("description").notNull(),
   quantity: integer("quantity").default(1),
   unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
-  total: decimal("total", { precision: 10, scale: 2 }).notNull(),
+  discountType: varchar("discount_type").default('none'), // 'none', 'percentage', 'fixed'
+  discountValue: decimal("discount_value", { precision: 10, scale: 2 }).default('0'), // percentage or fixed amount
+  discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }).default('0'), // calculated discount
+  discountReason: varchar("discount_reason"), // teacher name, reason for discount
+  total: decimal("total", { precision: 10, scale: 2 }).notNull(), // after discount
 });
 
 // Payments
