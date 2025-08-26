@@ -1,0 +1,49 @@
+[vite] connecting...
+[vite] connected.
+Router: selectedRole is finance current path: /dashboard
+Router: selectedRole is finance current path: /enrollment
+useEffect is not defined
+Router: selectedRole is finance current path: /enrollment
+useEffect is not defined
+The above error occurred in the <Enrollment> component:
+
+    at Enrollment (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/src/pages/finance/Enrollment.tsx:32:41)
+    at Route (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=77a32aae:323:16)
+    at Switch (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=77a32aae:379:17)
+    at main
+    at div
+    at div
+    at Layout (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/src/components/Layout.tsx:18:34)
+    at Route (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=77a32aae:323:16)
+    at Switch (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=77a32aae:379:17)
+    at Router
+    at Provider (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=77a32aae:38:15)
+    at TooltipProvider (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=77a32aae:62:5)
+    at QueryClientProvider (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=77a32aae:2805:3)
+    at App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+
+at Enrollment (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/src/pages/finance/Enrollment.tsx:32:41)
+at Route (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=77a32aae:323:16)
+at Switch (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=77a32aae:379:17)
+at main
+at div
+at div
+at Layout (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/src/components/Layout.tsx:18:34)
+at Route (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=77a32aae:323:16)
+at Switch (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=77a32aae:379:17)
+at Router
+at Provider (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=77a32aae:38:15)
+at TooltipProvider (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=77a32aae:62:5)
+at QueryClientProvider (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=77a32aae:2805:3)
+at App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+at t.value (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:17465)
+at new t (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:12630)
+at t.value (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:32766)
+at https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:34400
+useEffect is not defined

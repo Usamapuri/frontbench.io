@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,18 @@ interface EnrollmentFormData {
   discountPercentage: string;
   customDiscountAmount: string;
   additionalFees: Array<{ type: string; amount: number; description?: string }>;
+  subjectDiscounts: Record<string, {
+    discountType: 'none' | 'percentage' | 'fixed';
+    discountValue: number;
+    discountReason: string;
+  }>;
+}
+
+interface RollNumberResponse {
+  classLevel: string;
+  nextRollNumber: string;
+  format: string;
+  example: string;
 }
 
 export default function Enrollment() {
@@ -38,6 +50,7 @@ export default function Enrollment() {
     discountPercentage: "0",
     customDiscountAmount: "0",
     additionalFees: [],
+    subjectDiscounts: {},
   });
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -48,7 +61,7 @@ export default function Enrollment() {
   });
 
   // Auto-generate roll number when class level is selected
-  const { data: nextRollNumberData, refetch: refetchRollNumber } = useQuery({
+  const { data: nextRollNumberData, refetch: refetchRollNumber } = useQuery<RollNumberResponse>({
     queryKey: ['/api/roll-numbers/next', formData.classLevel],
     enabled: !!formData.classLevel,
   });
@@ -537,7 +550,7 @@ export default function Enrollment() {
                   if (!subject) return null;
                   
                   const subjectDiscounts = formData.subjectDiscounts || {};
-                  const subjectDiscount = subjectDiscounts[subjectId] || { type: 'none', value: 0, reason: '' };
+                  const subjectDiscount = subjectDiscounts[subjectId] || { discountType: 'none', discountValue: 0, discountReason: '' };
                   
                   return (
                     <div key={subjectId} className="p-4 border rounded-lg bg-gray-50">
@@ -547,18 +560,18 @@ export default function Enrollment() {
                           <p className="text-sm text-gray-600">Base Fee: {formatPKR(subject.baseFee)}/month</p>
                         </div>
                         <div className="text-right">
-                          {subjectDiscount.type !== 'none' && (
+                          {subjectDiscount.discountType !== 'none' && (
                             <div className="text-sm text-green-600 font-medium">
-                              Discount: {subjectDiscount.type === 'percentage' 
-                                ? `${subjectDiscount.value}%` 
-                                : formatPKR(subjectDiscount.value)}
+                              Discount: {subjectDiscount.discountType === 'percentage' 
+                                ? `${subjectDiscount.discountValue}%` 
+                                : formatPKR(subjectDiscount.discountValue)}
                             </div>
                           )}
                           <div className="text-lg font-semibold">
                             Final: {formatPKR(
-                              subjectDiscount.type === 'percentage' 
-                                ? subject.baseFee - (subject.baseFee * subjectDiscount.value / 100)
-                                : subject.baseFee - subjectDiscount.value
+                              subjectDiscount.discountType === 'percentage' 
+                                ? subject.baseFee - (subject.baseFee * Number(subjectDiscount.discountValue) / 100)
+                                : subject.baseFee - Number(subjectDiscount.discountValue)
                             )}
                           </div>
                         </div>
@@ -569,11 +582,11 @@ export default function Enrollment() {
                           <Label htmlFor={`discount-type-${subjectId}`}>Discount Type</Label>
                           <select
                             id={`discount-type-${subjectId}`}
-                            value={subjectDiscount.type}
+                            value={subjectDiscount.discountType}
                             onChange={(e) => {
                               const newSubjectDiscounts = {
                                 ...subjectDiscounts,
-                                [subjectId]: { ...subjectDiscount, type: e.target.value }
+                                [subjectId]: { ...subjectDiscount, discountType: e.target.value as 'none' | 'percentage' | 'fixed' }
                               };
                               updateFormData('subjectDiscounts', newSubjectDiscounts);
                             }}
@@ -586,23 +599,23 @@ export default function Enrollment() {
                           </select>
                         </div>
                         
-                        {subjectDiscount.type !== 'none' && (
+                        {subjectDiscount.discountType !== 'none' && (
                           <>
                             <div>
                               <Label htmlFor={`discount-value-${subjectId}`}>
-                                {subjectDiscount.type === 'percentage' ? 'Percentage (%)' : 'Amount (Rs.)'}
+                                {subjectDiscount.discountType === 'percentage' ? 'Percentage (%)' : 'Amount (Rs.)'}
                               </Label>
                               <Input
                                 id={`discount-value-${subjectId}`}
                                 type="number"
                                 min="0"
-                                max={subjectDiscount.type === 'percentage' ? "100" : subject.baseFee.toString()}
-                                placeholder={subjectDiscount.type === 'percentage' ? "0-100" : "0"}
-                                value={subjectDiscount.value || ''}
+                                max={subjectDiscount.discountType === 'percentage' ? "100" : subject.baseFee.toString()}
+                                placeholder={subjectDiscount.discountType === 'percentage' ? "0-100" : "0"}
+                                value={subjectDiscount.discountValue || ''}
                                 onChange={(e) => {
                                   const newSubjectDiscounts = {
                                     ...subjectDiscounts,
-                                    [subjectId]: { ...subjectDiscount, value: parseFloat(e.target.value) || 0 }
+                                    [subjectId]: { ...subjectDiscount, discountValue: parseFloat(e.target.value) || 0 }
                                   };
                                   updateFormData('subjectDiscounts', newSubjectDiscounts);
                                 }}
@@ -616,11 +629,11 @@ export default function Enrollment() {
                                 id={`discount-reason-${subjectId}`}
                                 type="text"
                                 placeholder="e.g. Teacher discount, Sibling discount"
-                                value={subjectDiscount.reason || ''}
+                                value={subjectDiscount.discountReason || ''}
                                 onChange={(e) => {
                                   const newSubjectDiscounts = {
                                     ...subjectDiscounts,
-                                    [subjectId]: { ...subjectDiscount, reason: e.target.value }
+                                    [subjectId]: { ...subjectDiscount, discountReason: e.target.value }
                                   };
                                   updateFormData('subjectDiscounts', newSubjectDiscounts);
                                 }}
