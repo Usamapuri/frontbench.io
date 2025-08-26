@@ -38,6 +38,7 @@ interface InvoiceFormData {
     discountType: 'none' | 'percentage' | 'amount';
     discountValue: number;
     discountReason: string;
+    isCurrentlyEnrolled?: boolean;
   }>;
   selectedAddOns: Array<{
     id: string;
@@ -79,6 +80,12 @@ export default function InvoiceWizard({ open, onOpenChange, editingInvoice }: In
 
   const { data: addOns = [] } = useQuery<any[]>({
     queryKey: ['/api/add-ons'],
+  });
+
+  // Fetch student's current enrollments when student is selected
+  const { data: studentEnrollments = [] } = useQuery<any[]>({
+    queryKey: ['/api/enrollments/student', formData.studentId],
+    enabled: !!formData.studentId,
   });
 
   // Get selected student details
@@ -326,23 +333,31 @@ export default function InvoiceWizard({ open, onOpenChange, editingInvoice }: In
     }
   };
 
-  // Initialize subjects and add-ons when dialog opens
+  // Initialize subjects based on student's enrollments when student is selected
   useEffect(() => {
-    if (open && subjects.length > 0 && formData.selectedSubjects.length === 0) {
+    if (formData.studentId && subjects.length > 0) {
+      const enrolledSubjectIds = studentEnrollments.map((enrollment: any) => enrollment.subjectId);
+      
       setFormData(prev => ({
         ...prev,
-        selectedSubjects: subjects.map((subject: any) => ({
-          id: subject.id,
-          name: subject.name,
-          price: parseFloat(subject.baseFee),
-          selected: false,
-          discountType: 'none' as const,
-          discountValue: 0,
-          discountReason: '',
-        })),
+        selectedSubjects: subjects.map((subject: any) => {
+          const isEnrolled = enrolledSubjectIds.includes(subject.id);
+          const enrollment = studentEnrollments.find((e: any) => e.subjectId === subject.id);
+          
+          return {
+            id: subject.id,
+            name: subject.name,
+            price: parseFloat(subject.baseFee),
+            selected: isEnrolled, // Pre-select enrolled subjects
+            discountType: (enrollment?.discountType || 'none') as const,
+            discountValue: enrollment?.discountValue || 0,
+            discountReason: enrollment?.discountReason || '',
+            isCurrentlyEnrolled: isEnrolled, // Track enrollment status
+          };
+        }),
       }));
     }
-  }, [open, subjects]);
+  }, [formData.studentId, subjects, studentEnrollments]);
 
   useEffect(() => {
     if (open && addOns.length > 0 && formData.selectedAddOns.length === 0) {
@@ -487,33 +502,122 @@ export default function InvoiceWizard({ open, onOpenChange, editingInvoice }: In
                   <GraduationCap className="h-5 w-5" />
                   Step 2: Subjects
                 </h3>
-                <p className="text-purple-700 mb-6">Select core subjects and tuition items:</p>
+                <p className="text-purple-700 mb-6">
+                  {selectedStudent 
+                    ? `Select subjects for ${selectedStudent.firstName} ${selectedStudent.lastName}:`
+                    : 'Select core subjects and tuition items:'}
+                </p>
 
-                <div className="space-y-4">
-                  {formData.selectedSubjects.map((subject) => (
-                    <Card key={subject.id} className="bg-white/80 hover:bg-white transition-colors">
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <Checkbox
-                              checked={subject.selected}
-                              onCheckedChange={(checked) => handleSubjectToggle(subject.id, checked as boolean)}
-                              className="h-5 w-5"
-                              data-testid={`checkbox-subject-${subject.id}`}
-                            />
-                            <div>
-                              <p className="font-medium text-purple-900">{subject.name}</p>
-                              <p className="text-sm text-purple-600">Monthly Tuition</p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-2xl font-bold text-purple-900">Rs.{subject.price.toLocaleString()}</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                {/* Currently Enrolled Subjects */}
+                {formData.selectedSubjects.filter(s => s.isCurrentlyEnrolled).length > 0 && (
+                  <div className="mb-8">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Badge className="bg-green-100 text-green-800">Currently Enrolled</Badge>
+                      <h4 className="text-lg font-semibold text-purple-900">
+                        Subjects {selectedStudent?.firstName} is enrolled in
+                      </h4>
+                    </div>
+                    <div className="space-y-4">
+                      {formData.selectedSubjects
+                        .filter(s => s.isCurrentlyEnrolled)
+                        .map((subject, index) => (
+                          <Card key={subject.id} className={`cursor-pointer transition-all duration-200 ${
+                            subject.selected 
+                              ? 'bg-green-100 border-green-300 shadow-md ring-2 ring-green-500' 
+                              : 'bg-green-50 hover:bg-green-100 border-green-200'
+                          }`}>
+                            <CardContent className="p-4">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                  <Checkbox
+                                    checked={subject.selected}
+                                    onCheckedChange={(checked) => handleSubjectToggle(subject.id, checked as boolean)}
+                                    className="h-5 w-5"
+                                    data-testid={`checkbox-enrolled-subject-${index}`}
+                                  />
+                                  <div>
+                                    <p className="font-medium text-green-900">{subject.name}</p>
+                                    <p className="text-sm text-green-600">Currently Enrolled</p>
+                                    {subject.discountType !== 'none' && (
+                                      <p className="text-xs text-green-700">
+                                        Existing discount: {subject.discountType === 'percentage' 
+                                          ? `${subject.discountValue}%` 
+                                          : `Rs.${subject.discountValue}`}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-2xl font-bold text-green-900">Rs.{subject.price.toLocaleString()}</p>
+                                  {subject.discountType !== 'none' && (
+                                    <p className="text-sm text-green-600">
+                                      After discount: Rs.{(
+                                        subject.discountType === 'percentage' 
+                                          ? subject.price - (subject.price * subject.discountValue / 100)
+                                          : subject.price - subject.discountValue
+                                      ).toLocaleString()}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Available Additional Subjects */}
+                {formData.selectedSubjects.filter(s => !s.isCurrentlyEnrolled).length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-4">
+                      <Badge className="bg-purple-100 text-purple-800">Available to Add</Badge>
+                      <h4 className="text-lg font-semibold text-purple-900">Additional subjects available</h4>
+                    </div>
+                    <div className="space-y-4">
+                      {formData.selectedSubjects
+                        .filter(s => !s.isCurrentlyEnrolled)
+                        .map((subject, index) => (
+                          <Card key={subject.id} className={`cursor-pointer transition-all duration-200 ${
+                            subject.selected 
+                              ? 'bg-purple-100 border-purple-300 shadow-md ring-2 ring-purple-500' 
+                              : 'bg-white/80 hover:bg-purple-50 border-purple-100'
+                          }`}>
+                            <CardContent className="p-4">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                  <Checkbox
+                                    checked={subject.selected}
+                                    onCheckedChange={(checked) => handleSubjectToggle(subject.id, checked as boolean)}
+                                    className="h-5 w-5"
+                                    data-testid={`checkbox-additional-subject-${index}`}
+                                  />
+                                  <div>
+                                    <p className="font-medium text-purple-900">{subject.name}</p>
+                                    <p className="text-sm text-purple-600">Additional Subject</p>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-2xl font-bold text-purple-900">Rs.{subject.price.toLocaleString()}</p>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* No subjects available fallback */}
+                {formData.selectedSubjects.length === 0 && (
+                  <Card className="bg-white/80">
+                    <CardContent className="p-8 text-center">
+                      <Plus className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500 font-medium">No subjects available</p>
+                      <p className="text-sm text-gray-400">Subjects will appear when a student is selected</p>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
             </div>
           )}
