@@ -696,42 +696,31 @@ export default function InvoiceWizard({ open, onOpenChange, editingInvoice }: In
                       <div>
                         <h4 className="font-medium text-gray-900 mb-2">Selected Items:</h4>
                         <div className="space-y-2">
-                          {formData.selectedSubjects
-                            .filter(s => s.selected)
-                            .map(subject => {
-                              const discountAmount = subject.discountType === 'percentage' 
-                                ? (subject.price * subject.discountValue) / 100
-                                : subject.discountType === 'amount' 
-                                  ? subject.discountValue 
-                                  : 0;
-                              const finalPrice = Math.max(0, subject.price - discountAmount);
-                              
-                              return (
-                                <div key={subject.id} className="text-sm">
-                                  <div className="flex justify-between">
-                                    <span>{subject.name}</span>
-                                    <span>Rs.{subject.price.toLocaleString()}</span>
-                                  </div>
-                                  {discountAmount > 0 && (
-                                    <div className="flex justify-between text-xs text-green-600 ml-4">
-                                      <span>
-                                        {subject.discountType === 'percentage' 
-                                          ? `Discount (${subject.discountValue}%)`
-                                          : `Discount`}
-                                        {subject.discountReason && ` - ${subject.discountReason}`}
-                                      </span>
-                                      <span>-Rs.{discountAmount.toLocaleString()}</span>
-                                    </div>
-                                  )}
-                                  {discountAmount > 0 && (
-                                    <div className="flex justify-between text-xs font-medium ml-4">
-                                      <span>Final Price:</span>
-                                      <span>Rs.{finalPrice.toLocaleString()}</span>
-                                    </div>
-                                  )}
+                          {subjectDetails.map(subject => (
+                            <div key={subject.id} className="text-sm">
+                              <div className="flex justify-between">
+                                <span>{subject.name}</span>
+                                <span>Rs.{subject.basePrice.toLocaleString()}</span>
+                              </div>
+                              {subject.discountAmount > 0 && (
+                                <div className="flex justify-between text-xs text-green-600 ml-4">
+                                  <span>
+                                    {subject.discountType === 'percentage' 
+                                      ? `Discount (${subject.discountValue}%)`
+                                      : `Discount`}
+                                    {subject.discountReason && ` - ${subject.discountReason}`}
+                                  </span>
+                                  <span>-Rs.{subject.discountAmount.toLocaleString()}</span>
                                 </div>
-                              );
-                            })}
+                              )}
+                              {subject.discountAmount > 0 && (
+                                <div className="flex justify-between text-xs font-medium ml-4">
+                                  <span>Final Price:</span>
+                                  <span>Rs.{subject.finalPrice.toLocaleString()}</span>
+                                </div>
+                              )}
+                            </div>
+                          ))}
                           {formData.selectedAddOns
                             .filter(a => a.selected)
                             .map(addon => (

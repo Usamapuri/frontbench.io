@@ -728,12 +728,46 @@ export default function Enrollment() {
                   <h4 className="font-medium text-gray-800 mb-3">Fee Breakdown</h4>
                   {formData.selectedSubjects.map(subjectId => {
                     const subject = subjects.find(s => s.id === subjectId);
-                    return subject ? (
-                      <div key={subject.id} className="flex justify-between text-sm">
-                        <span>{subject.name}</span>
-                        <span>{formatPKR(subject.baseFee)}</span>
+                    if (!subject) return null;
+                    
+                    // Calculate discount for this subject
+                    const subjectDiscounts = formData.subjectDiscounts || {};
+                    const subjectDiscount = subjectDiscounts[subjectId] || { discountType: 'none', discountValue: 0 };
+                    
+                    let discountAmount = 0;
+                    if (subjectDiscount.discountType === 'percentage') {
+                      discountAmount = (subject.baseFee * subjectDiscount.discountValue) / 100;
+                    } else if (subjectDiscount.discountType === 'fixed') {
+                      discountAmount = subjectDiscount.discountValue;
+                    }
+                    
+                    const finalPrice = subject.baseFee - discountAmount;
+                    
+                    return (
+                      <div key={subject.id} className="space-y-1">
+                        <div className="flex justify-between text-sm">
+                          <span>{subject.name}</span>
+                          <span>{formatPKR(subject.baseFee)}</span>
+                        </div>
+                        {discountAmount > 0 && (
+                          <>
+                            <div className="flex justify-between text-xs text-green-600 ml-4">
+                              <span>
+                                Discount ({subjectDiscount.discountType === 'percentage' 
+                                  ? `${subjectDiscount.discountValue}%` 
+                                  : `Rs.${subjectDiscount.discountValue}`}
+                                {subjectDiscount.discountReason && ` - ${subjectDiscount.discountReason}`})
+                              </span>
+                              <span>-{formatPKR(discountAmount)}</span>
+                            </div>
+                            <div className="flex justify-between text-xs font-medium ml-4">
+                              <span>Final Price:</span>
+                              <span>{formatPKR(finalPrice)}</span>
+                            </div>
+                          </>
+                        )}
                       </div>
-                    ) : null;
+                    );
                   })}
                   
                   {formData.selectedSubjects.length > 0 && (
@@ -744,7 +778,20 @@ export default function Enrollment() {
                         <span>{formatPKR(
                           formData.selectedSubjects.reduce((total, subjectId) => {
                             const subject = subjects.find(s => s.id === subjectId);
-                            return total + (subject ? parseFloat(subject.baseFee) : 0);
+                            if (!subject) return total;
+                            
+                            // Apply subject-specific discounts
+                            const subjectDiscounts = formData.subjectDiscounts || {};
+                            const subjectDiscount = subjectDiscounts[subjectId] || { discountType: 'none', discountValue: 0 };
+                            
+                            let discountAmount = 0;
+                            if (subjectDiscount.discountType === 'percentage') {
+                              discountAmount = (subject.baseFee * subjectDiscount.discountValue) / 100;
+                            } else if (subjectDiscount.discountType === 'fixed') {
+                              discountAmount = subjectDiscount.discountValue;
+                            }
+                            
+                            return total + (subject.baseFee - discountAmount);
                           }, 0)
                         )}</span>
                       </div>
