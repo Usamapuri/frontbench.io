@@ -37,6 +37,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { and, desc, eq, gte, lte, sql } from 'drizzle-orm';
+import { ObjectStorageService } from "./objectStorage";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Enhanced demo authentication with role-based access control
@@ -1178,17 +1179,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all daily closes for management dashboard
+  app.get("/api/daily-close", async (req, res) => {
+    try {
+      const dailyCloseRecords = await storage.getAllDailyCloses();
+      res.json(dailyCloseRecords);
+    } catch (error) {
+      console.error("Error fetching daily closes:", error);
+      res.status(500).json({ message: "Failed to fetch daily closes" });
+    }
+  });
+
   app.post("/api/daily-close", isAuthenticated, async (req: any, res) => {
     try {
+      // Check if daily close already exists for this date
+      const existingRecord = await storage.getDailyClose(req.body.closeDate);
+      
       const dailyCloseData = {
         ...req.body,
         closedBy: "demo-finance-user", // For demo purposes
       };
+
+      if (existingRecord) {
+        // Update existing record
+        const updatedRecord = await storage.updateDailyClose(req.body.closeDate, dailyCloseData);
+        return res.json(updatedRecord);
+      }
+      
       const dailyCloseRecord = await storage.createDailyClose(dailyCloseData);
       res.status(201).json(dailyCloseRecord);
     } catch (error) {
-      console.error("Error creating daily close:", error);
-      res.status(400).json({ message: "Failed to create daily close" });
+      console.error("Error creating/updating daily close:", error);
+      res.status(400).json({ message: "Failed to create/update daily close" });
+    }
+  });
+
+  // Daily close PDF generation and storage
+  app.post("/api/daily-close/generate-pdf", isAuthenticated, async (req: any, res) => {
+    try {
+      const { closeDate, dailyCloseData } = req.body;
+      
+      // Simple PDF content generation (can be enhanced later)
+      const pdfContent = JSON.stringify({
+        title: `Daily Close Report - ${closeDate}`,
+        ...dailyCloseData,
+        generatedAt: new Date().toISOString(),
+        generatedBy: "demo-finance-user"
+      });
+      
+      const fileName = `daily-close-${closeDate}.pdf`;
+      
+      // Store PDF in object storage
+      const objectStorageService = new ObjectStorageService();
+      const pdfPath = await objectStorageService.uploadPDF(Buffer.from(pdfContent), fileName);
+      
+      // Update daily close record with PDF path
+      await storage.updateDailyClose(closeDate, { 
+        ...dailyCloseData,
+        pdfPath,
+        isLocked: true 
+      });
+      
+      res.json({ 
+        success: true, 
+        pdfPath,
+        message: "Daily close locked and PDF generated successfully" 
+      });
+    } catch (error) {
+      console.error("Error generating daily close PDF:", error);
+      res.status(500).json({ message: "Failed to generate PDF" });
     }
   });
 

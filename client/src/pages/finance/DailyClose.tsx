@@ -50,6 +50,30 @@ export default function DailyClose() {
     },
   });
 
+  const lockDayAndGeneratePDF = useMutation({
+    mutationFn: async (data: any) => {
+      return await apiRequest('POST', '/api/daily-close/generate-pdf', data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Daily close locked and PDF generated successfully!",
+        variant: "success" as any,
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/daily-close'] });
+      setTotalCash("");
+      setTotalBank("");
+      setNotes("");
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to generate PDF. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleSubmit = () => {
     const cash = parseFloat(totalCash) || 0;
     const bank = parseFloat(totalBank) || 0;
@@ -59,8 +83,35 @@ export default function DailyClose() {
       closeDate: selectedDate,
       totalCash: cash,
       totalBank: bank,
+      expectedCash,
+      expectedBank,
+      expectedTotal,
+      actualTotal: cash + bank,
       variance,
       notes,
+    });
+  };
+
+  const handleLockAndGeneratePDF = () => {
+    const cash = parseFloat(totalCash) || 0;
+    const bank = parseFloat(totalBank) || 0;
+    const variance = cash + bank - (expectedTotal || 0);
+
+    const dailyCloseData = {
+      closeDate: selectedDate,
+      totalCash: cash,
+      totalBank: bank,
+      expectedCash,
+      expectedBank,
+      expectedTotal,
+      actualTotal: cash + bank,
+      variance,
+      notes,
+    };
+
+    lockDayAndGeneratePDF.mutate({
+      closeDate: selectedDate,
+      dailyCloseData,
     });
   };
 
@@ -299,18 +350,29 @@ export default function DailyClose() {
             <div className="flex justify-end space-x-3">
               <Button
                 variant="outline"
-                disabled={!totalCash && !totalBank}
+                onClick={handleSubmit}
+                disabled={!totalCash && !totalBank || createDailyCloseMutation.isPending}
                 data-testid="button-save-draft"
               >
                 Save as Draft
               </Button>
               <Button
-                onClick={handleSubmit}
-                disabled={!totalCash || !totalBank || createDailyCloseMutation.isPending}
+                onClick={handleLockAndGeneratePDF}
+                disabled={!totalCash || !totalBank || lockDayAndGeneratePDF.isPending}
                 data-testid="button-lock-day"
+                className="bg-blue-600 hover:bg-blue-700"
               >
-                {createDailyCloseMutation.isPending ? 'Processing...' : 'Lock Day & Generate PDF'}
-                <i className="fas fa-lock ml-2"></i>
+                {lockDayAndGeneratePDF.isPending ? (
+                  <>
+                    <i className="fas fa-spinner fa-spin mr-2"></i>
+                    Generating PDF...
+                  </>
+                ) : (
+                  <>
+                    <i className="fas fa-lock mr-2"></i>
+                    Lock Day & Generate PDF
+                  </>
+                )}
               </Button>
             </div>
           </CardContent>

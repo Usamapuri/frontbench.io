@@ -330,7 +330,12 @@ export const dailyClose = pgTable("daily_close", {
   closeDate: date("close_date").notNull().unique(),
   totalCash: decimal("total_cash", { precision: 10, scale: 2 }).notNull(),
   totalBank: decimal("total_bank", { precision: 10, scale: 2 }).notNull(),
+  expectedCash: decimal("expected_cash", { precision: 10, scale: 2 }).notNull(),
+  expectedBank: decimal("expected_bank", { precision: 10, scale: 2 }).notNull(),
+  expectedTotal: decimal("expected_total", { precision: 10, scale: 2 }).notNull(),
+  actualTotal: decimal("actual_total", { precision: 10, scale: 2 }).notNull(),
   variance: decimal("variance", { precision: 10, scale: 2 }).default('0'),
+  pdfPath: varchar("pdf_path"), // Object storage path for generated PDF
   isLocked: boolean("is_locked").default(false),
   closedBy: varchar("closed_by").references(() => users.id).notNull(),
   closedAt: timestamp("closed_at").defaultNow(),

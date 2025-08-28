@@ -879,6 +879,22 @@ export class DatabaseStorage implements IStorage {
     return dailyCloseRecord;
   }
 
+  async updateDailyClose(date: string, updates: any): Promise<DailyClose> {
+    const [updatedRecord] = await db
+      .update(dailyClose)
+      .set(updates)
+      .where(eq(dailyClose.closeDate, date))
+      .returning();
+    return updatedRecord;
+  }
+
+  async getAllDailyCloses(): Promise<DailyClose[]> {
+    return await db
+      .select()
+      .from(dailyClose)
+      .orderBy(desc(dailyClose.closeDate));
+  }
+
   // Expenses
   async getExpenses(limit = 50): Promise<Expense[]> {
     return await db

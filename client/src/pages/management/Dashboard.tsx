@@ -273,15 +273,30 @@ export default function ManagementDashboard() {
               </Button>
             </Link>
             
+            <Link href="/daily-close-log">
+              <Button 
+                variant="outline" 
+                className="w-full h-24 flex flex-col items-center justify-center space-y-3 hover:shadow-md hover:border-purple-300 transition-all duration-200 group"
+                data-testid="button-daily-close-log"
+              >
+                <div className="p-2 rounded-lg bg-purple-50 group-hover:bg-purple-100 transition-colors">
+                  <PieChart className="h-6 w-6 text-purple-600" />
+                </div>
+                <span className="text-sm font-medium text-gray-700 group-hover:text-purple-600 transition-colors">
+                  Daily Close Log
+                </span>
+              </Button>
+            </Link>
+
             <Button 
               variant="outline" 
-              className="w-full h-24 flex flex-col items-center justify-center space-y-3 hover:shadow-md hover:border-purple-300 transition-all duration-200 group"
+              className="w-full h-24 flex flex-col items-center justify-center space-y-3 hover:shadow-md hover:border-blue-300 transition-all duration-200 group"
               data-testid="button-financial-reports"
             >
-              <div className="p-2 rounded-lg bg-purple-50 group-hover:bg-purple-100 transition-colors">
-                <PieChart className="h-6 w-6 text-purple-600" />
+              <div className="p-2 rounded-lg bg-blue-50 group-hover:bg-blue-100 transition-colors">
+                <PieChart className="h-6 w-6 text-blue-600" />
               </div>
-              <span className="text-sm font-medium text-gray-700 group-hover:text-purple-600 transition-colors">
+              <span className="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">
                 Financial Reports
               </span>
             </Button>
