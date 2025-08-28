@@ -12,6 +12,7 @@ import {
   attendance,
   assessments,
   grades,
+  payoutRules,
   cashDrawRequests,
   dailyClose,
   expenses,
