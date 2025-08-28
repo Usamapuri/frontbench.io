@@ -1198,6 +1198,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const dailyCloseData = {
         ...req.body,
         closedBy: "demo-finance-user", // For demo purposes
+        closedAt: new Date()
       };
 
       if (existingRecord) {
@@ -1233,13 +1234,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         dailyCloseRecord = await storage.updateDailyClose(closeDate, {
           ...dailyCloseData,
           isLocked: true,
-          closedAt: new Date().toISOString()
+          closedAt: new Date()
         });
       } else {
         dailyCloseRecord = await storage.createDailyClose({
           ...dailyCloseData,
           isLocked: true,
-          closedAt: new Date().toISOString()
+          closedAt: new Date()
         });
       }
       
