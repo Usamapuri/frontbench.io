@@ -49,6 +49,9 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, gte, lte, count, sum, avg } from "drizzle-orm";
+import { PrimaxBillingService } from "./billing";
+
+const billingService = new PrimaxBillingService();
 
 export interface IStorage {
   // User operations - mandatory for Replit Auth
@@ -572,10 +575,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createPayment(paymentData: any): Promise<Payment> {
-    // Ensure receiptNumber is provided or generate one
+    // Ensure receiptNumber is provided or generate clean one
+    let receiptNumber = paymentData.receiptNumber;
+    if (!receiptNumber) {
+      receiptNumber = await billingService.generateReceiptNumber();
+    }
     const paymentDataWithReceipt = {
       ...paymentData,
-      receiptNumber: paymentData.receiptNumber || `RCP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      receiptNumber
     };
     const [payment] = await db.insert(payments).values(paymentDataWithReceipt).returning();
     return payment;
@@ -606,9 +613,10 @@ export class DatabaseStorage implements IStorage {
       throw new Error('Invoice is already fully paid and cannot accept additional payments');
     }
 
-    // Create payment record  
+    // Create payment record with clean receipt number based on invoice
+    const cleanReceiptNumber = await billingService.generateReceiptNumber(invoice.invoiceNumber);
     const [payment] = await db.insert(payments).values({
-      receiptNumber: `RCP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      receiptNumber: cleanReceiptNumber,
       studentId: paymentData.studentId,
       amount: paymentData.paymentAmount.toFixed(2),
       paymentMethod: paymentData.paymentMethod as "cash" | "bank_transfer" | "card" | "cheque",

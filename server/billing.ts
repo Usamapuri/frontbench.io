@@ -1,7 +1,7 @@
 import { storage } from "./storage";
 import { db } from "./db";
 import { invoices, payments, paymentAllocations, invoiceAdjustments, billingSchedules, enrollments, subjects } from "@shared/schema";
-import { eq, and, sum, desc, gte, lte } from "drizzle-orm";
+import { eq, and, sum, desc, gte, lte, sql } from "drizzle-orm";
 
 export interface BillingService {
   // Standard monthly billing
@@ -543,7 +543,7 @@ export class PrimaxBillingService implements BillingService {
     return `INV-${year}${month}${String(sequence).padStart(4, '0')}`;
   }
   
-  private async generateReceiptNumber(invoiceNumber?: string): Promise<string> {
+  async generateReceiptNumber(invoiceNumber?: string): Promise<string> {
     if (invoiceNumber) {
       // Generate invoice-based receipt number: RCP-{InvoiceNumber}-{Sequence}
       const existingReceipts = await db

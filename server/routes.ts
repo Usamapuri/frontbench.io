@@ -955,10 +955,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         res.status(201).json(result);
       } else {
-        // For general payments without specific invoice, create payment with auto-generated receipt
+        // For general payments without specific invoice, create payment with clean receipt number
+        const cleanReceiptNumber = await billingService.generateReceiptNumber();
         const validatedData = insertPaymentSchema.parse({
           ...req.body,
-          receiptNumber: `RCP-${Date.now()}`,
+          receiptNumber: cleanReceiptNumber,
           paymentDate: new Date(req.body.paymentDate),
           receivedBy: 'system',
         });
