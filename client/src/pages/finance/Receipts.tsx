@@ -634,16 +634,29 @@ export default function Receipts() {
                   <th className="px-4 py-3 text-left font-medium text-gray-700">Payment Method</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-700">Transaction #</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-700">Notes</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-700">Actions</th>
+
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {filteredPayments.length > 0 ? filteredPayments.map((payment: any) => (
                   <tr key={payment.id} className="hover:bg-gray-50" data-testid={`row-payment-${payment.id}`}>
                     <td className="px-4 py-3">
-                      <span className="font-medium text-blue-600" data-testid={`text-receipt-${payment.id}`}>
+                      <button 
+                        className="font-medium text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                        onClick={() => {
+                          // Create format selection dialog first
+                          const formatChoice = window.confirm("Choose Receipt Format:\n\nOK = Full PDF Format (A4)\nCancel = Thermal Receipt Format");
+                          
+                          if (formatChoice) {
+                            generatePDFReceipt(payment);
+                          } else {
+                            generateThermalReceipt(payment);
+                          }
+                        }}
+                        data-testid={`text-receipt-${payment.id}`}
+                      >
                         {payment.receiptNumber || 'N/A'}
-                      </span>
+                      </button>
                     </td>
                     <td className="px-4 py-3" data-testid={`text-student-${payment.id}`}>
                       {getStudentName(payment.studentId)}
@@ -676,32 +689,11 @@ export default function Receipts() {
                         {payment.notes || '-'}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex space-x-2">
-                        <Button 
-                          size="sm" 
-                          variant="ghost"
-                          onClick={() => {
-                            // Create format selection dialog first
-                            const formatChoice = window.confirm("Choose Receipt Format:\n\nOK = Full PDF Format (A4)\nCancel = Thermal Receipt Format");
-                            
-                            if (formatChoice) {
-                              generatePDFReceipt(payment);
-                            } else {
-                              generateThermalReceipt(payment);
-                            }
-                          }}
-                          data-testid={`button-print-receipt-${payment.id}`}
-                          title="Print Receipt"
-                        >
-                          <i className="fas fa-print"></i>
-                        </Button>
-                      </div>
-                    </td>
+
                   </tr>
                 )) : (
                   <tr>
-                    <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                    <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
                       <i className="fas fa-receipt text-4xl mb-4"></i>
                       <p>No receipts found</p>
                       {(searchQuery || paymentMethodFilter !== "all" || dateRangeFilter !== "all" || amountRangeFilter !== "all" || studentFilter !== "all") && (
