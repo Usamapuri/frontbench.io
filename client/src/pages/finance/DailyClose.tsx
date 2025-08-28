@@ -247,7 +247,7 @@ export default function DailyClose() {
             </div>
             <div className="text-sm text-gray-600">
               <i className="fas fa-info-circle mr-2"></i>
-              You can select any past date to complete daily close operations. Once locked, dates cannot be modified.
+              You can select any date (past, present, or future) to complete daily close operations. Once locked, dates cannot be modified.
             </div>
           </div>
         </CardContent>
@@ -364,7 +364,9 @@ export default function DailyClose() {
             <p className="text-sm text-gray-600">
               {new Date(selectedDate).toDateString() === new Date().toDateString() 
                 ? "Recording daily close for today" 
-                : "Recording daily close for a past date - you can complete missed daily closes"}
+                : new Date(selectedDate) < new Date()
+                  ? "Recording daily close for a past date - you can complete missed daily closes"
+                  : "Recording daily close for a future date - you can plan ahead"}
             </p>
           </CardHeader>
           <CardContent className="space-y-6">
