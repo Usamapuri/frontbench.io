@@ -1219,35 +1219,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { closeDate, dailyCloseData } = req.body;
       
-      // Simple PDF content generation (can be enhanced later)
-      const pdfContent = JSON.stringify({
-        title: `Daily Close Report - ${closeDate}`,
-        ...dailyCloseData,
-        generatedAt: new Date().toISOString(),
-        generatedBy: "demo-finance-user"
-      });
+      // Check if record already exists and is locked
+      const existingRecord = await storage.getDailyClose(closeDate);
+      if (existingRecord?.isLocked) {
+        return res.status(400).json({ 
+          message: "This date is already locked and cannot be modified" 
+        });
+      }
       
-      const fileName = `daily-close-${closeDate}.pdf`;
+      // Create or update the daily close record first
+      let dailyCloseRecord;
+      if (existingRecord) {
+        dailyCloseRecord = await storage.updateDailyClose(closeDate, {
+          ...dailyCloseData,
+          isLocked: true,
+          closedAt: new Date().toISOString()
+        });
+      } else {
+        dailyCloseRecord = await storage.createDailyClose({
+          ...dailyCloseData,
+          isLocked: true,
+          closedAt: new Date().toISOString()
+        });
+      }
       
-      // Store PDF in object storage
-      const objectStorageService = new ObjectStorageService();
-      const pdfPath = await objectStorageService.uploadPDF(Buffer.from(pdfContent), fileName);
-      
-      // Update daily close record with PDF path
-      await storage.updateDailyClose(closeDate, { 
-        ...dailyCloseData,
-        pdfPath,
-        isLocked: true 
-      });
-      
+      // For now, skip PDF generation and just return success
+      // (PDF generation can be added later with proper library)
       res.json({ 
         success: true, 
-        pdfPath,
-        message: "Daily close locked and PDF generated successfully" 
+        message: "Daily close locked successfully",
+        dailyCloseRecord
       });
     } catch (error) {
-      console.error("Error generating daily close PDF:", error);
-      res.status(500).json({ message: "Failed to generate PDF" });
+      console.error("Error locking daily close:", error);
+      res.status(500).json({ message: "Failed to lock daily close" });
     }
   });
 
