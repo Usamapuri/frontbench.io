@@ -128,27 +128,27 @@ export default function FinanceDashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Link href="/enrollment">
-              <Button variant="outline" className="h-20 flex flex-col space-y-2" data-testid="button-new-enrollment">
+            <Link href="/enrollment" className="w-full">
+              <Button variant="outline" className="w-full h-20 flex flex-col items-center justify-center space-y-2" data-testid="button-new-enrollment">
                 <i className="fas fa-user-plus text-2xl text-blue-600"></i>
                 <span className="text-sm font-medium">New Enrollment</span>
               </Button>
             </Link>
             
-            <Link href="/invoices">
-              <Button variant="outline" className="h-20 flex flex-col space-y-2" data-testid="button-create-invoice">
+            <Link href="/invoices" className="w-full">
+              <Button variant="outline" className="w-full h-20 flex flex-col items-center justify-center space-y-2" data-testid="button-create-invoice">
                 <i className="fas fa-file-invoice text-2xl text-blue-600"></i>
                 <span className="text-sm font-medium">Create Invoice</span>
               </Button>
             </Link>
             
-            <Button variant="outline" className="h-20 flex flex-col space-y-2" data-testid="button-record-payment">
+            <Button variant="outline" className="w-full h-20 flex flex-col items-center justify-center space-y-2" data-testid="button-record-payment">
               <i className="fas fa-credit-card text-2xl text-blue-600"></i>
               <span className="text-sm font-medium">Record Payment</span>
             </Button>
             
-            <Link href="/daily-close">
-              <Button variant="outline" className="h-20 flex flex-col space-y-2" data-testid="button-daily-close">
+            <Link href="/daily-close" className="w-full">
+              <Button variant="outline" className="w-full h-20 flex flex-col items-center justify-center space-y-2" data-testid="button-daily-close">
                 <i className="fas fa-lock text-2xl text-blue-600"></i>
                 <span className="text-sm font-medium">Daily Close</span>
               </Button>
