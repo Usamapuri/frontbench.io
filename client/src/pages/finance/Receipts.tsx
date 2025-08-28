@@ -635,7 +635,7 @@ export default function Receipts() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3 text-left font-medium text-gray-700">Receipt #</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-700 w-52">Receipt #</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-700">Roll #</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-700">Student</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-700">Date</th>
@@ -647,9 +647,9 @@ export default function Receipts() {
               <tbody className="divide-y divide-gray-200">
                 {filteredPayments.length > 0 ? filteredPayments.map((payment: any) => (
                   <tr key={payment.id} className="hover:bg-gray-50" data-testid={`row-payment-${payment.id}`}>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 w-52">
                       <button 
-                        className="font-medium text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                        className="font-medium text-blue-600 hover:text-blue-800 hover:underline cursor-pointer font-mono text-sm whitespace-nowrap"
                         onClick={() => {
                           // Create format selection dialog first
                           const formatChoice = window.confirm("Choose Receipt Format:\n\nOK = Full PDF Format (A4)\nCancel = Thermal Receipt Format");
