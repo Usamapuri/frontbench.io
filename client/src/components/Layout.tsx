@@ -18,8 +18,8 @@ export default function Layout({ children, selectedRole }: LayoutProps) {
       <Sidebar selectedRole={selectedRole} />
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="bg-white shadow-sm border-b px-6 py-4">
-          <div className="flex items-center justify-between">
+        <header className="bg-white shadow-sm border-b px-6 py-4 min-h-[88px] flex items-center">
+          <div className="flex items-center justify-between w-full">
             <div>
               <h1 className="text-2xl font-semibold text-gray-800">
                 {getRoleTitle(mockUser?.role)}
