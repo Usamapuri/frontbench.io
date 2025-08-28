@@ -2,8 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Link } from "wouter";
-import { Receipt, DollarSign, PieChart, Users } from "lucide-react";
+import { Users } from "lucide-react";
 import type { DashboardStats } from "@/types";
 
 export default function ManagementDashboard() {
@@ -195,75 +194,7 @@ export default function ManagementDashboard() {
 
 
 
-      {/* Management Tools */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Management Tools</CardTitle>
-        </CardHeader>
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Link href="/expenses">
-              <Button 
-                variant="outline" 
-                className="w-full h-24 flex flex-col items-center justify-center space-y-3 hover:shadow-md hover:border-blue-300 transition-all duration-200 group"
-                data-testid="button-manage-expenses"
-              >
-                <div className="p-2 rounded-lg bg-blue-50 group-hover:bg-blue-100 transition-colors">
-                  <Receipt className="h-6 w-6 text-blue-600" />
-                </div>
-                <span className="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">
-                  Manage Expenses
-                </span>
-              </Button>
-            </Link>
-            
-            <Link href="/payouts">
-              <Button 
-                variant="outline" 
-                className="w-full h-24 flex flex-col items-center justify-center space-y-3 hover:shadow-md hover:border-green-300 transition-all duration-200 group"
-                data-testid="button-teacher-payouts"
-              >
-                <div className="p-2 rounded-lg bg-green-50 group-hover:bg-green-100 transition-colors">
-                  <DollarSign className="h-6 w-6 text-green-600" />
-                </div>
-                <span className="text-sm font-medium text-gray-700 group-hover:text-green-600 transition-colors">
-                  Teacher Payouts
-                </span>
-              </Button>
-            </Link>
-            
-            <Link href="/daily-close-log">
-              <Button 
-                variant="outline" 
-                className="w-full h-24 flex flex-col items-center justify-center space-y-3 hover:shadow-md hover:border-purple-300 transition-all duration-200 group"
-                data-testid="button-daily-close-log"
-              >
-                <div className="p-2 rounded-lg bg-purple-50 group-hover:bg-purple-100 transition-colors">
-                  <i className="fas fa-calendar-check text-purple-600 text-xl"></i>
-                </div>
-                <span className="text-sm font-medium text-gray-700 group-hover:text-purple-600 transition-colors">
-                  Daily Close
-                </span>
-              </Button>
-            </Link>
 
-            
-
-            <Button 
-              variant="outline" 
-              className="w-full h-24 flex flex-col items-center justify-center space-y-3 hover:shadow-md hover:border-blue-300 transition-all duration-200 group"
-              data-testid="button-financial-reports"
-            >
-              <div className="p-2 rounded-lg bg-blue-50 group-hover:bg-blue-100 transition-colors">
-                <PieChart className="h-6 w-6 text-blue-600" />
-              </div>
-              <span className="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">
-                Financial Reports
-              </span>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Expense Categories */}
       <Card>
