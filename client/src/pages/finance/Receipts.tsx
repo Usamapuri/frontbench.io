@@ -30,6 +30,12 @@ export default function Receipts() {
     return student ? `${student.firstName} ${student.lastName}` : 'Unknown Student';
   };
 
+  // Helper function to get student roll number
+  const getStudentRollNumber = (studentId: string) => {
+    const student = students?.find((s: any) => s.id === studentId);
+    return student?.rollNumber || 'N/A';
+  };
+
 
 
   const generatePDFReceipt = async (payment: any) => {
@@ -414,9 +420,11 @@ export default function Receipts() {
     // Text search across receipt number, student name, and notes
     const studentName = getStudentName(payment.studentId).toLowerCase();
     const searchTerms = searchQuery.toLowerCase();
+    const studentRollNumber = payment.studentRollNumber || getStudentRollNumber(payment.studentId);
     const matchesSearch = !searchQuery || 
       payment.receiptNumber?.toLowerCase().includes(searchTerms) ||
       studentName.includes(searchTerms) ||
+      studentRollNumber.toLowerCase().includes(searchTerms) ||
       payment.notes?.toLowerCase().includes(searchTerms);
 
     // Payment method filter
@@ -522,7 +530,7 @@ export default function Receipts() {
             {/* Search Bar */}
             <div className="relative">
               <Input
-                placeholder="Search receipts, students, or notes..."
+                placeholder="Search receipts, students, roll numbers, or notes..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 w-full"
@@ -628,13 +636,13 @@ export default function Receipts() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-3 text-left font-medium text-gray-700">Receipt #</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-700">Roll #</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-700">Student</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-700">Date</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-700">Amount</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-700">Payment Method</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-700">Transaction #</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-700">Notes</th>
-
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -658,8 +666,15 @@ export default function Receipts() {
                         {payment.receiptNumber || 'N/A'}
                       </button>
                     </td>
+                    <td className="px-4 py-3" data-testid={`text-roll-number-${payment.id}`}>
+                      <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">
+                        {payment.studentRollNumber || getStudentRollNumber(payment.studentId)}
+                      </span>
+                    </td>
                     <td className="px-4 py-3" data-testid={`text-student-${payment.id}`}>
-                      {getStudentName(payment.studentId)}
+                      {payment.studentFirstName && payment.studentLastName 
+                        ? `${payment.studentFirstName} ${payment.studentLastName}`
+                        : getStudentName(payment.studentId)}
                     </td>
                     <td className="px-4 py-3" data-testid={`text-payment-date-${payment.id}`}>
                       {new Date(payment.paymentDate).toLocaleDateString()}

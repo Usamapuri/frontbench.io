@@ -2,7 +2,16 @@
 
 Primax School Management System is a comprehensive web application designed to digitize school processes, replacing paper-based systems and Google Sheets. It provides tailored interfaces with advanced role-based access control supporting three user types: TEACHER (limited access), SUPER ADMIN TEACHER (full access including teaching), and SUPER ADMIN MANAGEMENT (full access excluding teaching). The system integrates enrollment, attendance, grade management, billing, payments, and financial reporting into a single platform. Its core vision is to streamline administrative tasks, enhance communication, and provide a unified digital environment for all stakeholders, with a strong focus on a flexible and auditable financial management system.
 
-**RECENT UPDATE (Aug 28, 2025)**: Successfully implemented comprehensive overdue invoice functionality with Pakistan timezone integration:
+**RECENT UPDATE (Aug 28, 2025)**: Successfully implemented comprehensive roll number system integration across all financial tables and enhanced receipt numbering:
+
+- ✅ **Roll Number Columns Added**: Both Invoices and Receipts tables now display student roll numbers prominently with styled badges
+- ✅ **Universal Roll Number Search**: Roll numbers are searchable across all tables - search by PMX25-#### format finds relevant invoices/receipts instantly  
+- ✅ **Enhanced Receipt Numbering**: Redesigned from ugly long format to clean invoice-based format `RCP-{InvoiceNumber}-{SequenceNumber}` (e.g., `RCP-INV-2024080001-01`)
+- ✅ **Editable Payment Notes**: Payment forms now include optional Notes input field instead of auto-generated text
+- ✅ **Comprehensive Integration**: Roll numbers appear everywhere - invoices, receipts, search results, with proper API joins for performance
+- ✅ **Auto-Generation System**: Enrollment page has robust PMX25-#### format roll number generation with reservation system
+
+**PREVIOUS UPDATE (Aug 28, 2025)**: Successfully implemented comprehensive overdue invoice functionality with Pakistan timezone integration:
 - ✅ **Automatic Overdue Detection**: Invoices automatically marked as "OVERDUE" when due date passes using Pakistan time (UTC+5)
 - ✅ **Real-time Status Updates**: Invoice status badges show "OVERDUE" in red for past-due invoices regardless of original status  
 - ✅ **Pakistan Timezone Integration**: Hardcoded Pakistan time throughout application with utility functions for consistent time handling

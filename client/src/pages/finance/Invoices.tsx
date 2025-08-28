@@ -68,6 +68,7 @@ export default function Invoices() {
     const matchesSearch = !searchQuery || 
       invoice.invoiceNumber?.toLowerCase().includes(searchTerms) ||
       studentName.includes(searchTerms) ||
+      invoice.studentRollNumber?.toLowerCase().includes(searchTerms) ||
       invoice.notes?.toLowerCase().includes(searchTerms);
 
     // Status filter - use actual status including overdue logic
@@ -1114,7 +1115,7 @@ export default function Invoices() {
             {/* Search Bar */}
             <div className="relative">
               <Input
-                placeholder="Search invoices, students, or notes..."
+                placeholder="Search invoices, students, roll numbers, or notes..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 w-full"
@@ -1229,6 +1230,7 @@ export default function Invoices() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-3 text-left font-medium text-gray-700">Invoice #</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-700">Roll #</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-700">Student</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-700">Issue Date</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-700">Due Date</th>
@@ -1243,6 +1245,7 @@ export default function Invoices() {
                   Array.from({ length: 5 }).map((_, index) => (
                     <tr key={index} className="animate-pulse">
                       <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-24"></div></td>
+                      <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-20"></div></td>
                       <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-32"></div></td>
                       <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-20"></div></td>
                       <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-20"></div></td>
@@ -1262,8 +1265,15 @@ export default function Invoices() {
                         {invoice.invoiceNumber}
                       </button>
                     </td>
+                    <td className="px-4 py-3" data-testid={`text-roll-number-${invoice.id}`}>
+                      <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">
+                        {invoice.studentRollNumber || 'N/A'}
+                      </span>
+                    </td>
                     <td className="px-4 py-3" data-testid={`text-student-${invoice.id}`}>
-                      {getStudentName(invoice.studentId)}
+                      {invoice.studentFirstName && invoice.studentLastName 
+                        ? `${invoice.studentFirstName} ${invoice.studentLastName}`
+                        : getStudentName(invoice.studentId)}
                     </td>
                     <td className="px-4 py-3" data-testid={`text-issue-date-${invoice.id}`}>
                       {formatPakistanDate(invoice.issueDate)}
@@ -1308,7 +1318,7 @@ export default function Invoices() {
                   </tr>
                 )) : (
                   <tr>
-                    <td colSpan={7} className="px-4 py-12 text-center text-gray-500">
+                    <td colSpan={8} className="px-4 py-12 text-center text-gray-500">
                       <div className="flex flex-col items-center space-y-2">
                         <i className="fas fa-search text-gray-300 text-3xl"></i>
                         <p className="font-medium">No invoices found</p>

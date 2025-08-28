@@ -1,0 +1,44 @@
+[vite] connecting...
+[vite] connected.
+Router: selectedRole is finance current path: /invoices
+Router: selectedRole is finance current path: /receipts
+Router: selectedRole is finance current path: /students
+Router: selectedRole is finance current path: /receipts
+Router: selectedRole is finance current path: /students
+Router: selectedRole is finance current path: /receipts
+Router: selectedRole is finance current path: /invoices
+Router: selectedRole is finance current path: /receipts
+Router: selectedRole is finance current path: /invoices
+Router: selectedRole is finance current path: /receipts
+Router: selectedRole is finance current path: /invoices
+Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+Submitting invoice data: 
+Object {studentId: "de7a2453-ea98-47b9-8929-4b2eee784505", dueDate: "2025-08-29", items: Array(3), subtotal: "66000.00", discountAmount: "0.00", …}
+Router: selectedRole is finance current path: /receipts
+Router: selectedRole is finance current path: /invoices
+Router: selectedRole is finance current path: /receipts
+Router: selectedRole is finance current path: /invoices
+Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+Payment error: 
+Error {}
+
+Router: selectedRole is finance current path: /receipts
+Router: selectedRole is finance current path: /invoices
+Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+Payment error: 
+Error {}
+
+at t.value (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:17465)
+at new t (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:12630)
+at t.value (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:32766)
+at https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:34400
+[vite] hot updated: /src/pages/finance/Invoices.tsx
+[vite] hot updated: /src/index.css?v=pq0YNnRD4qaK5J5E2O2Xw
+[vite] hot updated: /src/pages/finance/Invoices.tsx
+[vite] hot updated: /src/index.css?v=pq0YNnRD4qaK5J5E2O2Xw
+[vite] hot updated: /src/pages/finance/Invoices.tsx
+[vite] hot updated: /src/index.css?v=pq0YNnRD4qaK5J5E2O2Xw
+[vite] hot updated: /src/pages/finance/Invoices.tsx
+[vite] hot updated: /src/index.css?v=pq0YNnRD4qaK5J5E2O2Xw
+[vite] hot updated: /src/pages/finance/Invoices.tsx
+[vite] hot updated: /src/index.css?v=pq0YNnRD4qaK5J5E2O2Xw

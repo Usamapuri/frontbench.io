@@ -456,10 +456,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Invoices
-  async getInvoices(limit = 50): Promise<Invoice[]> {
+  async getInvoices(limit = 50): Promise<any[]> {
     return await db
-      .select()
+      .select({
+        ...invoices,
+        studentRollNumber: students.rollNumber,
+        studentFirstName: students.firstName,
+        studentLastName: students.lastName
+      })
       .from(invoices)
+      .leftJoin(students, eq(invoices.studentId, students.id))
       .orderBy(desc(invoices.createdAt))
       .limit(limit);
   }
@@ -551,10 +557,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Payments
-  async getPayments(limit = 50): Promise<Payment[]> {
+  async getPayments(limit = 50): Promise<any[]> {
     return await db
-      .select()
+      .select({
+        ...payments,
+        studentRollNumber: students.rollNumber,
+        studentFirstName: students.firstName,
+        studentLastName: students.lastName
+      })
       .from(payments)
+      .leftJoin(students, eq(payments.studentId, students.id))
       .orderBy(desc(payments.createdAt))
       .limit(limit);
   }
