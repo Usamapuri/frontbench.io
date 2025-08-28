@@ -280,10 +280,10 @@ export default function ManagementDashboard() {
                 data-testid="button-daily-close-log"
               >
                 <div className="p-2 rounded-lg bg-purple-50 group-hover:bg-purple-100 transition-colors">
-                  <PieChart className="h-6 w-6 text-purple-600" />
+                  <i className="fas fa-calendar-check text-purple-600 text-xl"></i>
                 </div>
                 <span className="text-sm font-medium text-gray-700 group-hover:text-purple-600 transition-colors">
-                  Daily Close Log
+                  Daily Close
                 </span>
               </Button>
             </Link>

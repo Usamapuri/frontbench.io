@@ -1,7 +1,5 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
   Table, 
@@ -11,12 +9,10 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { Eye, FileText, Calendar } from "lucide-react";
+import { Calendar } from "lucide-react";
 import type { DailyClose } from "@shared/schema";
 
 export default function DailyCloseLog() {
-  const [selectedRecord, setSelectedRecord] = useState<DailyClose | null>(null);
-
   const { data: dailyCloses, isLoading } = useQuery<DailyClose[]>({
     queryKey: ["/api/daily-close"],
   });
@@ -72,182 +68,84 @@ export default function DailyCloseLog() {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5" />
-              Daily Close Log
+              Daily Close Records
             </CardTitle>
             <Badge variant="outline" className="px-3 py-1">
               {dailyCloses?.length || 0} Records
             </Badge>
           </div>
+          <p className="text-sm text-gray-600 mt-2">
+            Monitor all daily close activities completed by finance staff
+          </p>
         </CardHeader>
         <CardContent>
           {!dailyCloses || dailyCloses.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No daily close records found</p>
-              <p className="text-sm">Daily close reports will appear here once finance staff completes them</p>
+            <div className="text-center py-12 text-gray-500">
+              <Calendar className="h-16 w-16 mx-auto mb-4 opacity-50" />
+              <h3 className="text-lg font-medium mb-2">No Daily Close Records</h3>
+              <p className="text-sm">Daily close records will appear here once finance staff completes them</p>
             </div>
           ) : (
-            <div className="space-y-4">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Expected Total</TableHead>
-                    <TableHead>Actual Total</TableHead>
-                    <TableHead>Variance</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Closed By</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {dailyCloses.map((record) => (
-                    <TableRow key={record.id}>
-                      <TableCell className="font-medium">
-                        {formatDate(record.closeDate)}
-                      </TableCell>
-                      <TableCell>
-                        {formatCurrency(record.expectedTotal || 0)}
-                      </TableCell>
-                      <TableCell>
-                        {formatCurrency(record.actualTotal || 0)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span className={getVarianceColor(record.variance || 0)}>
-                            {formatCurrency(record.variance || 0)}
-                          </span>
-                          {getVarianceBadge(record.variance || 0)}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {record.isLocked ? (
-                          <Badge className="bg-blue-100 text-blue-800">
-                            <i className="fas fa-lock mr-1"></i>
-                            Locked
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline">Draft</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-600">
-                        Finance Staff
-                        <br />
-                        <span className="text-xs">
-                          {new Date(record.closedAt || '').toLocaleString('en-PK')}
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Expected Cash</TableHead>
+                  <TableHead>Actual Cash</TableHead>
+                  <TableHead>Expected Bank</TableHead>
+                  <TableHead>Actual Bank</TableHead>
+                  <TableHead>Total Variance</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Completed At</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {dailyCloses.map((record) => (
+                  <TableRow key={record.id}>
+                    <TableCell className="font-medium">
+                      {formatDate(record.closeDate)}
+                    </TableCell>
+                    <TableCell>
+                      {formatCurrency(record.expectedCash || 0)}
+                    </TableCell>
+                    <TableCell>
+                      {formatCurrency(record.totalCash)}
+                    </TableCell>
+                    <TableCell>
+                      {formatCurrency(record.expectedBank || 0)}
+                    </TableCell>
+                    <TableCell>
+                      {formatCurrency(record.totalBank)}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className={getVarianceColor(record.variance || 0)}>
+                          {record.variance && Number(record.variance) > 0 ? '+' : ''}
+                          {formatCurrency(record.variance || 0)}
                         </span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex space-x-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setSelectedRecord(record)}
-                            data-testid={`button-view-${record.id}`}
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            View
-                          </Button>
-                          {record.pdfPath && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => window.open(record.pdfPath!, '_blank')}
-                              data-testid={`button-pdf-${record.id}`}
-                            >
-                              <FileText className="h-4 w-4 mr-1" />
-                              PDF
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Daily Close Details Modal */}
-      {selectedRecord && (
-        <Card className="mt-6">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Daily Close Details - {formatDate(selectedRecord.closeDate)}</CardTitle>
-              <Button variant="outline" onClick={() => setSelectedRecord(null)}>
-                Close
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Expected vs Actual */}
-              <div className="space-y-4">
-                <h3 className="font-semibold text-lg">Expected vs Actual</h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span>Expected Cash:</span>
-                    <span className="font-medium">{formatCurrency(selectedRecord.expectedCash || 0)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Actual Cash:</span>
-                    <span className="font-medium">{formatCurrency(selectedRecord.totalCash)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Expected Bank:</span>
-                    <span className="font-medium">{formatCurrency(selectedRecord.expectedBank || 0)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Actual Bank:</span>
-                    <span className="font-medium">{formatCurrency(selectedRecord.totalBank)}</span>
-                  </div>
-                  <hr />
-                  <div className="flex justify-between text-lg font-semibold">
-                    <span>Total Variance:</span>
-                    <span className={getVarianceColor(selectedRecord.variance || 0)}>
-                      {formatCurrency(selectedRecord.variance || 0)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Notes and Status */}
-              <div className="space-y-4">
-                <h3 className="font-semibold text-lg">Additional Information</h3>
-                <div className="space-y-3">
-                  <div>
-                    <span className="text-sm text-gray-600">Status:</span>
-                    <div className="mt-1">
-                      {selectedRecord.isLocked ? (
+                        {getVarianceBadge(record.variance || 0)}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {record.isLocked ? (
                         <Badge className="bg-blue-100 text-blue-800">
                           <i className="fas fa-lock mr-1"></i>
-                          Locked & Finalized
+                          Finalized
                         </Badge>
                       ) : (
                         <Badge variant="outline">Draft</Badge>
                       )}
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-sm text-gray-600">Closed At:</span>
-                    <p className="mt-1">{new Date(selectedRecord.closedAt || '').toLocaleString('en-PK')}</p>
-                  </div>
-                  {selectedRecord.notes && (
-                    <div>
-                      <span className="text-sm text-gray-600">Notes:</span>
-                      <p className="mt-1 p-3 bg-gray-50 rounded border text-sm">
-                        {selectedRecord.notes}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                    </TableCell>
+                    <TableCell className="text-sm text-gray-600">
+                      {record.closedAt ? new Date(record.closedAt).toLocaleString('en-PK') : 'In Progress'}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

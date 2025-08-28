@@ -1215,8 +1215,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Daily close PDF generation and storage
-  app.post("/api/daily-close/generate-pdf", isAuthenticated, async (req: any, res) => {
+  // Daily close lock/finalize (no PDF generation)
+  app.post("/api/daily-close/lock", isAuthenticated, async (req: any, res) => {
     try {
       const { closeDate, dailyCloseData } = req.body;
       
@@ -1228,27 +1228,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Create or update the daily close record first
+      // Create or update the daily close record
+      const dataToSave = {
+        ...dailyCloseData,
+        closedBy: "demo-finance-user", // Ensure closedBy is set
+        isLocked: true,
+        closedAt: new Date()
+      };
+
       let dailyCloseRecord;
       if (existingRecord) {
-        dailyCloseRecord = await storage.updateDailyClose(closeDate, {
-          ...dailyCloseData,
-          isLocked: true,
-          closedAt: new Date()
-        });
+        dailyCloseRecord = await storage.updateDailyClose(closeDate, dataToSave);
       } else {
-        dailyCloseRecord = await storage.createDailyClose({
-          ...dailyCloseData,
-          isLocked: true,
-          closedAt: new Date()
-        });
+        dailyCloseRecord = await storage.createDailyClose(dataToSave);
       }
       
-      // For now, skip PDF generation and just return success
-      // (PDF generation can be added later with proper library)
       res.json({ 
         success: true, 
-        message: "Daily close locked successfully",
+        message: "Daily close locked and finalized successfully",
         dailyCloseRecord
       });
     } catch (error) {

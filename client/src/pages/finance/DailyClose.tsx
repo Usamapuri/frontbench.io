@@ -69,14 +69,14 @@ export default function DailyClose() {
     },
   });
 
-  const lockDayAndGeneratePDF = useMutation({
+  const lockDayMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest('POST', '/api/daily-close/generate-pdf', data);
+      return await apiRequest('POST', '/api/daily-close/lock', data);
     },
     onSuccess: () => {
       toast({
         title: "Success",
-        description: "Daily close locked and PDF generated successfully!",
+        description: "Daily close locked and finalized successfully!",
         variant: "success" as any,
       });
       queryClient.invalidateQueries({ queryKey: ['/api/daily-close'] });
@@ -87,7 +87,7 @@ export default function DailyClose() {
     onError: () => {
       toast({
         title: "Error",
-        description: "Failed to generate PDF. Please try again.",
+        description: "Failed to lock daily close. Please try again.",
         variant: "destructive",
       });
     },
@@ -111,7 +111,7 @@ export default function DailyClose() {
     });
   };
 
-  const handleLockAndGeneratePDF = () => {
+  const handleLockDay = () => {
     const cash = parseFloat(totalCash) || 0;
     const bank = parseFloat(totalBank) || 0;
     const variance = cash + bank - (expectedTotal || 0);
@@ -128,7 +128,7 @@ export default function DailyClose() {
       notes,
     };
 
-    lockDayAndGeneratePDF.mutate({
+    lockDayMutation.mutate({
       closeDate: selectedDate,
       dailyCloseData,
     });
@@ -314,7 +314,7 @@ export default function DailyClose() {
       ) : (
         <Card>
           <CardHeader>
-            <CardTitle>Record Daily Close for {format(new Date(selectedDate), 'EEEE, MMMM d, yyyy')}</CardTitle>
+            <CardTitle>Record Daily Close for {selectedDate}</CardTitle>
             <p className="text-sm text-gray-600">
               {new Date(selectedDate).toDateString() === new Date().toDateString() 
                 ? "Recording daily close for today" 
@@ -414,12 +414,12 @@ export default function DailyClose() {
                 )}
               </Button>
               <Button
-                onClick={handleLockAndGeneratePDF}
-                disabled={!totalCash || !totalBank || lockDayAndGeneratePDF.isPending}
+                onClick={handleLockDay}
+                disabled={!totalCash || !totalBank || lockDayMutation.isPending}
                 data-testid="button-lock-day"
                 className="bg-blue-600 hover:bg-blue-700"
               >
-                {lockDayAndGeneratePDF.isPending ? (
+                {lockDayMutation.isPending ? (
                   <>
                     <i className="fas fa-spinner fa-spin mr-2"></i>
                     Locking Day...
