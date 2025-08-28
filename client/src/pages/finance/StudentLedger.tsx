@@ -38,6 +38,22 @@ export default function StudentLedger() {
   const [attendanceFilter, setAttendanceFilter] = useState("");
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
 
+  // Status color function matching the invoices page design
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'paid':
+        return 'bg-green-100 text-green-800';
+      case 'overdue':
+        return 'bg-red-100 text-red-800';
+      case 'partial':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'pending':
+        return 'bg-red-50 text-red-700'; // Light red for pending
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
@@ -592,18 +608,9 @@ export default function StudentLedger() {
                               Rs. {student.outstandingBalance.toLocaleString()}
                             </span>
                             <Badge
-                              variant={
-                                student.feeStatus === "paid"
-                                  ? "default"
-                                  : student.feeStatus === "overdue"
-                                    ? "destructive"
-                                    : student.feeStatus === "partial"
-                                      ? "secondary"
-                                      : "outline"
-                              }
-                              className="w-fit mt-1"
+                              className={`${getStatusColor(student.feeStatus || 'unknown')} w-fit mt-1`}
                             >
-                              {student.feeStatus ? student.feeStatus.charAt(0).toUpperCase() + student.feeStatus.slice(1) : 'Unknown'}
+                              {student.feeStatus ? student.feeStatus.toUpperCase() : 'UNKNOWN'}
                             </Badge>
                           </div>
                         </td>
