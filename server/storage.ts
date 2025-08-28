@@ -599,7 +599,11 @@ export class DatabaseStorage implements IStorage {
 
     const currentBalance = parseFloat(invoice.balanceDue);
     if (paymentData.paymentAmount > currentBalance) {
-      throw new Error('Payment amount cannot exceed invoice balance');
+      throw new Error(`Payment amount Rs. ${paymentData.paymentAmount.toLocaleString()} exceeds invoice balance Rs. ${currentBalance.toLocaleString()}`);
+    }
+    
+    if (currentBalance <= 0) {
+      throw new Error('Invoice is already fully paid and cannot accept additional payments');
     }
 
     // Create payment record  

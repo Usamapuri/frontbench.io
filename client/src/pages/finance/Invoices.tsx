@@ -222,8 +222,20 @@ export default function Invoices() {
   });
 
   const handleRecordPayment = (invoice: Invoice) => {
+    const balanceDue = parseFloat(invoice.balanceDue || invoice.total || '0');
+    
+    // Don't allow payments on fully paid invoices
+    if (balanceDue <= 0) {
+      toast({
+        title: "Payment not needed",
+        description: "This invoice is already fully paid",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setSelectedInvoice(invoice);
-    setPaymentAmount(invoice.balanceDue || invoice.total);
+    setPaymentAmount(balanceDue.toString());
     setPaymentMethod("");
     setTransactionNumber("");
     setPaymentNotes("");
@@ -235,6 +247,28 @@ export default function Invoices() {
       toast({
         title: "Missing information",
         description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const paymentAmountNum = parseFloat(paymentAmount);
+    const balanceDue = parseFloat(selectedInvoice.balanceDue || selectedInvoice.total || '0');
+    
+    // Validate payment amount
+    if (paymentAmountNum <= 0) {
+      toast({
+        title: "Invalid amount",
+        description: "Payment amount must be greater than zero",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (paymentAmountNum > balanceDue) {
+      toast({
+        title: "Amount too high",
+        description: `Payment amount (Rs. ${paymentAmountNum.toLocaleString()}) cannot exceed invoice balance (Rs. ${balanceDue.toLocaleString()})`,
         variant: "destructive",
       });
       return;
@@ -1307,8 +1341,10 @@ export default function Invoices() {
                         <Button 
                           size="sm" 
                           variant="ghost" 
-                          className="text-green-600" 
+                          className={`${parseFloat(invoice.balanceDue || invoice.total || '0') <= 0 ? 'text-gray-400 cursor-not-allowed' : 'text-green-600'}`}
                           onClick={() => handleRecordPayment(invoice)}
+                          disabled={parseFloat(invoice.balanceDue || invoice.total || '0') <= 0}
+                          title={parseFloat(invoice.balanceDue || invoice.total || '0') <= 0 ? 'Invoice is fully paid' : 'Record payment'}
                           data-testid={`button-record-payment-${invoice.id}`}
                         >
                           <i className="fas fa-dollar-sign"></i>
