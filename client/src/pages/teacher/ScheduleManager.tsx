@@ -132,16 +132,10 @@ export default function ScheduleManager() {
     mutationFn: async (data: ScheduleFormData & { id?: string }) => {
       if (data.id) {
         // Update existing schedule
-        return apiRequest(`/api/teacher/schedules/${data.id}`, {
-          method: "PUT",
-          body: JSON.stringify(data),
-        });
+        return apiRequest("PUT", `/api/teacher/schedules/${data.id}`, data);
       } else {
         // Create new schedule
-        return apiRequest("/api/teacher/schedules", {
-          method: "POST",
-          body: JSON.stringify(data),
-        });
+        return apiRequest("POST", "/api/teacher/schedules", data);
       }
     },
     onSuccess: () => {
@@ -166,9 +160,7 @@ export default function ScheduleManager() {
   // Delete schedule mutation
   const deleteScheduleMutation = useMutation({
     mutationFn: async (id: string) => {
-      return apiRequest(`/api/teacher/schedules/${id}`, {
-        method: "DELETE",
-      });
+      return apiRequest("DELETE", `/api/teacher/schedules/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/teacher/schedules"] });
@@ -189,10 +181,7 @@ export default function ScheduleManager() {
   // Create schedule change mutation
   const scheduleChangeMutation = useMutation({
     mutationFn: async (data: ScheduleChangeFormData) => {
-      return apiRequest("/api/teacher/schedule-changes", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      return apiRequest("POST", "/api/teacher/schedule-changes", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/teacher/schedule-changes"] });
