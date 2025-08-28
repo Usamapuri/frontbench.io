@@ -35,11 +35,16 @@ export const users = pgTable("users", {
   email: varchar("email").unique(),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
+  phone: varchar("phone"), // Phone number for staff/teachers
   profileImageUrl: varchar("profile_image_url"),
   role: userRoleEnum("role").notNull(), // Primary role: teacher, finance, parent, management
   isSuperAdmin: boolean("is_super_admin").default(false), // Super admin privileges
   isTeacher: boolean("is_teacher").default(false), // Whether they teach (for super admins who are also teachers)
   teacherSubjects: text("teacher_subjects").array(), // Array of subject IDs they teach (for teachers/super admin teachers)
+  teacherClassLevels: text("teacher_class_levels").array(), // Array of class levels they teach
+  isActive: boolean("is_active").default(true), // Whether staff member is active
+  hireDate: date("hire_date"), // When they were hired
+  position: varchar("position"), // Job title/position for non-teaching staff
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -802,6 +807,25 @@ export const insertStudentNotificationSchema = createInsertSchema(studentNotific
   createdAt: true,
 });
 
+// Teacher and Staff schemas
+export const insertTeacherSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  teacherSubjects: z.array(z.string()).optional(),
+  teacherClassLevels: z.array(z.string()).optional(),
+  payoutPercentage: z.number().min(0).max(100).optional(),
+});
+
+export const insertStaffSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  position: z.string().min(1, "Position is required"),
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type UpsertUser = typeof users.$inferInsert;
@@ -834,3 +858,5 @@ export type ScheduleChange = typeof scheduleChanges.$inferSelect;
 export type InsertScheduleChange = z.infer<typeof insertScheduleChangeSchema>;
 export type StudentNotification = typeof studentNotifications.$inferSelect;
 export type InsertStudentNotification = z.infer<typeof insertStudentNotificationSchema>;
+export type InsertTeacher = z.infer<typeof insertTeacherSchema>;
+export type InsertStaff = z.infer<typeof insertStaffSchema>;

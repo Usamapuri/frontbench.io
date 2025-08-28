@@ -67,6 +67,13 @@ export interface IStorage {
   getNextRollNumber(): Promise<string>;
   reserveRollNumber(): Promise<{ rollNumber: string; expiresAt: Date }>;
   assignRollNumbersToExistingStudents(): Promise<{ updated: number; errors: string[] }>;
+
+  // Teacher and Staff Management
+  createTeacher(teacherData: any): Promise<any>;
+  getTeachers(): Promise<any[]>;
+  createStaff(staffData: any): Promise<any>;
+  getStaff(): Promise<any[]>;
+  createPayoutRule(payoutData: any): Promise<any>;
   
   // Subjects
   getSubjects(): Promise<Subject[]>;
@@ -1573,6 +1580,72 @@ export class DatabaseStorage implements IStorage {
         readAt: new Date() 
       })
       .where(eq(studentNotifications.id, notificationId));
+  }
+
+  // Teacher and Staff Management Methods
+  async createTeacher(teacherData: any): Promise<any> {
+    const teacher = await db.insert(users).values({
+      firstName: teacherData.firstName,
+      lastName: teacherData.lastName,
+      email: teacherData.email,
+      phone: teacherData.phone,
+      role: 'teacher',
+      isTeacher: true,
+      isSuperAdmin: false,
+      teacherSubjects: teacherData.teacherSubjects || [],
+      teacherClassLevels: teacherData.teacherClassLevels || [],
+      hireDate: teacherData.hireDate,
+      isActive: true,
+    }).returning();
+    
+    return teacher[0];
+  }
+
+  async getTeachers(): Promise<any[]> {
+    const teachers = await db.select().from(users).where(eq(users.isTeacher, true));
+    return teachers;
+  }
+
+  async createStaff(staffData: any): Promise<any> {
+    const staff = await db.insert(users).values({
+      firstName: staffData.firstName,
+      lastName: staffData.lastName,
+      email: staffData.email,
+      phone: staffData.phone,
+      role: staffData.role,
+      position: staffData.position,
+      isTeacher: false,
+      isSuperAdmin: false,
+      hireDate: staffData.hireDate,
+      isActive: true,
+    }).returning();
+    
+    return staff[0];
+  }
+
+  async getStaff(): Promise<any[]> {
+    const staff = await db.select().from(users).where(
+      and(
+        eq(users.isTeacher, false),
+        eq(users.isActive, true)
+      )
+    );
+    return staff;
+  }
+
+  async createPayoutRule(payoutData: any): Promise<any> {
+    const rule = await db.insert(payoutRules).values({
+      teacherId: payoutData.teacherId,
+      isFixed: payoutData.isFixed,
+      fixedPercentage: payoutData.fixedPercentage?.toString(),
+      tier1Percentage: payoutData.tier1Percentage?.toString(),
+      tier1Threshold: payoutData.tier1Threshold?.toString(),
+      tier2Percentage: payoutData.tier2Percentage?.toString(),
+      effectiveFrom: payoutData.effectiveFrom,
+      isActive: true,
+    }).returning();
+    
+    return rule[0];
   }
 }
 

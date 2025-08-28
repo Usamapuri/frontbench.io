@@ -187,6 +187,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Teacher management endpoints
+  app.post("/api/teachers", async (req, res) => {
+    try {
+      const teacherData = req.body;
+      
+      // Validate required fields
+      if (!teacherData.firstName || !teacherData.lastName || !teacherData.email) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      const teacher = await storage.createTeacher(teacherData);
+      
+      // Create payout rule for the teacher
+      if (teacherData.payoutPercentage) {
+        await storage.createPayoutRule({
+          teacherId: teacher.id,
+          isFixed: true,
+          fixedPercentage: teacherData.payoutPercentage,
+          effectiveFrom: teacherData.hireDate || new Date().toISOString().split('T')[0],
+        });
+      }
+
+      res.json(teacher);
+    } catch (error) {
+      console.error("Error creating teacher:", error);
+      res.status(500).json({ message: "Failed to create teacher" });
+    }
+  });
+
+  app.get("/api/teachers", async (req, res) => {
+    try {
+      const teachers = await storage.getTeachers();
+      res.json(teachers);
+    } catch (error) {
+      console.error("Error fetching teachers:", error);
+      res.status(500).json({ message: "Failed to fetch teachers" });
+    }
+  });
+
+  // Staff management endpoints
+  app.post("/api/staff", async (req, res) => {
+    try {
+      const staffData = req.body;
+      
+      // Validate required fields
+      if (!staffData.firstName || !staffData.lastName || !staffData.email || !staffData.role) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      const staff = await storage.createStaff(staffData);
+      res.json(staff);
+    } catch (error) {
+      console.error("Error creating staff:", error);
+      res.status(500).json({ message: "Failed to create staff member" });
+    }
+  });
+
+  app.get("/api/staff", async (req, res) => {
+    try {
+      const staff = await storage.getStaff();
+      res.json(staff);
+    } catch (error) {
+      console.error("Error fetching staff:", error);
+      res.status(500).json({ message: "Failed to fetch staff" });
+    }
+  });
+
   app.post("/api/roll-numbers/check", async (req, res) => {
     try {
       const { rollNumber } = req.body;
