@@ -77,8 +77,12 @@ export interface IStorage {
   // Teacher and Staff Management
   createTeacher(teacherData: any): Promise<any>;
   getTeachers(): Promise<any[]>;
+  updateTeacher(id: string, teacherData: any): Promise<any>;
+  deleteTeacher(id: string): Promise<void>;
   createStaff(staffData: any): Promise<any>;
   getStaff(): Promise<any[]>;
+  updateStaff(id: string, staffData: any): Promise<any>;
+  deleteStaff(id: string): Promise<void>;
   createPayoutRule(payoutData: any): Promise<any>;
   
   // Subjects
@@ -1741,6 +1745,48 @@ export class DatabaseStorage implements IStorage {
       )
     );
     return staff;
+  }
+
+  async updateTeacher(id: string, teacherData: any): Promise<any> {
+    const [teacher] = await db.update(users)
+      .set({
+        firstName: teacherData.firstName,
+        lastName: teacherData.lastName,
+        email: teacherData.email,
+        phone: teacherData.phone,
+        teacherSubjects: teacherData.teacherSubjects || [],
+        teacherClassLevels: teacherData.teacherClassLevels || [],
+        hireDate: teacherData.hireDate,
+      })
+      .where(eq(users.id, id))
+      .returning();
+    
+    return teacher;
+  }
+
+  async deleteTeacher(id: string): Promise<void> {
+    await db.delete(users).where(eq(users.id, id));
+  }
+
+  async updateStaff(id: string, staffData: any): Promise<any> {
+    const [staff] = await db.update(users)
+      .set({
+        firstName: staffData.firstName,
+        lastName: staffData.lastName,
+        email: staffData.email,
+        phone: staffData.phone,
+        role: staffData.role,
+        position: staffData.position,
+        hireDate: staffData.hireDate,
+      })
+      .where(eq(users.id, id))
+      .returning();
+    
+    return staff;
+  }
+
+  async deleteStaff(id: string): Promise<void> {
+    await db.delete(users).where(eq(users.id, id));
   }
 
   async createPayoutRule(payoutData: any): Promise<any> {

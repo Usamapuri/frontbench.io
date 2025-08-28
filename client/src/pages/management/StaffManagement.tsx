@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,9 +11,24 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { Users, UserPlus, Mail, Phone, User } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Users, UserPlus, Mail, Phone, User, Edit, Trash2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import AddTeacherModal from "@/components/AddTeacherModal";
 import AddStaffModal from "@/components/AddStaffModal";
+import EditTeacherModal from "@/components/EditTeacherModal";
+import EditStaffModal from "@/components/EditStaffModal";
 
 interface Staff {
   id: string;
@@ -28,10 +43,78 @@ interface Staff {
 export default function StaffManagement() {
   const [addTeacherModalOpen, setAddTeacherModalOpen] = useState(false);
   const [addStaffModalOpen, setAddStaffModalOpen] = useState(false);
+  const [editTeacherModalOpen, setEditTeacherModalOpen] = useState(false);
+  const [editStaffModalOpen, setEditStaffModalOpen] = useState(false);
+  const [selectedTeacher, setSelectedTeacher] = useState<Staff | null>(null);
+  const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
+
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: staff, isLoading } = useQuery<Staff[]>({
     queryKey: ["/api/staff"],
   });
+
+  // Delete teacher mutation
+  const deleteTeacherMutation = useMutation({
+    mutationFn: async (teacherId: string) => {
+      return await apiRequest('DELETE', `/api/teachers/${teacherId}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Teacher has been deleted successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/staff'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete teacher",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete staff mutation
+  const deleteStaffMutation = useMutation({
+    mutationFn: async (staffId: string) => {
+      return await apiRequest('DELETE', `/api/staff/${staffId}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Staff member has been deleted successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/staff'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete staff member",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Handlers
+  const handleEditTeacher = (teacher: Staff) => {
+    setSelectedTeacher(teacher);
+    setEditTeacherModalOpen(true);
+  };
+
+  const handleEditStaff = (staff: Staff) => {
+    setSelectedStaff(staff);
+    setEditStaffModalOpen(true);
+  };
+
+  const handleDeleteTeacher = (teacherId: string) => {
+    deleteTeacherMutation.mutate(teacherId);
+  };
+
+  const handleDeleteStaff = (staffId: string) => {
+    deleteStaffMutation.mutate(staffId);
+  };
 
   const activeTeachers = staff?.filter(s => s.role === 'teacher' && s.isActive) || [];
   const activeStaff = staff?.filter(s => s.role !== 'teacher' && s.isActive) || [];
@@ -148,6 +231,7 @@ export default function StaffManagement() {
                   <TableHead>Phone</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Added</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -176,6 +260,47 @@ export default function StaffManagement() {
                     </TableCell>
                     <TableCell className="text-gray-500">
                       {new Date(teacher.createdAt).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditTeacher(teacher)}
+                          data-testid={`button-edit-teacher-${teacher.id}`}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              data-testid={`button-delete-teacher-${teacher.id}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Teacher</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete {teacher.name}? This action cannot be undone and will remove all associated data.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDeleteTeacher(teacher.id)}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -218,6 +343,7 @@ export default function StaffManagement() {
                   <TableHead>Role</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Added</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -252,6 +378,47 @@ export default function StaffManagement() {
                     <TableCell className="text-gray-500">
                       {new Date(staffMember.createdAt).toLocaleDateString()}
                     </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditStaff(staffMember)}
+                          data-testid={`button-edit-staff-${staffMember.id}`}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              data-testid={`button-delete-staff-${staffMember.id}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Staff Member</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete {staffMember.name}? This action cannot be undone and will remove all associated data.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDeleteStaff(staffMember.id)}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -270,6 +437,20 @@ export default function StaffManagement() {
       <AddStaffModal 
         open={addStaffModalOpen} 
         onOpenChange={setAddStaffModalOpen} 
+      />
+
+      {/* Edit Teacher Modal */}
+      <EditTeacherModal
+        open={editTeacherModalOpen}
+        onOpenChange={setEditTeacherModalOpen}
+        teacher={selectedTeacher}
+      />
+
+      {/* Edit Staff Modal */}
+      <EditStaffModal
+        open={editStaffModalOpen}
+        onOpenChange={setEditStaffModalOpen}
+        staff={selectedStaff}
       />
     </div>
   );

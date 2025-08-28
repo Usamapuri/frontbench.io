@@ -264,6 +264,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put("/api/teachers/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const teacherData = req.body;
+      
+      // Validate required fields
+      if (!teacherData.firstName || !teacherData.lastName || !teacherData.email) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      const teacher = await storage.updateTeacher(id, teacherData);
+      res.json(teacher);
+    } catch (error) {
+      console.error("Error updating teacher:", error);
+      res.status(500).json({ message: "Failed to update teacher" });
+    }
+  });
+
+  app.delete("/api/teachers/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteTeacher(id);
+      res.json({ message: "Teacher deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting teacher:", error);
+      res.status(500).json({ message: "Failed to delete teacher" });
+    }
+  });
+
   // Staff management endpoints
   app.post("/api/staff", async (req, res) => {
     try {
@@ -289,6 +318,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching staff:", error);
       res.status(500).json({ message: "Failed to fetch staff" });
+    }
+  });
+
+  app.put("/api/staff/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const staffData = req.body;
+      
+      // Validate required fields
+      if (!staffData.firstName || !staffData.lastName || !staffData.email || !staffData.role) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      const staff = await storage.updateStaff(id, staffData);
+      res.json(staff);
+    } catch (error) {
+      console.error("Error updating staff:", error);
+      res.status(500).json({ message: "Failed to update staff member" });
+    }
+  });
+
+  app.delete("/api/staff/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteStaff(id);
+      res.json({ message: "Staff member deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting staff:", error);
+      res.status(500).json({ message: "Failed to delete staff member" });
     }
   });
 
