@@ -624,80 +624,84 @@ export default function Receipts() {
         
         <CardContent>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm table-fixed">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3 text-left font-medium text-gray-700">Receipt #</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-700">Student</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-700">Date</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-700">Amount</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-700">Payment Method</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-700">Transaction #</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-700">Notes</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-700">Actions</th>
+                  <th className="w-32 px-2 py-3 text-left font-medium text-gray-700">Receipt #</th>
+                  <th className="w-36 px-3 py-3 text-left font-medium text-gray-700">Student</th>
+                  <th className="w-24 px-2 py-3 text-left font-medium text-gray-700">Date</th>
+                  <th className="w-24 px-3 py-3 text-left font-medium text-gray-700">Amount</th>
+                  <th className="w-28 px-2 py-3 text-left font-medium text-gray-700">Payment Method</th>
+                  <th className="w-24 px-2 py-3 text-left font-medium text-gray-700">Transaction #</th>
+                  <th className="flex-1 px-3 py-3 text-left font-medium text-gray-700">Notes</th>
+                  <th className="w-16 px-2 py-3 text-left font-medium text-gray-700">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {filteredPayments.length > 0 ? filteredPayments.map((payment: any) => (
                   <tr key={payment.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3">
-                      <span className="font-mono text-sm" data-testid={`text-receipt-${payment.id}`}>
+                    <td className="w-32 px-2 py-3">
+                      <span className="font-mono text-xs block truncate" data-testid={`text-receipt-${payment.id}`}>
                         {payment.receiptNumber || 'N/A'}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
-                      <span className="font-medium" data-testid={`text-student-${payment.id}`}>
+                    <td className="w-36 px-3 py-3">
+                      <span className="font-medium block truncate" data-testid={`text-student-${payment.id}`}>
                         {getStudentName(payment.studentId)}
                       </span>
                     </td>
-                    <td className="px-4 py-3" data-testid={`text-payment-date-${payment.id}`}>
-                      {new Date(payment.paymentDate).toLocaleDateString()}
+                    <td className="w-24 px-2 py-3 text-xs" data-testid={`text-payment-date-${payment.id}`}>
+                      {new Date(payment.paymentDate).toLocaleDateString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric',
+                        year: '2-digit'
+                      })}
                     </td>
-                    <td className="px-4 py-3">
-                      <span className="font-semibold text-green-600" data-testid={`text-amount-${payment.id}`}>
-                        Rs. {Number(payment.amount).toLocaleString()}
+                    <td className="w-24 px-3 py-3">
+                      <span className="font-semibold text-green-600 text-xs block" data-testid={`text-amount-${payment.id}`}>
+                        Rs. {(Number(payment.amount) / 1000).toFixed(0)}K
                       </span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="w-28 px-2 py-3">
                       <Badge 
-                        className={getPaymentMethodColor(payment.paymentMethod)}
+                        className={`text-xs ${getPaymentMethodColor(payment.paymentMethod)}`}
                         data-testid={`badge-method-${payment.id}`}
                       >
-                        {payment.paymentMethod === 'bank_transfer' ? 'Bank Transfer' : 
+                        {payment.paymentMethod === 'bank_transfer' ? 'Bank' : 
                          payment.paymentMethod === 'cash' ? 'Cash' : 
                          payment.paymentMethod?.toUpperCase()}
                       </Badge>
                     </td>
-                    <td className="px-4 py-3">
-                      <span className="font-mono text-xs text-gray-600" data-testid={`text-transaction-${payment.id}`}>
+                    <td className="w-24 px-2 py-3">
+                      <span className="font-mono text-xs text-gray-600 block truncate" data-testid={`text-transaction-${payment.id}`}>
                         {payment.transactionNumber || '-'}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
-                      <span className="text-gray-600 truncate max-w-xs" data-testid={`text-notes-${payment.id}`}>
+                    <td className="flex-1 px-3 py-3">
+                      <span className="text-gray-600 text-xs block truncate" data-testid={`text-notes-${payment.id}`} title={payment.notes || '-'}>
                         {payment.notes || '-'}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex space-x-2">
-                        <Button 
-                          size="sm" 
-                          variant="ghost"
-                          onClick={() => {
-                            // Create format selection dialog first
-                            const formatChoice = window.confirm("Choose Receipt Format:\n\nOK = Full PDF Format (A4)\nCancel = Thermal Receipt Format");
-                            
-                            if (formatChoice) {
-                              generatePDFReceipt(payment);
-                            } else {
-                              generateThermalReceipt(payment);
-                            }
-                          }}
-                          data-testid={`button-print-receipt-${payment.id}`}
-                        >
-                          <i className="fas fa-print"></i>
-                        </Button>
-                      </div>
+                    <td className="w-16 px-2 py-3">
+                      <Button 
+                        size="sm" 
+                        variant="ghost"
+                        className="p-1 h-8 w-8"
+                        onClick={() => {
+                          // Create format selection dialog first
+                          const formatChoice = window.confirm("Choose Receipt Format:\n\nOK = Full PDF Format (A4)\nCancel = Thermal Receipt Format");
+                          
+                          if (formatChoice) {
+                            generatePDFReceipt(payment);
+                          } else {
+                            generateThermalReceipt(payment);
+                          }
+                        }}
+                        data-testid={`button-print-receipt-${payment.id}`}
+                        title="Print Receipt"
+                      >
+                        <i className="fas fa-print text-xs"></i>
+                      </Button>
                     </td>
                   </tr>
                 )) : (
