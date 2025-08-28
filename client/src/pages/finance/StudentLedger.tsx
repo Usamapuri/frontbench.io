@@ -409,7 +409,9 @@ export default function StudentLedger() {
               <SelectContent>
                 <SelectItem value="all">All Classes</SelectItem>
                 <SelectItem value="o-level">O-Level</SelectItem>
-                <SelectItem value="a-level">A-Level</SelectItem>
+                <SelectItem value="igcse">IGCSE</SelectItem>
+                <SelectItem value="as-level">AS-Level</SelectItem>
+                <SelectItem value="a2-level">A2-Level</SelectItem>
               </SelectContent>
             </Select>
 
