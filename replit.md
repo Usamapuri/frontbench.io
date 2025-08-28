@@ -2,7 +2,27 @@
 
 Primax School Management System is a comprehensive web application designed to digitize school processes, replacing paper-based systems and Google Sheets. It provides tailored interfaces with advanced role-based access control supporting three user types: TEACHER (limited access), SUPER ADMIN TEACHER (full access including teaching), and SUPER ADMIN MANAGEMENT (full access excluding teaching). The system integrates enrollment, attendance, grade management, billing, payments, and financial reporting into a single platform. Its core vision is to streamline administrative tasks, enhance communication, and provide a unified digital environment for all stakeholders, with a strong focus on a flexible and auditable financial management system.
 
-**RECENT UPDATE (Aug 28, 2025)**: Successfully completed comprehensive receipt numbering redesign and payment system enhancements:
+**RECENT UPDATE (Aug 28, 2025)**: Successfully implemented student deactivation and deletion functionality with comprehensive data management:
+
+- ✅ **STUDENT DEACTIVATION/DELETION SYSTEM**: Complete implementation of student status management
+  - **Deactivate Button**: Orange UserX icon that toggles student active status (preserves all data, disables portal access)
+  - **Delete Button**: Red Trash2 icon with comprehensive confirmation modal and detailed warnings
+  - **View Deactivated Students Toggle**: Added to Column Settings modal for showing/hiding inactive students
+  - **Portal Access Control**: Deactivated students lose portal access but can be reactivated to restore access
+  - **Data Retention**: Deactivated students maintain all historical data for potential future reactivation
+- ✅ **ENHANCED STATUS PILLS**: Replicated exact invoice status pill design in Outstanding Fees column
+  - **Perfect Color Matching**: PAID (green), OVERDUE (red), PARTIAL (yellow), PENDING (light red)  
+  - **Consistent Typography**: All status text in uppercase using same styling system as invoices
+- ✅ **COMPREHENSIVE DELETE PROTECTION**: Multi-layer data integrity with foreign key respect
+  - **Cascading Deletion**: Proper order of deletion respecting database constraints
+  - **Related Data Cleanup**: Removes payments, invoices, grades, attendance, enrollments safely
+  - **Confirmation Modal**: Detailed warning explaining permanent data loss with clear alternatives
+- ✅ **BACKEND IMPLEMENTATION**: Full API routes and storage methods for both operations
+  - **Toggle Active Route**: PATCH `/api/students/:id/toggle-active` for status changes
+  - **Delete Route**: DELETE `/api/students/:id` with comprehensive data cascade deletion
+  - **Database Storage**: Added `toggleStudentActiveStatus` and `deleteStudent` methods to storage interface
+
+**PREVIOUS UPDATE (Aug 28, 2025)**: Successfully completed comprehensive receipt numbering redesign and payment system enhancements:
 
 - ✅ **CLEAN RECEIPT NUMBERS FULLY IMPLEMENTED**: Completely redesigned and deployed clean receipt numbering system
   - **Invoice-Based Format**: `RCP-INV-1756217730656-01` for payments linked to specific invoices with sequential numbering per invoice

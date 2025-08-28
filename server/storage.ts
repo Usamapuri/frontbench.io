@@ -390,28 +390,47 @@ export class DatabaseStorage implements IStorage {
     // Delete in order to respect foreign key constraints
     // First delete related records, then the student
     
-    // Delete enrollments
-    await db.delete(enrollments).where(eq(enrollments.studentId, id));
+    // Get all payments for this student to delete their allocations
+    const studentPayments = await db.select({ id: payments.id }).from(payments).where(eq(payments.studentId, id));
+    const paymentIds = studentPayments.map(p => p.id);
+    
+    // Delete payment allocations for this student's payments
+    if (paymentIds.length > 0) {
+      for (const paymentId of paymentIds) {
+        await db.delete(paymentAllocations).where(eq(paymentAllocations.paymentId, paymentId));
+      }
+    }
+    
+    // Delete grades (which link assessments to students)
+    await db.delete(grades).where(eq(grades.studentId, id));
     
     // Delete attendance records
     await db.delete(attendance).where(eq(attendance.studentId, id));
     
-    // Delete grades
-    await db.delete(grades).where(eq(grades.studentId, id));
+    // Delete enrollments
+    await db.delete(enrollments).where(eq(enrollments.studentId, id));
     
-    // Delete assessments
-    await db.delete(assessments).where(eq(assessments.studentId, id));
+    // Delete billing schedules
+    await db.delete(billingSchedules).where(eq(billingSchedules.studentId, id));
     
-    // Delete invoices (this will cascade to related records)
+    // Delete invoice adjustments for this student's invoices
+    const studentInvoices = await db.select({ id: invoices.id }).from(invoices).where(eq(invoices.studentId, id));
+    const invoiceIds = studentInvoices.map(i => i.id);
+    
+    if (invoiceIds.length > 0) {
+      for (const invoiceId of invoiceIds) {
+        await db.delete(invoiceAdjustments).where(eq(invoiceAdjustments.invoiceId, invoiceId));
+        await db.delete(invoiceItems).where(eq(invoiceItems.invoiceId, invoiceId));
+      }
+    }
+    
+    // Delete invoices
     await db.delete(invoices).where(eq(invoices.studentId, id));
     
     // Delete payments
     await db.delete(payments).where(eq(payments.studentId, id));
     
-    // Delete payment allocations
-    await db.delete(paymentAllocations).where(eq(paymentAllocations.studentId, id));
-    
-    // Delete announcements related to the student
+    // Delete announcement recipients
     await db.delete(announcementRecipients).where(eq(announcementRecipients.studentId, id));
     
     // Delete student notifications

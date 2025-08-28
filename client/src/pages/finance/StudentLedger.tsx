@@ -1177,12 +1177,12 @@ export default function StudentLedger() {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent>
+        <DialogContent aria-describedby="delete-student-description">
           <DialogHeader>
             <DialogTitle>Delete Student</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="text-center">
+            <div className="text-center" id="delete-student-description">
               <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
                 <Trash2 className="h-6 w-6 text-red-600" />
               </div>
