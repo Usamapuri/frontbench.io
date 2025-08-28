@@ -3,16 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
-import type { ClassSchedule, TeacherEarnings } from "@/types";
+import type { ClassSchedule } from "@/types";
 
 export default function TeacherDashboard() {
   const { data: todayClasses, isLoading: classesLoading } = useQuery<ClassSchedule[]>({
     queryKey: ['/api/teacher/classes/today'],
   });
 
-  const { data: earnings } = useQuery<TeacherEarnings>({
-    queryKey: ['/api/teacher/earnings'],
-  });
+  
 
   const currentTime = new Date();
   const currentHour = currentTime.getHours();
@@ -173,37 +171,7 @@ export default function TeacherDashboard() {
         )}
       </div>
 
-      {/* Earnings Summary */}
-      <Card>
-        <CardHeader>
-          <CardTitle>This Month's Earnings</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-gray-600">Base Rate (70%)</span>
-            <span className="font-semibold text-gray-900" data-testid="text-base-earnings">
-              Rs. {earnings?.baseAmount?.toLocaleString() || '0'}
-            </span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-gray-600">Extra Classes</span>
-            <span className="font-semibold text-gray-900" data-testid="text-extra-earnings">
-              Rs. {earnings?.extraClasses?.toLocaleString() || '0'}
-            </span>
-          </div>
-          <div className="flex items-center justify-between border-t pt-2">
-            <span className="text-gray-900 font-medium">Total Earned</span>
-            <span className="font-bold text-blue-600 text-lg" data-testid="text-total-earnings">
-              Rs. {earnings?.total?.toLocaleString() || '0'}
-            </span>
-          </div>
-          <Link href="/earnings">
-            <Button className="w-full bg-green-600 hover:bg-green-700" data-testid="button-request-cash-draw">
-              Request Cash Draw
-            </Button>
-          </Link>
-        </CardContent>
-      </Card>
+      
 
       
     </div>
