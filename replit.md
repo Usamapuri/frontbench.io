@@ -2,7 +2,15 @@
 
 Primax School Management System is a comprehensive web application designed to digitize school processes, replacing paper-based systems and Google Sheets. It provides tailored interfaces with advanced role-based access control supporting three user types: TEACHER (limited access), SUPER ADMIN TEACHER (full access including teaching), and SUPER ADMIN MANAGEMENT (full access excluding teaching). The system integrates enrollment, attendance, grade management, billing, payments, and financial reporting into a single platform. Its core vision is to streamline administrative tasks, enhance communication, and provide a unified digital environment for all stakeholders, with a strong focus on a flexible and auditable financial management system.
 
-**RECENT UPDATE (Aug 26, 2025)**: Successfully completed enhancement of both New Student Enrollment form and Edit Student Information modal with 6 additional fields:
+**RECENT UPDATE (Aug 28, 2025)**: Successfully implemented comprehensive overdue invoice functionality with Pakistan timezone integration:
+- ✅ **Automatic Overdue Detection**: Invoices automatically marked as "OVERDUE" when due date passes using Pakistan time (UTC+5)
+- ✅ **Real-time Status Updates**: Invoice status badges show "OVERDUE" in red for past-due invoices regardless of original status  
+- ✅ **Pakistan Timezone Integration**: Hardcoded Pakistan time throughout application with utility functions for consistent time handling
+- ✅ **Smart Status Logic**: Paid invoices remain "PAID", unpaid invoices past due date become "OVERDUE", others maintain original status
+- ✅ **Comprehensive Coverage**: Overdue status appears in tables, filters, PDF prints, and thermal receipts
+- ✅ **Enhanced Filtering**: Status filter now correctly shows overdue invoices when "Overdue" filter is selected
+
+**PREVIOUS UPDATE (Aug 26, 2025)**: Successfully completed enhancement of both New Student Enrollment form and Edit Student Information modal with 6 additional fields:
 - ✅ Student Phone Number* (mandatory)
 - ✅ Student Email Address* (mandatory) 
 - ✅ Home Address (optional)

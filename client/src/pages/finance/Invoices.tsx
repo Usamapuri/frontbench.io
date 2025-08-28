@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Invoice } from "@shared/schema";
 import InvoiceWizard from "@/components/InvoiceWizard";
+import { isOverdue, getCurrentPakistanTime, formatPakistanDate } from "@/utils/pakistanTime";
 
 export default function Invoices() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -68,8 +69,8 @@ export default function Invoices() {
       studentName.includes(searchTerms) ||
       invoice.notes?.toLowerCase().includes(searchTerms);
 
-    // Status filter
-    const matchesStatus = !statusFilter || statusFilter === "all" || invoice.status === statusFilter;
+    // Status filter - use actual status including overdue logic
+    const matchesStatus = !statusFilter || statusFilter === "all" || getActualStatus(invoice) === statusFilter;
 
     // Student filter
     const matchesStudent = !studentFilter || studentFilter === "all" || invoice.studentId === studentFilter;
@@ -77,7 +78,7 @@ export default function Invoices() {
     // Date range filter
     const matchesDateRange = !dateRangeFilter || dateRangeFilter === "all" || (() => {
       const invoiceDate = new Date(invoice.issueDate);
-      const today = new Date();
+      const today = getCurrentPakistanTime();
       
       switch (dateRangeFilter) {
         case 'today':
@@ -138,6 +139,22 @@ export default function Invoices() {
     return count;
   };
 
+  // Function to determine actual status including overdue logic
+  const getActualStatus = (invoice: Invoice) => {
+    // If invoice is already paid, keep it as paid
+    if (invoice.status === 'paid') {
+      return 'paid';
+    }
+    
+    // Check if due date has passed using Pakistan time
+    if (isOverdue(invoice.dueDate)) {
+      return 'overdue';
+    }
+    
+    // Return original status if not overdue
+    return invoice.status || 'sent';
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'paid':
@@ -146,6 +163,10 @@ export default function Invoices() {
         return 'bg-red-100 text-red-800';
       case 'sent':
         return 'bg-blue-100 text-blue-800';
+      case 'partial':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'draft':
+        return 'bg-gray-100 text-gray-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -167,7 +188,7 @@ export default function Invoices() {
         amount: paymentData.amount,
         paymentMethod: paymentData.paymentMethod,
         transactionNumber: paymentData.transactionNumber,
-        paymentDate: new Date().toISOString(),
+        paymentDate: getCurrentPakistanTime().toISOString(),
         notes: paymentData.notes || `Payment for invoice ${selectedInvoice?.invoiceNumber}`,
       });
       return response.json();
@@ -650,7 +671,7 @@ export default function Invoices() {
                   <div class="detail-item">
                     <div class="detail-label">Invoice Status</div>
                     <div class="detail-value">
-                      <span class="status-badge status-${invoice.status || 'sent'}">${(invoice.status || 'sent').toUpperCase()}</span>
+                      <span class="status-badge status-${getActualStatus(invoice)}">${getActualStatus(invoice).toUpperCase()}</span>
                     </div>
                   </div>
                   <div class="detail-item">
@@ -936,7 +957,7 @@ export default function Invoices() {
               </div>
               <div class="row">
                 <span class="label">Status:</span>
-                <span class="value">${(invoice.status || 'SENT').toUpperCase()}</span>
+                <span class="value">${getActualStatus(invoice).toUpperCase()}</span>
               </div>
             </div>
             
@@ -974,7 +995,7 @@ export default function Invoices() {
             </div>
             
             <div class="status">
-              ${(invoice.status || 'SENT').toUpperCase()}
+              ${getActualStatus(invoice).toUpperCase()}
             </div>
             
             <div class="footer">
@@ -1242,10 +1263,10 @@ export default function Invoices() {
                       {getStudentName(invoice.studentId)}
                     </td>
                     <td className="px-4 py-3" data-testid={`text-issue-date-${invoice.id}`}>
-                      {new Date(invoice.issueDate).toLocaleDateString()}
+                      {formatPakistanDate(invoice.issueDate)}
                     </td>
                     <td className="px-4 py-3" data-testid={`text-due-date-${invoice.id}`}>
-                      {new Date(invoice.dueDate).toLocaleDateString()}
+                      {formatPakistanDate(invoice.dueDate)}
                     </td>
                     <td className="px-4 py-3">
                       <span className="font-semibold" data-testid={`text-amount-${invoice.id}`}>
@@ -1254,10 +1275,10 @@ export default function Invoices() {
                     </td>
                     <td className="px-4 py-3">
                       <Badge 
-                        className={getStatusColor(invoice.status || 'draft')}
+                        className={getStatusColor(getActualStatus(invoice))}
                         data-testid={`badge-status-${invoice.id}`}
                       >
-                        {invoice.status?.toUpperCase() || 'DRAFT'}
+                        {getActualStatus(invoice).toUpperCase()}
                       </Badge>
                     </td>
                     <td className="px-4 py-3">
