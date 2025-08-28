@@ -537,7 +537,14 @@ export default function DailyClose() {
                       {payment.receiptNumber}
                     </td>
                     <td className="px-4 py-3" data-testid={`text-student-${payment.id}`}>
-                      Student Name
+                      <div>
+                        <div className="font-medium">
+                          {payment.studentFirstName} {payment.studentLastName}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {payment.studentRollNumber}
+                        </div>
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <span className="font-semibold" data-testid={`text-amount-${payment.id}`}>
