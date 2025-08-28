@@ -173,110 +173,39 @@ export default function TeacherDashboard() {
         )}
       </div>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Attendance Methods */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Attendance Methods</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Link href="/attendance">
-              <Button variant="outline" className="w-full flex items-center justify-between p-4 h-auto" data-testid="button-tap-attendance">
-                <div className="flex items-center">
-                  <i className="fas fa-hand-paper text-blue-600 text-xl mr-3"></i>
-                  <div className="text-left">
-                    <p className="font-medium text-gray-900">Tap Method</p>
-                    <p className="text-sm text-gray-600">Quick present/absent toggles</p>
-                  </div>
-                </div>
-                <i className="fas fa-arrow-right text-gray-400"></i>
-              </Button>
-            </Link>
-            
-            <Link href="/attendance">
-              <Button variant="outline" className="w-full flex items-center justify-between p-4 h-auto" data-testid="button-qr-attendance">
-                <div className="flex items-center">
-                  <i className="fas fa-qrcode text-blue-600 text-xl mr-3"></i>
-                  <div className="text-left">
-                    <p className="font-medium text-gray-900">QR Scan Method</p>
-                    <p className="text-sm text-gray-600">Scan student ID cards</p>
-                  </div>
-                </div>
-                <i className="fas fa-arrow-right text-gray-400"></i>
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-
-        {/* Earnings Summary */}
-        <Card>
-          <CardHeader>
-            <CardTitle>This Month's Earnings</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-gray-600">Base Rate (70%)</span>
-              <span className="font-semibold text-gray-900" data-testid="text-base-earnings">
-                Rs. {earnings?.baseAmount?.toLocaleString() || '0'}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-gray-600">Extra Classes</span>
-              <span className="font-semibold text-gray-900" data-testid="text-extra-earnings">
-                Rs. {earnings?.extraClasses?.toLocaleString() || '0'}
-              </span>
-            </div>
-            <div className="flex items-center justify-between border-t pt-2">
-              <span className="text-gray-900 font-medium">Total Earned</span>
-              <span className="font-bold text-blue-600 text-lg" data-testid="text-total-earnings">
-                Rs. {earnings?.total?.toLocaleString() || '0'}
-              </span>
-            </div>
-            <Link href="/earnings">
-              <Button className="w-full bg-green-600 hover:bg-green-700" data-testid="button-request-cash-draw">
-                Request Cash Draw
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Quick Navigation */}
+      {/* Earnings Summary */}
       <Card>
         <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
+          <CardTitle>This Month's Earnings</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Link href="/gradebook">
-              <Button variant="outline" className="h-20 flex flex-col space-y-2" data-testid="button-gradebook">
-                <i className="fas fa-book text-2xl text-blue-600"></i>
-                <span className="text-sm font-medium">Gradebook</span>
-              </Button>
-            </Link>
-            
-            <Link href="/attendance">
-              <Button variant="outline" className="h-20 flex flex-col space-y-2" data-testid="button-attendance">
-                <i className="fas fa-calendar-check text-2xl text-blue-600"></i>
-                <span className="text-sm font-medium">Attendance</span>
-              </Button>
-            </Link>
-            
-            <Link href="/earnings">
-              <Button variant="outline" className="h-20 flex flex-col space-y-2" data-testid="button-earnings">
-                <i className="fas fa-dollar-sign text-2xl text-blue-600"></i>
-                <span className="text-sm font-medium">Earnings</span>
-              </Button>
-            </Link>
-            
-            <Button variant="outline" className="h-20 flex flex-col space-y-2" data-testid="button-sync">
-              <i className="fas fa-sync-alt text-2xl text-blue-600"></i>
-              <span className="text-sm font-medium">Sync Data</span>
-            </Button>
+        <CardContent className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-gray-600">Base Rate (70%)</span>
+            <span className="font-semibold text-gray-900" data-testid="text-base-earnings">
+              Rs. {earnings?.baseAmount?.toLocaleString() || '0'}
+            </span>
           </div>
+          <div className="flex items-center justify-between">
+            <span className="text-gray-600">Extra Classes</span>
+            <span className="font-semibold text-gray-900" data-testid="text-extra-earnings">
+              Rs. {earnings?.extraClasses?.toLocaleString() || '0'}
+            </span>
+          </div>
+          <div className="flex items-center justify-between border-t pt-2">
+            <span className="text-gray-900 font-medium">Total Earned</span>
+            <span className="font-bold text-blue-600 text-lg" data-testid="text-total-earnings">
+              Rs. {earnings?.total?.toLocaleString() || '0'}
+            </span>
+          </div>
+          <Link href="/earnings">
+            <Button className="w-full bg-green-600 hover:bg-green-700" data-testid="button-request-cash-draw">
+              Request Cash Draw
+            </Button>
+          </Link>
         </CardContent>
       </Card>
+
+      
     </div>
   );
 }
