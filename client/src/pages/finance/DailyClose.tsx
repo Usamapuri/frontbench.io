@@ -37,6 +37,32 @@ export default function DailyClose() {
     }
   };
 
+  // Navigate to previous day
+  const goToPreviousDay = () => {
+    const currentDate = new Date(selectedDate);
+    currentDate.setDate(currentDate.getDate() - 1);
+    const newDateString = currentDate.toISOString().split('T')[0];
+    setSelectedDate(newDateString);
+    setCalendarDate(currentDate);
+    // Clear form when changing dates
+    setTotalCash("");
+    setTotalBank("");
+    setNotes("");
+  };
+
+  // Navigate to next day
+  const goToNextDay = () => {
+    const currentDate = new Date(selectedDate);
+    currentDate.setDate(currentDate.getDate() + 1);
+    const newDateString = currentDate.toISOString().split('T')[0];
+    setSelectedDate(newDateString);
+    setCalendarDate(currentDate);
+    // Clear form when changing dates
+    setTotalCash("");
+    setTotalBank("");
+    setNotes("");
+  };
+
   const { data: dailyCloseRecord, isLoading } = useQuery<DailyClose | null>({
     queryKey: ['/api/daily-close', selectedDate],
   });
@@ -173,20 +199,40 @@ export default function DailyClose() {
           <div className="space-y-4">
             <div className="flex items-center space-x-4">
               <Label htmlFor="closeDate">Select Date:</Label>
-              <Input
-                id="closeDate"
-                type="date"
-                value={selectedDate}
-                onChange={(e) => {
-                  setSelectedDate(e.target.value);
-                  // Clear form when changing dates
-                  setTotalCash("");
-                  setTotalBank("");
-                  setNotes("");
-                }}
-                className="w-48"
-                data-testid="input-close-date"
-              />
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToPreviousDay}
+                  className="px-3 py-1"
+                  data-testid="button-previous-day"
+                >
+                  <i className="fas fa-chevron-left"></i>
+                </Button>
+                <Input
+                  id="closeDate"
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => {
+                    setSelectedDate(e.target.value);
+                    // Clear form when changing dates
+                    setTotalCash("");
+                    setTotalBank("");
+                    setNotes("");
+                  }}
+                  className="w-48"
+                  data-testid="input-close-date"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToNextDay}
+                  className="px-3 py-1"
+                  data-testid="button-next-day"
+                >
+                  <i className="fas fa-chevron-right"></i>
+                </Button>
+              </div>
               {dailyCloseRecord?.isLocked ? (
                 <Badge className="bg-blue-100 text-blue-800" data-testid="badge-locked">
                   <i className="fas fa-lock mr-2"></i>
