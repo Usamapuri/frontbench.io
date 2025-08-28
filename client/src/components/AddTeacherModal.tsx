@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -119,6 +119,9 @@ export default function AddTeacherModal({ open, onOpenChange }: AddTeacherModalP
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add New Teacher</DialogTitle>
+          <DialogDescription>
+            Fill out the form below to add a new teacher to the system with their personal information, teaching assignments, and payout details.
+          </DialogDescription>
         </DialogHeader>
         
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
