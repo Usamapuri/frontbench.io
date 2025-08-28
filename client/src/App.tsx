@@ -84,7 +84,6 @@ function Router() {
                     <Route path="/invoices" component={Invoices} />
                     <Route path="/receipts" component={Receipts} />
                     <Route path="/daily-close" component={DailyClose} />
-                    <Route path="/approvals" component={CashDrawApprovals} />
                     <Route path="/attendance-management" component={AttendanceManagement} />
                     <Route path="/portal-links" component={PortalLinks} />
                   </>
@@ -111,6 +110,7 @@ function Router() {
                     <Route path="/daily-close-log" component={DailyCloseLog} />
                     <Route path="/staff-management" component={StaffManagement} />
                     <Route path="/reports" component={Reports} />
+                    <Route path="/approvals" component={CashDrawApprovals} />
                   </>
                 )}
                 

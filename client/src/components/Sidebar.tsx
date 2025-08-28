@@ -26,7 +26,6 @@ export default function Sidebar({ selectedRole }: SidebarProps) {
           { path: '/attendance-management', icon: 'fas fa-calendar-check', label: 'Attendance' },
           { path: '/daily-close', icon: 'fas fa-lock', label: 'Daily Close' },
           { path: '/portal-links', icon: 'fas fa-link', label: 'Portal Links' },
-          { path: '/approvals', icon: 'fas fa-check-circle', label: 'Cash Draw Approvals' },
         ];
       case 'teacher':
         return [
@@ -48,6 +47,7 @@ export default function Sidebar({ selectedRole }: SidebarProps) {
           { path: '/staff-management', icon: 'fas fa-users', label: 'Staff Management' },
           { path: '/daily-close-log', icon: 'fas fa-calendar-check', label: 'Daily Close Log' },
           { path: '/reports', icon: 'fas fa-chart-line', label: 'Reports' },
+          { path: '/approvals', icon: 'fas fa-check-circle', label: 'Cash Draw Approvals' },
         ];
       default:
         return [];
