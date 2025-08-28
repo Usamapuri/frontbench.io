@@ -18,7 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 const announcementSchema = z.object({
   title: z.string().min(1, "Title is required"),
   content: z.string().min(1, "Content is required"),
-  type: z.enum(["homework", "notice", "reminder", "announcement"]),
+  type: z.enum(["homework", "notice", "announcement"]),
   priority: z.enum(["low", "medium", "high"]),
   subjectId: z.string().optional(),
   classId: z.string().optional(),
@@ -31,7 +31,7 @@ type AnnouncementFormData = z.infer<typeof announcementSchema>;
 
 export default function DigitalDiary() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [selectedFilter, setSelectedFilter] = useState<"all" | "homework" | "notice" | "reminder" | "announcement">("all");
+  const [selectedFilter, setSelectedFilter] = useState<"all" | "homework" | "notice" | "announcement">("all");
   const [broadcastType, setBroadcastType] = useState<"all" | "class" | "specific">("all");
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -248,7 +248,6 @@ export default function DigitalDiary() {
                           <SelectContent>
                             <SelectItem value="homework">Homework</SelectItem>
                             <SelectItem value="notice">Notice</SelectItem>
-                            <SelectItem value="reminder">Reminder</SelectItem>
                             <SelectItem value="announcement">Announcement</SelectItem>
                           </SelectContent>
                         </Select>
