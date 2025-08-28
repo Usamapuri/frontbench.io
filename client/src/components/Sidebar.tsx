@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import primaxLogo from "@assets/primax logo_1756369860205.png";
+import primaxLogo from "@assets/primax_logo_1756370699409.png";
 
 interface SidebarProps {
   selectedRole?: string | null;
