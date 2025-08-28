@@ -563,7 +563,7 @@ export class PrimaxBillingService implements BillingService {
       
       return `RCP-${invoiceNumber}-${String(sequence).padStart(2, '0')}`;
     } else {
-      // Fallback for advance payments without specific invoice
+      // Clean fallback for advance payments without specific invoice
       const today = new Date();
       const year = today.getFullYear();
       const month = String(today.getMonth() + 1).padStart(2, '0');
@@ -571,19 +571,19 @@ export class PrimaxBillingService implements BillingService {
       const lastGeneralReceipt = await db
         .select()
         .from(payments)
-        .where(sql`receipt_number LIKE ${`RCP-${year}${month}%`} AND receipt_number NOT LIKE ${'RCP-INV-%'}`)
+        .where(sql`receipt_number LIKE ${`RCP-ADV-${year}${month}%`}`)
         .orderBy(desc(payments.createdAt))
         .limit(1);
       
       let sequence = 1;
       if (lastGeneralReceipt.length > 0) {
-        const lastNum = lastGeneralReceipt[0].receiptNumber.split('-')[1];
+        const lastNum = lastGeneralReceipt[0].receiptNumber.split('-')[2];
         if (lastNum && lastNum.startsWith(year + month)) {
           sequence = parseInt(lastNum.slice(6)) + 1;
         }
       }
       
-      return `RCP-${year}${month}${String(sequence).padStart(4, '0')}`;
+      return `RCP-ADV-${year}${month}${String(sequence).padStart(4, '0')}`;
     }
   }
   

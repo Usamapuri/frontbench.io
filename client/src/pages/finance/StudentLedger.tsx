@@ -45,6 +45,7 @@ export default function StudentLedger() {
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
   const [transactionNumber, setTransactionNumber] = useState("");
+  const [paymentNotes, setPaymentNotes] = useState("");
   const [reminderMessage, setReminderMessage] = useState("");
   
   // Column visibility settings
@@ -252,6 +253,7 @@ export default function StudentLedger() {
       setPaymentAmount("");
       setPaymentMethod("");
       setTransactionNumber("");
+      setPaymentNotes("");
       setShowPaymentDialog(false);
     },
     onError: (error: any) => {
@@ -279,7 +281,7 @@ export default function StudentLedger() {
         amount: paymentAmount,
         paymentMethod: paymentMethod,
         transactionNumber: transactionNumber || undefined,
-        notes: `Payment recorded via Student Ledger for ${selectedStudent.firstName} ${selectedStudent.lastName}`,
+        notes: paymentNotes || undefined,
       });
     } catch (error) {
       console.error("Payment error:", error);
@@ -779,6 +781,22 @@ export default function StudentLedger() {
                   </p>
                 </div>
               )}
+
+              {/* Notes Field */}
+              <div>
+                <Label htmlFor="paymentNotes">Notes (Optional)</Label>
+                <Input
+                  id="paymentNotes"
+                  value={paymentNotes}
+                  onChange={(e) => setPaymentNotes(e.target.value)}
+                  placeholder="Add payment notes or details"
+                  className="mt-1"
+                  data-testid="input-payment-notes"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Add any additional notes or details about this payment
+                </p>
+              </div>
 
               <div className="flex justify-end space-x-2 pt-4">
                 <Button
