@@ -641,7 +641,6 @@ export default function Receipts() {
                   <th className="px-4 py-3 text-left font-medium text-gray-700">Date</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-700">Amount</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-700">Payment Method</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-700">Transaction #</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-700">Notes</th>
                 </tr>
               </thead>
@@ -695,11 +694,6 @@ export default function Receipts() {
                       </Badge>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="font-mono text-gray-600" data-testid={`text-transaction-${payment.id}`}>
-                        {payment.transactionNumber || '-'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
                       <span className="text-gray-600" data-testid={`text-notes-${payment.id}`} title={payment.notes || '-'}>
                         {payment.notes || '-'}
                       </span>
@@ -708,7 +702,7 @@ export default function Receipts() {
                   </tr>
                 )) : (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                    <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
                       <i className="fas fa-receipt text-4xl mb-4"></i>
                       <p>No receipts found</p>
                       {(searchQuery || paymentMethodFilter !== "all" || dateRangeFilter !== "all" || amountRangeFilter !== "all" || studentFilter !== "all") && (
