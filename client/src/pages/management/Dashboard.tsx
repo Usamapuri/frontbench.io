@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
-import { Receipt, DollarSign, PieChart, EyeOff, Users, UserPlus } from "lucide-react";
+import { Receipt, DollarSign, PieChart, Users, UserPlus } from "lucide-react";
 import AddTeacherModal from "@/components/AddTeacherModal";
 import AddStaffModal from "@/components/AddStaffModal";
 import type { DashboardStats } from "@/types";
@@ -298,19 +298,6 @@ export default function ManagementDashboard() {
               </div>
               <span className="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">
                 Financial Reports
-              </span>
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              className="w-full h-24 flex flex-col items-center justify-center space-y-3 hover:shadow-md hover:border-orange-300 transition-all duration-200 group"
-              data-testid="button-sos-mode"
-            >
-              <div className="p-2 rounded-lg bg-orange-50 group-hover:bg-orange-100 transition-colors">
-                <EyeOff className="h-6 w-6 text-orange-600" />
-              </div>
-              <span className="text-sm font-medium text-gray-700 group-hover:text-orange-600 transition-colors">
-                SOS Mode
               </span>
             </Button>
           </div>

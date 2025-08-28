@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
   Table, 
@@ -9,13 +11,49 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { Calendar } from "lucide-react";
+import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import type { DailyClose } from "@shared/schema";
 
 export default function DailyCloseLog() {
-  const { data: dailyCloses, isLoading } = useQuery<DailyClose[]>({
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  
+  const { data: allDailyCloses, isLoading } = useQuery<DailyClose[]>({
     queryKey: ["/api/daily-close"],
   });
+
+  // Filter records for the current month
+  const dailyCloses = allDailyCloses?.filter((record) => {
+    const recordDate = new Date(record.closeDate);
+    return recordDate.getMonth() === currentMonth.getMonth() && 
+           recordDate.getFullYear() === currentMonth.getFullYear();
+  }) || [];
+
+  // Navigation functions
+  const goToPreviousMonth = () => {
+    setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+  };
+
+  const goToNextMonth = () => {
+    const nextMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
+    const today = new Date();
+    // Only allow navigation to next month if it's not in the future
+    if (nextMonth <= today) {
+      setCurrentMonth(nextMonth);
+    }
+  };
+
+  const canGoToNextMonth = () => {
+    const nextMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
+    const today = new Date();
+    return nextMonth <= today;
+  };
+
+  const formatMonthYear = (date: Date) => {
+    return date.toLocaleDateString('en-PK', {
+      month: 'long',
+      year: 'numeric'
+    });
+  };
 
   const formatCurrency = (amount: number | string) => {
     const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
@@ -74,16 +112,42 @@ export default function DailyCloseLog() {
               {dailyCloses?.length || 0} Records
             </Badge>
           </div>
-          <p className="text-sm text-gray-600 mt-2">
-            Monitor all daily close activities completed by finance staff
-          </p>
+          <div className="flex items-center justify-between mt-4">
+            <p className="text-sm text-gray-600">
+              Monitor all daily close activities completed by finance staff
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToPreviousMonth}
+                className="px-3 py-1"
+                data-testid="button-previous-month"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm font-medium px-3 py-1 bg-gray-50 rounded border min-w-[140px] text-center">
+                {formatMonthYear(currentMonth)}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToNextMonth}
+                disabled={!canGoToNextMonth()}
+                className="px-3 py-1"
+                data-testid="button-next-month"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {!dailyCloses || dailyCloses.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
               <Calendar className="h-16 w-16 mx-auto mb-4 opacity-50" />
-              <h3 className="text-lg font-medium mb-2">No Daily Close Records</h3>
-              <p className="text-sm">Daily close records will appear here once finance staff completes them</p>
+              <h3 className="text-lg font-medium mb-2">No Daily Close Records for {formatMonthYear(currentMonth)}</h3>
+              <p className="text-sm">Daily close records for this month will appear here once finance staff completes them</p>
             </div>
           ) : (
             <Table>
