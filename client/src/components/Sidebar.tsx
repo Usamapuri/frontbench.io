@@ -1,5 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
+import primaxLogo from "@assets/primax logo_1756369860205.png";
 
 interface SidebarProps {
   selectedRole?: string | null;
@@ -57,7 +58,14 @@ export default function Sidebar({ selectedRole }: SidebarProps) {
   return (
     <div className="w-64 bg-white shadow-lg flex flex-col">
       <div className="p-4 border-b">
-        <h2 className="text-xl font-bold text-gray-800">Primax</h2>
+        <div className="flex items-center space-x-3 mb-2">
+          <img 
+            src={primaxLogo} 
+            alt="Primax Logo" 
+            className="h-8 w-auto"
+          />
+          <h2 className="text-xl font-bold text-gray-800">Primax</h2>
+        </div>
         <p className="text-sm text-gray-600 capitalize">{selectedRole} Panel</p>
       </div>
       
