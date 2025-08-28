@@ -109,6 +109,7 @@ function Router() {
                     <Route path="/payouts" component={PayoutSummary} />
                     <Route path="/daily-close-log" component={DailyCloseLog} />
                     <Route path="/staff-management" component={StaffManagement} />
+                    <Route path="/students" component={StudentLedger} />
                     <Route path="/reports" component={Reports} />
                     <Route path="/approvals" component={CashDrawApprovals} />
                   </>
