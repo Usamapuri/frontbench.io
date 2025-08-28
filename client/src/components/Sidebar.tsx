@@ -62,7 +62,7 @@ export default function Sidebar({ selectedRole }: SidebarProps) {
           <img 
             src={primaxLogo} 
             alt="Primax Logo" 
-            className="h-12 w-auto"
+            className="h-14 w-auto"
           />
         </div>
       </div>
