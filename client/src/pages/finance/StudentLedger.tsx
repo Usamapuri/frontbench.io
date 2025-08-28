@@ -261,17 +261,19 @@ export default function StudentLedger() {
       });
       return response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       toast({
         title: "Payment recorded successfully",
         description: `Payment of Rs. ${paymentAmount} recorded for ${selectedStudent?.firstName} ${selectedStudent?.lastName}`,
       });
 
-      // Refresh student data
-      queryClient.invalidateQueries({ queryKey: ["/api/students"] });
-      queryClient.invalidateQueries({
-        queryKey: ["/api/students-with-financial"],
-      });
+      // Force refresh student data in correct order
+      await queryClient.invalidateQueries({ queryKey: ["/api/students"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/students-with-financial"] });
+      
+      // Force refetch to ensure UI updates immediately
+      await queryClient.refetchQueries({ queryKey: ["/api/students"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/students-with-financial"] });
 
       // Reset form
       setPaymentAmount("");
@@ -376,14 +378,20 @@ export default function StudentLedger() {
       const response = await apiRequest("PATCH", `/api/students/${data.id}`, data);
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast({
         title: "Student updated",
         description: "Student information has been updated successfully",
       });
       
-      queryClient.invalidateQueries({ queryKey: ["/api/students"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/students-with-financial"] });
+      // Force refresh student data in correct order
+      await queryClient.invalidateQueries({ queryKey: ["/api/students"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/students-with-financial"] });
+      
+      // Force refetch to ensure UI updates immediately
+      await queryClient.refetchQueries({ queryKey: ["/api/students"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/students-with-financial"] });
+      
       setShowEditDialog(false);
     },
     onError: (error: any) => {
@@ -401,7 +409,7 @@ export default function StudentLedger() {
       const response = await apiRequest("PATCH", `/api/students/${data.studentId}/toggle-active`, data);
       return response.json();
     },
-    onSuccess: (data, variables) => {
+    onSuccess: async (data, variables) => {
       toast({
         title: variables.isActive ? "Student reactivated" : "Student deactivated",
         description: variables.isActive 
@@ -409,8 +417,13 @@ export default function StudentLedger() {
           : "Student has been deactivated and portal access disabled",
       });
       
-      queryClient.invalidateQueries({ queryKey: ["/api/students"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/students-with-financial"] });
+      // Force refresh student data in correct order
+      await queryClient.invalidateQueries({ queryKey: ["/api/students"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/students-with-financial"] });
+      
+      // Force refetch to ensure UI updates immediately
+      await queryClient.refetchQueries({ queryKey: ["/api/students"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/students-with-financial"] });
     },
     onError: (error: any) => {
       toast({
@@ -427,14 +440,19 @@ export default function StudentLedger() {
       const response = await apiRequest("DELETE", `/api/students/${studentId}`);
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast({
         title: "Student deleted",
         description: "Student has been permanently deleted from the system",
       });
       
-      queryClient.invalidateQueries({ queryKey: ["/api/students"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/students-with-financial"] });
+      // Force refresh student data in correct order
+      await queryClient.invalidateQueries({ queryKey: ["/api/students"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/students-with-financial"] });
+      
+      // Force refetch to ensure UI updates immediately
+      await queryClient.refetchQueries({ queryKey: ["/api/students"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/students-with-financial"] });
     },
     onError: (error: any) => {
       toast({
