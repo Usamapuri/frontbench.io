@@ -16,7 +16,7 @@ import Invoices from "@/pages/finance/Invoices";
 import Receipts from "@/pages/finance/Receipts";
 import DailyClose from "@/pages/finance/DailyClose";
 import CashDrawApprovals from "@/pages/finance/CashDrawApprovals";
-import Reports from "@/pages/finance/Reports";
+import Reports from "@/pages/management/Reports";
 import AttendanceManagement from "@/pages/finance/AttendanceManagement";
 import PortalLinks from "@/pages/finance/PortalLinks";
 
@@ -85,7 +85,6 @@ function Router() {
                     <Route path="/receipts" component={Receipts} />
                     <Route path="/daily-close" component={DailyClose} />
                     <Route path="/approvals" component={CashDrawApprovals} />
-                    <Route path="/reports" component={Reports} />
                     <Route path="/attendance-management" component={AttendanceManagement} />
                     <Route path="/portal-links" component={PortalLinks} />
                   </>
@@ -111,6 +110,7 @@ function Router() {
                     <Route path="/payouts" component={PayoutSummary} />
                     <Route path="/daily-close-log" component={DailyCloseLog} />
                     <Route path="/staff-management" component={StaffManagement} />
+                    <Route path="/reports" component={Reports} />
                   </>
                 )}
                 
