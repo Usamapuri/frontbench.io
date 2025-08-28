@@ -64,7 +64,6 @@ export default function Sidebar({ selectedRole }: SidebarProps) {
             alt="Primax Logo" 
             className="h-8 w-auto"
           />
-          <h2 className="text-xl font-bold text-gray-800">Primax</h2>
         </div>
         <p className="text-sm text-gray-600 capitalize">{selectedRole} Panel</p>
       </div>
