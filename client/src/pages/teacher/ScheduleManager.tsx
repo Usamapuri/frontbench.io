@@ -101,7 +101,9 @@ export default function ScheduleManager() {
     queryKey: ["/api/teacher/schedules"],
     queryFn: async () => {
       const response = await fetch("/api/teacher/schedules");
-      return response.json();
+      const data = await response.json();
+      // Return empty array if the response is an error or not an array
+      return Array.isArray(data) ? data : [];
     },
   });
 
@@ -119,7 +121,9 @@ export default function ScheduleManager() {
     queryKey: ["/api/teacher/schedule-changes"],
     queryFn: async () => {
       const response = await fetch("/api/teacher/schedule-changes");
-      return response.json();
+      const data = await response.json();
+      // Return empty array if the response is an error or not an array
+      return Array.isArray(data) ? data : [];
     },
   });
 
@@ -253,13 +257,13 @@ export default function ScheduleManager() {
   };
 
   // Group schedules by day
-  const schedulesByDay = schedules.reduce((acc: any, schedule: any) => {
+  const schedulesByDay = Array.isArray(schedules) ? schedules.reduce((acc: any, schedule: any) => {
     if (!acc[schedule.dayOfWeek]) {
       acc[schedule.dayOfWeek] = [];
     }
     acc[schedule.dayOfWeek].push(schedule);
     return acc;
-  }, {});
+  }, {}) : {};
 
   // Sort each day's schedules by start time
   Object.keys(schedulesByDay).forEach(day => {
@@ -727,7 +731,7 @@ export default function ScheduleManager() {
             </div>
           ) : (
             <div className="space-y-3">
-              {scheduleChanges.slice(0, 10).map((change: any) => (
+              {Array.isArray(scheduleChanges) ? scheduleChanges.slice(0, 10).map((change: any) => (
                 <div key={change.id} className="flex items-center justify-between p-3 border rounded-lg" data-testid={`change-item-${change.id}`}>
                   <div className="flex items-center gap-4">
                     {getChangeTypeIcon(change.changeType)}
@@ -747,7 +751,7 @@ export default function ScheduleManager() {
                     {change.changeType.replace("_", " ")}
                   </Badge>
                 </div>
-              ))}
+              )) : null}
             </div>
           )}
         </CardContent>
