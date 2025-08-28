@@ -50,17 +50,22 @@ export default function DailyClose() {
     setNotes("");
   };
 
-  // Navigate to next day
+  // Navigate to next day (only if not going into future)
   const goToNextDay = () => {
     const currentDate = new Date(selectedDate);
     currentDate.setDate(currentDate.getDate() + 1);
+    const today = new Date().toISOString().split('T')[0];
     const newDateString = currentDate.toISOString().split('T')[0];
-    setSelectedDate(newDateString);
-    setCalendarDate(currentDate);
-    // Clear form when changing dates
-    setTotalCash("");
-    setTotalBank("");
-    setNotes("");
+    
+    // Only allow navigation if not going into future
+    if (newDateString <= today) {
+      setSelectedDate(newDateString);
+      setCalendarDate(currentDate);
+      // Clear form when changing dates
+      setTotalCash("");
+      setTotalBank("");
+      setNotes("");
+    }
   };
 
   const { data: dailyCloseRecord, isLoading } = useQuery<DailyClose | null>({
@@ -176,6 +181,10 @@ export default function DailyClose() {
   const expectedTotal = expectedCash + expectedBank;
   const actualTotal = (parseFloat(totalCash) || 0) + (parseFloat(totalBank) || 0);
   const variance = actualTotal - expectedTotal;
+  
+  // Check if selected date is in the future
+  const today = new Date().toISOString().split('T')[0];
+  const isFutureDate = selectedDate > today;
 
   if (isLoading) {
     return (
@@ -213,6 +222,7 @@ export default function DailyClose() {
                   id="closeDate"
                   type="date"
                   value={selectedDate}
+                  max={today}
                   onChange={(e) => {
                     setSelectedDate(e.target.value);
                     // Clear form when changing dates
@@ -227,6 +237,7 @@ export default function DailyClose() {
                   variant="outline"
                   size="sm"
                   onClick={goToNextDay}
+                  disabled={selectedDate >= today}
                   className="px-3 py-1"
                   data-testid="button-next-day"
                 >
@@ -247,8 +258,14 @@ export default function DailyClose() {
             </div>
             <div className="text-sm text-gray-600">
               <i className="fas fa-info-circle mr-2"></i>
-              You can select any date (past, present, or future) to complete daily close operations. Once locked, dates cannot be modified.
+              You can only complete daily close operations for past and current dates. Future dates cannot be modified. Once locked, dates cannot be modified.
             </div>
+            {isFutureDate && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+                <i className="fas fa-exclamation-triangle mr-2"></i>
+                <strong>Future Date Selected:</strong> Daily close operations can only be performed for past and current dates. Please select a date that is today or earlier.
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -364,122 +381,131 @@ export default function DailyClose() {
             <p className="text-sm text-gray-600">
               {new Date(selectedDate).toDateString() === new Date().toDateString() 
                 ? "Recording daily close for today" 
-                : new Date(selectedDate) < new Date()
-                  ? "Recording daily close for a past date - you can complete missed daily closes"
-                  : "Recording daily close for a future date - you can plan ahead"}
+                : "Recording daily close for a past date - you can complete missed daily closes"}
             </p>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <Label htmlFor="totalCash">Actual Cash Total *</Label>
-                <Input
-                  id="totalCash"
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={totalCash}
-                  onChange={(e) => setTotalCash(e.target.value)}
-                  data-testid="input-total-cash"
-                />
-                <p className="text-sm text-gray-600 mt-1">
-                  Expected: Rs. {expectedCash.toLocaleString()}
-                </p>
-              </div>
-
-              <div>
-                <Label htmlFor="totalBank">Actual Bank Total *</Label>
-                <Input
-                  id="totalBank"
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={totalBank}
-                  onChange={(e) => setTotalBank(e.target.value)}
-                  data-testid="input-total-bank"
-                />
-                <p className="text-sm text-gray-600 mt-1">
-                  Expected: Rs. {expectedBank.toLocaleString()}
-                </p>
-              </div>
-            </div>
-
-            {(totalCash || totalBank) && (
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="font-medium text-gray-800 mb-2">Summary</h4>
-                <div className="grid grid-cols-3 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-600">Actual Total:</span>
-                    <div className="font-semibold" data-testid="text-summary-actual">
-                      Rs. {actualTotal.toLocaleString()}
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Expected:</span>
-                    <div className="font-semibold" data-testid="text-summary-expected">
-                      Rs. {expectedTotal.toLocaleString()}
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Variance:</span>
-                    <div className={`font-semibold ${
-                      variance === 0 ? 'text-green-600' : 
-                      variance > 0 ? 'text-blue-600' : 'text-red-600'
-                    }`} data-testid="text-summary-variance">
-                      {variance > 0 ? '+' : ''}Rs. {variance.toLocaleString()}
-                    </div>
-                  </div>
-                </div>
+            {isFutureDate && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+                <i className="fas fa-calendar-times text-red-500 text-2xl mb-2"></i>
+                <h3 className="font-medium text-red-800 mb-1">Future Date Not Allowed</h3>
+                <p className="text-sm text-red-600">Daily close operations can only be performed for dates up to today. Please select a current or past date.</p>
               </div>
             )}
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {!isFutureDate ? (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <Label htmlFor="totalCash">Actual Cash Total *</Label>
+                    <Input
+                      id="totalCash"
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={totalCash}
+                      onChange={(e) => setTotalCash(e.target.value)}
+                      data-testid="input-total-cash"
+                    />
+                    <p className="text-sm text-gray-600 mt-1">
+                      Expected: Rs. {expectedCash.toLocaleString()}
+                    </p>
+                  </div>
 
-            <div>
-              <Label htmlFor="notes">Notes (Optional)</Label>
-              <Textarea
-                id="notes"
-                placeholder="Add any notes about discrepancies or special circumstances..."
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows={3}
-                data-testid="textarea-notes"
-              />
-            </div>
+                  <div>
+                    <Label htmlFor="totalBank">Actual Bank Total *</Label>
+                    <Input
+                      id="totalBank"
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={totalBank}
+                      onChange={(e) => setTotalBank(e.target.value)}
+                      data-testid="input-total-bank"
+                    />
+                    <p className="text-sm text-gray-600 mt-1">
+                      Expected: Rs. {expectedBank.toLocaleString()}
+                    </p>
+                  </div>
+                </div>
 
-            <div className="flex justify-end space-x-3">
-              <Button
-                variant="outline"
-                onClick={handleSubmit}
-                disabled={(!totalCash && !totalBank) || createDailyCloseMutation.isPending}
-                data-testid="button-save-draft"
-              >
-                {createDailyCloseMutation.isPending ? (
-                  <>
-                    <i className="fas fa-spinner fa-spin mr-2"></i>
-                    Saving...
-                  </>
-                ) : (
-                  "Save as Draft"
+                {(totalCash || totalBank) && (
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h4 className="font-medium text-gray-800 mb-2">Summary</h4>
+                    <div className="grid grid-cols-3 gap-4 text-sm">
+                      <div>
+                        <span className="text-gray-600">Actual Total:</span>
+                        <div className="font-semibold" data-testid="text-summary-actual">
+                          Rs. {actualTotal.toLocaleString()}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Expected:</span>
+                        <div className="font-semibold" data-testid="text-summary-expected">
+                          Rs. {expectedTotal.toLocaleString()}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Variance:</span>
+                        <div className={`font-semibold ${
+                          variance === 0 ? 'text-green-600' : 
+                          variance > 0 ? 'text-blue-600' : 'text-red-600'
+                        }`} data-testid="text-summary-variance">
+                          {variance > 0 ? '+' : ''}Rs. {variance.toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 )}
-              </Button>
-              <Button
-                onClick={handleLockDay}
-                disabled={!totalCash || !totalBank || lockDayMutation.isPending}
-                data-testid="button-lock-day"
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                {lockDayMutation.isPending ? (
-                  <>
-                    <i className="fas fa-spinner fa-spin mr-2"></i>
-                    Locking Day...
-                  </>
-                ) : (
-                  <>
-                    <i className="fas fa-lock mr-2"></i>
-                    Lock Day & Finalize
-                  </>
-                )}
-              </Button>
-            </div>
+
+                <div>
+                  <Label htmlFor="notes">Notes (Optional)</Label>
+                  <Textarea
+                    id="notes"
+                    placeholder="Add any notes about discrepancies or special circumstances..."
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    rows={3}
+                    data-testid="textarea-notes"
+                  />
+                </div>
+
+                <div className="flex justify-end space-x-3">
+                  <Button
+                    variant="outline"
+                    onClick={handleSubmit}
+                    disabled={(!totalCash && !totalBank) || createDailyCloseMutation.isPending}
+                    data-testid="button-save-draft"
+                  >
+                    {createDailyCloseMutation.isPending ? (
+                      <>
+                        <i className="fas fa-spinner fa-spin mr-2"></i>
+                        Saving...
+                      </>
+                    ) : (
+                      "Save as Draft"
+                    )}
+                  </Button>
+                  <Button
+                    onClick={handleLockDay}
+                    disabled={!totalCash || !totalBank || lockDayMutation.isPending}
+                    data-testid="button-lock-day"
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    {lockDayMutation.isPending ? (
+                      <>
+                        <i className="fas fa-spinner fa-spin mr-2"></i>
+                        Locking Day...
+                      </>
+                    ) : (
+                      <>
+                        <i className="fas fa-lock mr-2"></i>
+                        Lock Day & Finalize
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            ) : null}
           </CardContent>
         </Card>
       )}

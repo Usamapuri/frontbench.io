@@ -1192,8 +1192,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/daily-close", isAuthenticated, async (req: any, res) => {
     try {
+      const { closeDate } = req.body;
+      
+      // Prevent future date modifications
+      const today = new Date().toISOString().split('T')[0];
+      if (closeDate > today) {
+        return res.status(400).json({ 
+          message: "Daily close operations can only be performed for past and current dates" 
+        });
+      }
+      
       // Check if daily close already exists for this date
-      const existingRecord = await storage.getDailyClose(req.body.closeDate);
+      const existingRecord = await storage.getDailyClose(closeDate);
       
       const dailyCloseData = {
         ...req.body,
@@ -1203,7 +1213,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (existingRecord) {
         // Update existing record
-        const updatedRecord = await storage.updateDailyClose(req.body.closeDate, dailyCloseData);
+        const updatedRecord = await storage.updateDailyClose(closeDate, dailyCloseData);
         return res.json(updatedRecord);
       }
       
@@ -1219,6 +1229,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/daily-close/lock", isAuthenticated, async (req: any, res) => {
     try {
       const { closeDate, dailyCloseData } = req.body;
+      
+      // Prevent future date modifications
+      const today = new Date().toISOString().split('T')[0];
+      if (closeDate > today) {
+        return res.status(400).json({ 
+          message: "Daily close operations can only be performed for past and current dates" 
+        });
+      }
       
       // Check if record already exists and is locked
       const existingRecord = await storage.getDailyClose(closeDate);
