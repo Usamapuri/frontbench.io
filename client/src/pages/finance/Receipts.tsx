@@ -637,10 +637,10 @@ export default function Receipts() {
                 <tr>
                   <th className="px-4 py-3 text-left font-medium text-gray-700 w-52">Receipt #</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-700">Roll #</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-700">Student</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-700 w-48">Student</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-700">Date</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-700">Amount</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-700">Payment Method</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-700 w-36">Amount</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-700 w-40">Payment Method</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-700">Notes</th>
                 </tr>
               </thead>
@@ -670,22 +670,24 @@ export default function Receipts() {
                         {payment.studentRollNumber || getStudentRollNumber(payment.studentId)}
                       </span>
                     </td>
-                    <td className="px-4 py-3" data-testid={`text-student-${payment.id}`}>
-                      {payment.studentFirstName && payment.studentLastName 
-                        ? `${payment.studentFirstName} ${payment.studentLastName}`
-                        : getStudentName(payment.studentId)}
+                    <td className="px-4 py-3 w-48" data-testid={`text-student-${payment.id}`}>
+                      <span className="whitespace-nowrap">
+                        {payment.studentFirstName && payment.studentLastName 
+                          ? `${payment.studentFirstName} ${payment.studentLastName}`
+                          : getStudentName(payment.studentId)}
+                      </span>
                     </td>
                     <td className="px-4 py-3" data-testid={`text-payment-date-${payment.id}`}>
                       {new Date(payment.paymentDate).toLocaleDateString()}
                     </td>
-                    <td className="px-4 py-3">
-                      <span className="font-semibold" data-testid={`text-amount-${payment.id}`}>
+                    <td className="px-4 py-3 w-36">
+                      <span className="font-semibold whitespace-nowrap" data-testid={`text-amount-${payment.id}`}>
                         Rs. {Number(payment.amount).toLocaleString()}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 w-40">
                       <Badge 
-                        className={getPaymentMethodColor(payment.paymentMethod)}
+                        className={`${getPaymentMethodColor(payment.paymentMethod)} whitespace-nowrap`}
                         data-testid={`badge-method-${payment.id}`}
                       >
                         {payment.paymentMethod === 'bank_transfer' ? 'BANK TRANSFER' : 
