@@ -247,20 +247,7 @@ export default function ManagementDashboard() {
               </Button>
             </Link>
 
-            <Link href="/staff-management">
-              <Button 
-                variant="outline" 
-                className="w-full h-24 flex flex-col items-center justify-center space-y-3 hover:shadow-md hover:border-green-300 transition-all duration-200 group"
-                data-testid="button-staff-management"
-              >
-                <div className="p-2 rounded-lg bg-green-50 group-hover:bg-green-100 transition-colors">
-                  <Users className="h-6 w-6 text-green-600" />
-                </div>
-                <span className="text-sm font-medium text-gray-700 group-hover:text-green-600 transition-colors">
-                  Staff Management
-                </span>
-              </Button>
-            </Link>
+            
 
             <Button 
               variant="outline" 
