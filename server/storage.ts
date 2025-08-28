@@ -464,24 +464,28 @@ export class DatabaseStorage implements IStorage {
     const today = new Date();
     const dayOfWeek = today.getDay();
     
+    // Convert JavaScript Date.getDay() (0-6, 0=Sunday) to dayOfWeekEnum strings
+    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const todayString = dayNames[dayOfWeek];
+    
     return await db
       .select({
-        id: classes.id,
-        name: classes.name,
-        startTime: classes.startTime,
-        endTime: classes.endTime,
+        id: classSchedules.id,
         subject: subjects.name,
+        startTime: classSchedules.startTime,
+        endTime: classSchedules.endTime,
+        location: classSchedules.location,
       })
-      .from(classes)
-      .innerJoin(subjects, eq(classes.subjectId, subjects.id))
+      .from(classSchedules)
+      .innerJoin(subjects, eq(classSchedules.subjectId, subjects.id))
       .where(
         and(
-          eq(classes.teacherId, teacherId),
-          eq(classes.dayOfWeek, dayOfWeek),
-          eq(classes.isActive, true)
+          eq(classSchedules.teacherId, teacherId),
+          eq(classSchedules.dayOfWeek, todayString as any),
+          eq(classSchedules.isActive, true)
         )
       )
-      .orderBy(classes.startTime);
+      .orderBy(classSchedules.startTime);
   }
 
   async getClassesForDay(dayOfWeek: number): Promise<any[]> {
