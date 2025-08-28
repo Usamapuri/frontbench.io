@@ -33,6 +33,7 @@ import ManagementDashboard from "@/pages/management/Dashboard";
 import Expenses from "@/pages/management/Expenses";
 import PayoutSummary from "@/pages/management/PayoutSummary";
 import DailyCloseLog from "@/pages/management/DailyCloseLog";
+import StaffManagement from "@/pages/management/StaffManagement";
 import RollNumberManager from "@/components/RollNumberManager";
 
 function Router() {
@@ -110,6 +111,7 @@ function Router() {
                     <Route path="/expenses" component={Expenses} />
                     <Route path="/payouts" component={PayoutSummary} />
                     <Route path="/daily-close-log" component={DailyCloseLog} />
+                    <Route path="/staff-management" component={StaffManagement} />
                     <Route path="/roll-numbers" component={RollNumberManager} />
                   </>
                 )}

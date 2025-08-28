@@ -1,17 +1,12 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
-import { Receipt, DollarSign, PieChart, Users, UserPlus } from "lucide-react";
-import AddTeacherModal from "@/components/AddTeacherModal";
-import AddStaffModal from "@/components/AddStaffModal";
+import { Receipt, DollarSign, PieChart, Users } from "lucide-react";
 import type { DashboardStats } from "@/types";
 
 export default function ManagementDashboard() {
-  const [addTeacherModalOpen, setAddTeacherModalOpen] = useState(false);
-  const [addStaffModalOpen, setAddStaffModalOpen] = useState(false);
   
   const { data: stats, isLoading } = useQuery<DashboardStats>({
     queryKey: ['/api/dashboard/stats'],
@@ -198,43 +193,7 @@ export default function ManagementDashboard() {
         </Card>
       </div>
 
-      {/* Staff Management Tools */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Staff Management</CardTitle>
-        </CardHeader>
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6 mb-6">
-            <Button 
-              onClick={() => setAddTeacherModalOpen(true)}
-              variant="outline" 
-              className="w-full h-24 flex flex-col items-center justify-center space-y-3 hover:shadow-md hover:border-blue-300 transition-all duration-200 group"
-              data-testid="button-add-teacher"
-            >
-              <div className="p-2 rounded-lg bg-blue-50 group-hover:bg-blue-100 transition-colors">
-                <Users className="h-6 w-6 text-blue-600" />
-              </div>
-              <span className="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">
-                Add New Teacher
-              </span>
-            </Button>
-            
-            <Button 
-              onClick={() => setAddStaffModalOpen(true)}
-              variant="outline" 
-              className="w-full h-24 flex flex-col items-center justify-center space-y-3 hover:shadow-md hover:border-green-300 transition-all duration-200 group"
-              data-testid="button-add-staff"
-            >
-              <div className="p-2 rounded-lg bg-green-50 group-hover:bg-green-100 transition-colors">
-                <UserPlus className="h-6 w-6 text-green-600" />
-              </div>
-              <span className="text-sm font-medium text-gray-700 group-hover:text-green-600 transition-colors">
-                Add Finance/Front-Desk Staff
-              </span>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+
 
       {/* Management Tools */}
       <Card>
@@ -284,6 +243,21 @@ export default function ManagementDashboard() {
                 </div>
                 <span className="text-sm font-medium text-gray-700 group-hover:text-purple-600 transition-colors">
                   Daily Close
+                </span>
+              </Button>
+            </Link>
+
+            <Link href="/staff-management">
+              <Button 
+                variant="outline" 
+                className="w-full h-24 flex flex-col items-center justify-center space-y-3 hover:shadow-md hover:border-green-300 transition-all duration-200 group"
+                data-testid="button-staff-management"
+              >
+                <div className="p-2 rounded-lg bg-green-50 group-hover:bg-green-100 transition-colors">
+                  <Users className="h-6 w-6 text-green-600" />
+                </div>
+                <span className="text-sm font-medium text-gray-700 group-hover:text-green-600 transition-colors">
+                  Staff Management
                 </span>
               </Button>
             </Link>
@@ -399,17 +373,7 @@ export default function ManagementDashboard() {
         </CardContent>
       </Card>
 
-      {/* Add Teacher Modal */}
-      <AddTeacherModal 
-        open={addTeacherModalOpen} 
-        onOpenChange={setAddTeacherModalOpen} 
-      />
 
-      {/* Add Staff Modal */}
-      <AddStaffModal 
-        open={addStaffModalOpen} 
-        onOpenChange={setAddStaffModalOpen} 
-      />
     </div>
   );
 }
