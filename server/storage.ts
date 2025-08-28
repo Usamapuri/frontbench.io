@@ -63,6 +63,8 @@ export interface IStorage {
   getStudent(id: string): Promise<Student | undefined>;
   createStudent(student: InsertStudent): Promise<Student>;
   updateStudent(id: string, student: Partial<InsertStudent>): Promise<Student>;
+  toggleStudentActiveStatus(id: string, isActive: boolean): Promise<Student>;
+  deleteStudent(id: string): Promise<void>;
   
   // Roll Number Management
   generateRollNumber(): Promise<string>;
@@ -373,6 +375,50 @@ export class DatabaseStorage implements IStorage {
       .where(eq(students.id, id))
       .returning();
     return updatedStudent;
+  }
+
+  async toggleStudentActiveStatus(id: string, isActive: boolean): Promise<Student> {
+    const [updatedStudent] = await db
+      .update(students)
+      .set({ isActive, updatedAt: new Date() })
+      .where(eq(students.id, id))
+      .returning();
+    return updatedStudent;
+  }
+
+  async deleteStudent(id: string): Promise<void> {
+    // Delete in order to respect foreign key constraints
+    // First delete related records, then the student
+    
+    // Delete enrollments
+    await db.delete(enrollments).where(eq(enrollments.studentId, id));
+    
+    // Delete attendance records
+    await db.delete(attendance).where(eq(attendance.studentId, id));
+    
+    // Delete grades
+    await db.delete(grades).where(eq(grades.studentId, id));
+    
+    // Delete assessments
+    await db.delete(assessments).where(eq(assessments.studentId, id));
+    
+    // Delete invoices (this will cascade to related records)
+    await db.delete(invoices).where(eq(invoices.studentId, id));
+    
+    // Delete payments
+    await db.delete(payments).where(eq(payments.studentId, id));
+    
+    // Delete payment allocations
+    await db.delete(paymentAllocations).where(eq(paymentAllocations.studentId, id));
+    
+    // Delete announcements related to the student
+    await db.delete(announcementRecipients).where(eq(announcementRecipients.studentId, id));
+    
+    // Delete student notifications
+    await db.delete(studentNotifications).where(eq(studentNotifications.studentId, id));
+    
+    // Finally, delete the student
+    await db.delete(students).where(eq(students.id, id));
   }
 
   // Subjects

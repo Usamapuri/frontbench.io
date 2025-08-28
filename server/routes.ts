@@ -158,6 +158,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Toggle student active status
+  app.patch("/api/students/:id/toggle-active", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { isActive } = req.body;
+      
+      if (typeof isActive !== 'boolean') {
+        return res.status(400).json({ message: "isActive must be a boolean" });
+      }
+      
+      const updatedStudent = await storage.toggleStudentActiveStatus(id, isActive);
+      res.json(updatedStudent);
+    } catch (error) {
+      console.error("Error toggling student active status:", error);
+      res.status(500).json({ message: "Failed to update student status" });
+    }
+  });
+
+  // Delete student permanently
+  app.delete("/api/students/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Check if student exists first
+      const student = await storage.getStudent(id);
+      if (!student) {
+        return res.status(404).json({ message: "Student not found" });
+      }
+      
+      await storage.deleteStudent(id);
+      res.json({ message: "Student deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting student:", error);
+      res.status(500).json({ message: "Failed to delete student" });
+    }
+  });
+
   // Roll number management endpoints
   app.get("/api/roll-numbers/next", async (req, res) => {
     try {

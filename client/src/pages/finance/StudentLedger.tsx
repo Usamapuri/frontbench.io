@@ -24,7 +24,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { Edit, Settings, Eye, DollarSign, Bell } from "lucide-react";
+import { Edit, Settings, Eye, DollarSign, Bell, UserX, Trash2 } from "lucide-react";
 
 import { useToast } from "@/hooks/use-toast";
 import { formatPKR } from "@/lib/currency";
@@ -57,6 +57,8 @@ export default function StudentLedger() {
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [studentToDelete, setStudentToDelete] = useState<any>(null);
 
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
@@ -69,6 +71,7 @@ export default function StudentLedger() {
     showSubjects: true,
     showCreationDate: true,
     showLastUpdate: false, // Hidden by default as requested
+    showDeactivatedStudents: false, // Show deactivated students toggle
   });
 
   // Edit form data
@@ -174,8 +177,13 @@ export default function StudentLedger() {
           student.attendancePercentage < 90) ||
         (attendanceFilter === "poor" && student.attendancePercentage < 75);
 
+      // Active/Deactivated filter logic
+      const matchesActiveStatus = columnSettings.showDeactivatedStudents 
+        ? true // Show all students when toggle is on
+        : student.isActive !== false; // Hide deactivated students by default
+
       return (
-        matchesSearch && matchesClass && matchesFeeStatus && matchesAttendance
+        matchesSearch && matchesClass && matchesFeeStatus && matchesAttendance && matchesActiveStatus
       );
     }) || [];
 
@@ -333,6 +341,26 @@ export default function StudentLedger() {
     setShowEditDialog(true);
   };
 
+  const handleToggleActiveStatus = (student: any) => {
+    toggleActiveStatusMutation.mutate({
+      studentId: student.id,
+      isActive: student.isActive === false ? true : false
+    });
+  };
+
+  const handleDeleteStudent = (student: any) => {
+    setStudentToDelete(student);
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDeleteStudent = () => {
+    if (studentToDelete) {
+      deleteStudentMutation.mutate(studentToDelete.id);
+      setShowDeleteDialog(false);
+      setStudentToDelete(null);
+    }
+  };
+
 
 
   const handleUpdateColumnSettings = (setting: keyof typeof columnSettings, value: boolean) => {
@@ -362,6 +390,56 @@ export default function StudentLedger() {
       toast({
         title: "Update failed",
         description: error.message || "Failed to update student information",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Toggle active status mutation
+  const toggleActiveStatusMutation = useMutation({
+    mutationFn: async (data: { studentId: string; isActive: boolean }) => {
+      const response = await apiRequest("PATCH", `/api/students/${data.studentId}/toggle-active`, data);
+      return response.json();
+    },
+    onSuccess: (data, variables) => {
+      toast({
+        title: variables.isActive ? "Student reactivated" : "Student deactivated",
+        description: variables.isActive 
+          ? "Student has been reactivated and can access their portal"
+          : "Student has been deactivated and portal access disabled",
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ["/api/students"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/students-with-financial"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Action failed",
+        description: error.message || "Failed to update student status",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete student mutation
+  const deleteStudentMutation = useMutation({
+    mutationFn: async (studentId: string) => {
+      const response = await apiRequest("DELETE", `/api/students/${studentId}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Student deleted",
+        description: "Student has been permanently deleted from the system",
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ["/api/students"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/students-with-financial"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Delete failed",
+        description: error.message || "Failed to delete student",
         variant: "destructive",
       });
     },
@@ -681,6 +759,26 @@ export default function StudentLedger() {
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className={student.isActive === false ? "text-green-600" : "text-orange-600"}
+                              onClick={() => handleToggleActiveStatus(student)}
+                              data-testid={`button-toggle-active-${student.id}`}
+                              title={student.isActive === false ? "Reactivate Student" : "Deactivate Student"}
+                            >
+                              <UserX className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-red-600"
+                              onClick={() => handleDeleteStudent(student)}
+                              data-testid={`button-delete-student-${student.id}`}
+                              title="Delete Student"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
                         </td>
                       </tr>
@@ -850,6 +948,14 @@ export default function StudentLedger() {
                 id="show-last-update"
                 checked={columnSettings.showLastUpdate}
                 onCheckedChange={(checked) => handleUpdateColumnSettings('showLastUpdate', checked)}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="show-deactivated-students">View Deactivated Students</Label>
+              <Switch
+                id="show-deactivated-students"
+                checked={columnSettings.showDeactivatedStudents}
+                onCheckedChange={(checked) => handleUpdateColumnSettings('showDeactivatedStudents', checked)}
               />
             </div>
           </div>
@@ -1066,6 +1172,60 @@ export default function StudentLedger() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Student</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                <Trash2 className="h-6 w-6 text-red-600" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                Are you absolutely sure?
+              </h3>
+              <p className="text-sm text-gray-500 mb-4">
+                You are about to permanently delete{" "}
+                <strong>
+                  {studentToDelete?.firstName} {studentToDelete?.lastName}
+                </strong>{" "}
+                from the system.
+              </p>
+              <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-4">
+                <p className="text-xs text-red-700">
+                  <strong>Warning:</strong> This action cannot be undone. All student data, 
+                  including grades, attendance records, financial history, and portal access 
+                  will be permanently removed from the database.
+                </p>
+              </div>
+              <p className="text-xs text-gray-600">
+                If you want to temporarily disable the student instead, use the 
+                "Deactivate" option which preserves all data.
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-end space-x-2 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteDialog(false)}
+              data-testid="button-cancel-delete"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDeleteStudent}
+              disabled={deleteStudentMutation.isPending}
+              data-testid="button-confirm-delete"
+            >
+              {deleteStudentMutation.isPending ? "Deleting..." : "Yes, Delete Permanently"}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
