@@ -458,7 +458,7 @@ export default function DigitalDiary() {
 
       {/* Filter tabs */}
       <div className="flex space-x-2">
-        {["all", "homework", "notice", "reminder", "announcement"].map((filter) => (
+        {["all", "homework", "notice", "announcement"].map((filter) => (
           <Button
             key={filter}
             variant={selectedFilter === filter ? "default" : "outline"}
