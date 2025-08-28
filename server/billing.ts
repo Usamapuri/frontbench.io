@@ -125,15 +125,7 @@ export class PrimaxBillingService implements BillingService {
    * Process advance payments that cover multiple months
    */
   async processAdvancePayment(studentId: string, amount: number, paymentData: any): Promise<any> {
-    // Create the payment record
-    const payment = await storage.createPayment({
-      ...paymentData,
-      studentId,
-      amount: amount.toString(),
-      receiptNumber: await this.generateReceiptNumber()
-    });
-    
-    // Get pending invoices for this student (oldest first)
+    // Get pending invoices for this student to determine primary invoice for receipt number
     const pendingInvoices = await db
       .select()
       .from(invoices)
@@ -144,6 +136,17 @@ export class PrimaxBillingService implements BillingService {
         )
       )
       .orderBy(invoices.issueDate);
+    
+    // Use first invoice for receipt number, or fallback for general receipt
+    const primaryInvoiceNumber = pendingInvoices.length > 0 ? pendingInvoices[0].invoiceNumber : undefined;
+    
+    // Create the payment record
+    const payment = await storage.createPayment({
+      ...paymentData,
+      studentId,
+      amount: amount.toString(),
+      receiptNumber: await this.generateReceiptNumber(primaryInvoiceNumber)
+    });
     
     let remainingAmount = amount;
     const allocations = [];
@@ -214,12 +217,12 @@ export class PrimaxBillingService implements BillingService {
       throw new Error('Payment amount exceeds invoice balance');
     }
     
-    // Create payment
+    // Create payment with invoice-based receipt number
     const payment = await storage.createPayment({
       ...paymentData,
       studentId: invoice[0].studentId,
       amount: amount.toString(),
-      receiptNumber: await this.generateReceiptNumber()
+      receiptNumber: await this.generateReceiptNumber(invoice[0].invoiceNumber)
     });
     
     // Create payment allocation
@@ -540,26 +543,48 @@ export class PrimaxBillingService implements BillingService {
     return `INV-${year}${month}${String(sequence).padStart(4, '0')}`;
   }
   
-  private async generateReceiptNumber(): Promise<string> {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    
-    const lastPayment = await db
-      .select()
-      .from(payments)
-      .orderBy(desc(payments.createdAt))
-      .limit(1);
-    
-    let sequence = 1;
-    if (lastPayment.length > 0) {
-      const lastNum = lastPayment[0].receiptNumber.split('-')[1];
-      if (lastNum && lastNum.startsWith(year + month)) {
-        sequence = parseInt(lastNum.slice(6)) + 1;
+  private async generateReceiptNumber(invoiceNumber?: string): Promise<string> {
+    if (invoiceNumber) {
+      // Generate invoice-based receipt number: RCP-{InvoiceNumber}-{Sequence}
+      const existingReceipts = await db
+        .select()
+        .from(payments)
+        .where(sql`receipt_number LIKE ${`RCP-${invoiceNumber}-%`}`)
+        .orderBy(desc(payments.createdAt));
+      
+      let sequence = 1;
+      if (existingReceipts.length > 0) {
+        const lastReceiptNum = existingReceipts[0].receiptNumber;
+        const lastSequence = lastReceiptNum.split('-').pop();
+        if (lastSequence && !isNaN(parseInt(lastSequence))) {
+          sequence = parseInt(lastSequence) + 1;
+        }
       }
+      
+      return `RCP-${invoiceNumber}-${String(sequence).padStart(2, '0')}`;
+    } else {
+      // Fallback for advance payments without specific invoice
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      
+      const lastGeneralReceipt = await db
+        .select()
+        .from(payments)
+        .where(sql`receipt_number LIKE ${`RCP-${year}${month}%`} AND receipt_number NOT LIKE ${'RCP-INV-%'}`)
+        .orderBy(desc(payments.createdAt))
+        .limit(1);
+      
+      let sequence = 1;
+      if (lastGeneralReceipt.length > 0) {
+        const lastNum = lastGeneralReceipt[0].receiptNumber.split('-')[1];
+        if (lastNum && lastNum.startsWith(year + month)) {
+          sequence = parseInt(lastNum.slice(6)) + 1;
+        }
+      }
+      
+      return `RCP-${year}${month}${String(sequence).padStart(4, '0')}`;
     }
-    
-    return `RCP-${year}${month}${String(sequence).padStart(4, '0')}`;
   }
   
   private async createStudentCredit(studentId: string, amount: number, paymentId: string): Promise<void> {

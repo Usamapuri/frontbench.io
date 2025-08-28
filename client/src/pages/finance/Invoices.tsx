@@ -30,6 +30,7 @@ export default function Invoices() {
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
   const [transactionNumber, setTransactionNumber] = useState("");
+  const [paymentNotes, setPaymentNotes] = useState("");
   const [selectedStudentId, setSelectedStudentId] = useState("");
   const [invoiceAmount, setInvoiceAmount] = useState("");
   const [invoiceNotes, setInvoiceNotes] = useState("");
@@ -189,7 +190,7 @@ export default function Invoices() {
         paymentMethod: paymentData.paymentMethod,
         transactionNumber: paymentData.transactionNumber,
         paymentDate: getCurrentPakistanTime().toISOString(),
-        notes: paymentData.notes || `Payment for invoice ${selectedInvoice?.invoiceNumber}`,
+        notes: paymentData.notes || '',
       });
       return response.json();
     },
@@ -207,6 +208,7 @@ export default function Invoices() {
       setPaymentAmount("");
       setPaymentMethod("");
       setTransactionNumber("");
+      setPaymentNotes("");
       setShowPaymentDialog(false);
     },
     onError: (error: any) => {
@@ -223,6 +225,7 @@ export default function Invoices() {
     setPaymentAmount(invoice.balanceDue || invoice.total);
     setPaymentMethod("");
     setTransactionNumber("");
+    setPaymentNotes("");
     setShowPaymentDialog(true);
   };
 
@@ -243,7 +246,7 @@ export default function Invoices() {
         amount: paymentAmount,
         paymentMethod: paymentMethod,
         transactionNumber: transactionNumber || undefined,
-        notes: `Payment recorded via Invoices page for invoice ${selectedInvoice.invoiceNumber}`,
+        notes: paymentNotes,
       });
     } catch (error) {
       console.error('Payment error:', error);
@@ -1389,6 +1392,22 @@ export default function Invoices() {
                   </p>
                 </div>
               )}
+              
+              {/* Notes Field */}
+              <div>
+                <Label htmlFor="paymentNotes">Notes (Optional)</Label>
+                <Input
+                  id="paymentNotes"
+                  value={paymentNotes}
+                  onChange={(e) => setPaymentNotes(e.target.value)}
+                  placeholder="Add notes for this payment receipt"
+                  className="mt-1"
+                  data-testid="input-payment-notes"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  These notes will appear on the payment receipt
+                </p>
+              </div>
               
               <div className="flex justify-end space-x-2 pt-4">
                 <Button 
