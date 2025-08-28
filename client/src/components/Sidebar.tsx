@@ -57,7 +57,7 @@ export default function Sidebar({ selectedRole }: SidebarProps) {
 
   return (
     <div className="w-64 bg-white shadow-lg flex flex-col">
-      <div className="px-4 py-4 border-b min-h-[88px] flex items-center">
+      <div className="px-6 py-4 border-b min-h-[88px] flex items-center">
         <div className="flex items-center space-x-3">
           <img 
             src={primaxLogo} 
