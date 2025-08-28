@@ -58,14 +58,13 @@ export default function Sidebar({ selectedRole }: SidebarProps) {
   return (
     <div className="w-64 bg-white shadow-lg flex flex-col">
       <div className="p-4 border-b">
-        <div className="flex items-center space-x-3 mb-2">
+        <div className="flex items-center space-x-3">
           <img 
             src={primaxLogo} 
             alt="Primax Logo" 
             className="h-10 w-auto"
           />
         </div>
-        <p className="text-sm text-gray-600 capitalize">{selectedRole} Panel</p>
       </div>
       
       <nav className="flex-1 p-4 space-y-2">
