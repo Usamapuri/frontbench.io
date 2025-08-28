@@ -18,11 +18,7 @@ import {
   MapPin, 
   Edit, 
   Trash2, 
-  AlertCircle, 
-  CheckCircle2, 
-  XCircle,
-  CalendarX,
-  CalendarPlus
+  AlertCircle
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -35,21 +31,9 @@ const scheduleSchema = z.object({
   location: z.string().optional(),
 });
 
-const scheduleChangeSchema = z.object({
-  scheduleId: z.string().optional(),
-  subjectId: z.string().min(1, "Subject is required"),
-  changeType: z.enum(["cancellation", "reschedule", "extra_class"]),
-  affectedDate: z.string().min(1, "Date is required"),
-  originalStartTime: z.string().optional(),
-  originalEndTime: z.string().optional(),
-  newStartTime: z.string().optional(),
-  newEndTime: z.string().optional(),
-  newLocation: z.string().optional(),
-  reason: z.string().optional(),
-});
+
 
 type ScheduleFormData = z.infer<typeof scheduleSchema>;
-type ScheduleChangeFormData = z.infer<typeof scheduleChangeSchema>;
 
 const dayLabels = {
   monday: "Monday",
@@ -63,9 +47,7 @@ const dayLabels = {
 
 export default function ScheduleManager() {
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
-  const [isChangeDialogOpen, setIsChangeDialogOpen] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<any>(null);
-  const [selectedChangeType, setSelectedChangeType] = useState<"cancellation" | "reschedule" | "extra_class">("cancellation");
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -80,21 +62,7 @@ export default function ScheduleManager() {
     },
   });
 
-  const changeForm = useForm<ScheduleChangeFormData>({
-    resolver: zodResolver(scheduleChangeSchema),
-    defaultValues: {
-      scheduleId: "",
-      subjectId: "",
-      changeType: "cancellation",
-      affectedDate: "",
-      originalStartTime: "",
-      originalEndTime: "",
-      newStartTime: "",
-      newEndTime: "",
-      newLocation: "",
-      reason: "",
-    },
-  });
+  
 
   // Fetch teacher's schedules
   const { data: schedules = [], isLoading: schedulesLoading } = useQuery({
@@ -116,16 +84,7 @@ export default function ScheduleManager() {
     },
   });
 
-  // Fetch schedule changes
-  const { data: scheduleChanges = [] } = useQuery({
-    queryKey: ["/api/teacher/schedule-changes"],
-    queryFn: async () => {
-      const response = await fetch("/api/teacher/schedule-changes");
-      const data = await response.json();
-      // Return empty array if the response is an error or not an array
-      return Array.isArray(data) ? data : [];
-    },
-  });
+  
 
   // Create/Update schedule mutation
   const scheduleUpsertMutation = useMutation({
@@ -178,36 +137,13 @@ export default function ScheduleManager() {
     },
   });
 
-  // Create schedule change mutation
-  const scheduleChangeMutation = useMutation({
-    mutationFn: async (data: ScheduleChangeFormData) => {
-      return apiRequest("POST", "/api/teacher/schedule-changes", data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/teacher/schedule-changes"] });
-      setIsChangeDialogOpen(false);
-      changeForm.reset();
-      toast({
-        title: "Success",
-        description: "Schedule change created successfully! Students will be notified automatically.",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: "Failed to create schedule change",
-        variant: "destructive",
-      });
-    },
-  });
+  
 
   const onScheduleSubmit = (data: ScheduleFormData) => {
     scheduleUpsertMutation.mutate(editingSchedule ? { ...data, id: editingSchedule.id } : data);
   };
 
-  const onChangeSubmit = (data: ScheduleChangeFormData) => {
-    scheduleChangeMutation.mutate(data);
-  };
+  
 
   const handleEditSchedule = (schedule: any) => {
     setEditingSchedule(schedule);
@@ -227,23 +163,7 @@ export default function ScheduleManager() {
     }
   };
 
-  const getChangeTypeIcon = (type: string) => {
-    switch (type) {
-      case "cancellation": return <XCircle className="h-4 w-4 text-red-500" />;
-      case "reschedule": return <Calendar className="h-4 w-4 text-yellow-500" />;
-      case "extra_class": return <CalendarPlus className="h-4 w-4 text-green-500" />;
-      default: return <AlertCircle className="h-4 w-4" />;
-    }
-  };
-
-  const getChangeTypeColor = (type: string) => {
-    switch (type) {
-      case "cancellation": return "destructive";
-      case "reschedule": return "secondary";
-      case "extra_class": return "default";
-      default: return "secondary";
-    }
-  };
+  
 
   // Group schedules by day
   const schedulesByDay = Array.isArray(schedules) ? schedules.reduce((acc: any, schedule: any) => {
@@ -264,122 +184,84 @@ export default function ScheduleManager() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Schedule Manager</h1>
-          <p className="text-muted-foreground">Manage your class schedules and notify students of changes</p>
+          <p className="text-muted-foreground">Manage your class schedules</p>
         </div>
         
-        <div className="flex gap-2">
-          <Dialog open={isScheduleDialogOpen} onOpenChange={setIsScheduleDialogOpen}>
-            <DialogTrigger asChild>
-              <Button data-testid="button-add-schedule">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Schedule
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>{editingSchedule ? "Edit Schedule" : "Add New Schedule"}</DialogTitle>
-              </DialogHeader>
-              <Form {...scheduleForm}>
-                <form onSubmit={scheduleForm.handleSubmit(onScheduleSubmit)} className="space-y-4">
+        <Dialog open={isScheduleDialogOpen} onOpenChange={setIsScheduleDialogOpen}>
+          <DialogTrigger asChild>
+            <Button data-testid="button-add-schedule">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Schedule
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>{editingSchedule ? "Edit Schedule" : "Add New Schedule"}</DialogTitle>
+            </DialogHeader>
+            <Form {...scheduleForm}>
+              <form onSubmit={scheduleForm.handleSubmit(onScheduleSubmit)} className="space-y-4">
+                <FormField
+                  control={scheduleForm.control}
+                  name="subjectId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Subject</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-subject">
+                            <SelectValue placeholder="Select subject" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {subjects.map((subject: any) => (
+                            <SelectItem key={subject.id} value={subject.id}>
+                              {subject.name} ({subject.code})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={scheduleForm.control}
+                  name="dayOfWeek"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Day of Week</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-day">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {Object.entries(dayLabels).map(([value, label]) => (
+                            <SelectItem key={value} value={value}>
+                              {label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={scheduleForm.control}
-                    name="subjectId"
+                    name="startTime"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Subject</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger data-testid="select-subject">
-                              <SelectValue placeholder="Select subject" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {subjects.map((subject: any) => (
-                              <SelectItem key={subject.id} value={subject.id}>
-                                {subject.name} ({subject.code})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={scheduleForm.control}
-                    name="dayOfWeek"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Day of Week</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger data-testid="select-day">
-                              <SelectValue />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {Object.entries(dayLabels).map(([value, label]) => (
-                              <SelectItem key={value} value={value}>
-                                {label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={scheduleForm.control}
-                      name="startTime"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Start Time</FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              type="time"
-                              data-testid="input-start-time"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={scheduleForm.control}
-                      name="endTime"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>End Time</FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              type="time"
-                              data-testid="input-end-time"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <FormField
-                    control={scheduleForm.control}
-                    name="location"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Location (Optional)</FormLabel>
+                        <FormLabel>Start Time</FormLabel>
                         <FormControl>
                           <Input
                             {...field}
-                            placeholder="Room 101, Lab A, etc."
-                            data-testid="input-location"
+                            type="time"
+                            data-testid="input-start-time"
                           />
                         </FormControl>
                         <FormMessage />
@@ -387,252 +269,55 @@ export default function ScheduleManager() {
                     )}
                   />
 
-                  <div className="flex justify-end gap-3">
-                    <Button type="button" variant="outline" onClick={() => setIsScheduleDialogOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button type="submit" disabled={scheduleUpsertMutation.isPending} data-testid="button-save-schedule">
-                      {scheduleUpsertMutation.isPending ? "Saving..." : (editingSchedule ? "Update" : "Create")}
-                    </Button>
-                  </div>
-                </form>
-              </Form>
-            </DialogContent>
-          </Dialog>
-
-          <Dialog open={isChangeDialogOpen} onOpenChange={setIsChangeDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" data-testid="button-schedule-change">
-                <CalendarX className="h-4 w-4 mr-2" />
-                Schedule Change
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Create Schedule Change</DialogTitle>
-              </DialogHeader>
-              <Form {...changeForm}>
-                <form onSubmit={changeForm.handleSubmit(onChangeSubmit)} className="space-y-4">
                   <FormField
-                    control={changeForm.control}
-                    name="changeType"
+                    control={scheduleForm.control}
+                    name="endTime"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Change Type</FormLabel>
-                        <Select onValueChange={(value) => {
-                          field.onChange(value);
-                          setSelectedChangeType(value as any);
-                        }} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger data-testid="select-change-type">
-                              <SelectValue />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="cancellation">Cancel Class</SelectItem>
-                            <SelectItem value="reschedule">Reschedule Class</SelectItem>
-                            <SelectItem value="extra_class">Add Extra Class</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={changeForm.control}
-                    name="subjectId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Subject</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger data-testid="select-change-subject">
-                              <SelectValue placeholder="Select subject" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {subjects.map((subject: any) => (
-                              <SelectItem key={subject.id} value={subject.id}>
-                                {subject.name} ({subject.code})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={changeForm.control}
-                    name="affectedDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Date</FormLabel>
+                        <FormLabel>End Time</FormLabel>
                         <FormControl>
                           <Input
                             {...field}
-                            type="date"
-                            data-testid="input-affected-date"
+                            type="time"
+                            data-testid="input-end-time"
                           />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+                </div>
 
-                  {selectedChangeType === "reschedule" && (
-                    <>
-                      <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                          control={changeForm.control}
-                          name="originalStartTime"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Original Start</FormLabel>
-                              <FormControl>
-                                <Input
-                                  {...field}
-                                  type="time"
-                                  data-testid="input-original-start"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
+                <FormField
+                  control={scheduleForm.control}
+                  name="location"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Location (Optional)</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          placeholder="Room 101, Lab A, etc."
+                          data-testid="input-location"
                         />
-
-                        <FormField
-                          control={changeForm.control}
-                          name="originalEndTime"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Original End</FormLabel>
-                              <FormControl>
-                                <Input
-                                  {...field}
-                                  type="time"
-                                  data-testid="input-original-end"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                          control={changeForm.control}
-                          name="newStartTime"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>New Start</FormLabel>
-                              <FormControl>
-                                <Input
-                                  {...field}
-                                  type="time"
-                                  data-testid="input-new-start"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={changeForm.control}
-                          name="newEndTime"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>New End</FormLabel>
-                              <FormControl>
-                                <Input
-                                  {...field}
-                                  type="time"
-                                  data-testid="input-new-end"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )}
+                />
 
-                  {selectedChangeType === "extra_class" && (
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={changeForm.control}
-                        name="newStartTime"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Start Time</FormLabel>
-                            <FormControl>
-                              <Input
-                                {...field}
-                                type="time"
-                                data-testid="input-extra-start"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={changeForm.control}
-                        name="newEndTime"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>End Time</FormLabel>
-                            <FormControl>
-                              <Input
-                                {...field}
-                                type="time"
-                                data-testid="input-extra-end"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  )}
-
-                  <FormField
-                    control={changeForm.control}
-                    name="reason"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Reason (Optional)</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            {...field}
-                            placeholder="Explain the reason for this change..."
-                            data-testid="input-change-reason"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="flex justify-end gap-3">
-                    <Button type="button" variant="outline" onClick={() => setIsChangeDialogOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button type="submit" disabled={scheduleChangeMutation.isPending} data-testid="button-save-change">
-                      {scheduleChangeMutation.isPending ? "Creating..." : "Create Change"}
-                    </Button>
-                  </div>
-                </form>
-              </Form>
-            </DialogContent>
-          </Dialog>
-        </div>
+                <div className="flex justify-end gap-3">
+                  <Button type="button" variant="outline" onClick={() => setIsScheduleDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={scheduleUpsertMutation.isPending} data-testid="button-save-schedule">
+                    {scheduleUpsertMutation.isPending ? "Saving..." : (editingSchedule ? "Update" : "Create")}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Regular Schedules */}
@@ -705,46 +390,7 @@ export default function ScheduleManager() {
         </CardContent>
       </Card>
 
-      {/* Recent Schedule Changes */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <AlertCircle className="h-5 w-5" />
-            Recent Schedule Changes
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {scheduleChanges.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No schedule changes created yet.
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {Array.isArray(scheduleChanges) ? scheduleChanges.slice(0, 10).map((change: any) => (
-                <div key={change.id} className="flex items-center justify-between p-3 border rounded-lg" data-testid={`change-item-${change.id}`}>
-                  <div className="flex items-center gap-4">
-                    {getChangeTypeIcon(change.changeType)}
-                    <div>
-                      <div className="font-medium">
-                        {change.subjectName} - {new Date(change.affectedDate).toLocaleDateString()}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {change.changeType === "cancellation" && "Class cancelled"}
-                        {change.changeType === "reschedule" && `Rescheduled to ${change.newStartTime}-${change.newEndTime}`}
-                        {change.changeType === "extra_class" && `Extra class at ${change.newStartTime}-${change.newEndTime}`}
-                        {change.reason && ` • ${change.reason}`}
-                      </div>
-                    </div>
-                  </div>
-                  <Badge variant={getChangeTypeColor(change.changeType) as any}>
-                    {change.changeType.replace("_", " ")}
-                  </Badge>
-                </div>
-              )) : null}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      
     </div>
   );
 }
