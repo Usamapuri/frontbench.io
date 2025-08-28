@@ -90,15 +90,17 @@ export default function EnrollmentNew() {
   });
 
   // Reserve a unique roll number when form loads
-  const { data: rollNumberReservation, isLoading: isLoadingRollNumber } = useQuery({
+  const { data: rollNumberReservation, isLoading: isLoadingRollNumber, error: rollNumberError } = useQuery({
     queryKey: ['/api/roll-numbers/reserve'],
     queryFn: async () => {
       const response = await apiRequest('POST', '/api/roll-numbers/reserve', {});
-      return response;
+      const data = await response.json();
+      return data;
     },
     enabled: currentStep === 1,
     staleTime: 25 * 60 * 1000, // 25 minutes (before 30 min expiry)
-    retry: 1,
+    retry: 3,
+    retryDelay: 1000,
   });
 
   // Update form data when roll number is reserved
@@ -392,9 +394,13 @@ export default function EnrollmentNew() {
                           </div>
                           <Badge variant="secondary" className="bg-green-100 text-green-800">Reserved</Badge>
                         </div>
+                      ) : rollNumberError ? (
+                        <div className="text-red-600">
+                          <span className="font-medium">Failed to reserve roll number.</span> Please refresh the page or try again.
+                        </div>
                       ) : (
-                        <div className="text-blue-600">
-                          <span className="font-medium">Failed to reserve roll number.</span> Please refresh the page.
+                        <div className="text-gray-600">
+                          <span className="font-medium">Preparing roll number...</span>
                         </div>
                       )}
                     </div>
