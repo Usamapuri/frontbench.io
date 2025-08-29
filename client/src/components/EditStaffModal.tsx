@@ -33,6 +33,10 @@ interface Staff {
   role: string;
   isActive: boolean;
   createdAt: string;
+  position?: string;
+  hireDate?: string;
+  firstName?: string;
+  lastName?: string;
 }
 
 interface EditStaffModalProps {
@@ -79,17 +83,13 @@ export default function EditStaffModal({ open, onOpenChange, staff }: EditStaffM
   // Update form when staff changes
   useEffect(() => {
     if (staff && open) {
-      // Safely split the name, handling cases where name might be undefined
-      const nameParts = staff.name ? staff.name.split(' ') : ['', ''];
-      const [firstName, lastName] = nameParts;
-      
       form.reset({
-        firstName: firstName || "",
-        lastName: lastName || "",
+        firstName: staff.firstName || "",
+        lastName: staff.lastName || "",
         email: staff.email || "",
         phone: staff.phone || "",
-        position: "", // Default position since we don't have it in the staff object
-        hireDate: new Date().toISOString().split('T')[0], // Default to today if not available
+        position: staff.position || "",
+        hireDate: staff.hireDate || new Date().toISOString().split('T')[0],
         role: staff.role as "finance" | "management",
       });
     }

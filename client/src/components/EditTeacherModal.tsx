@@ -39,6 +39,11 @@ interface Staff {
   role: string;
   isActive: boolean;
   createdAt: string;
+  teacherSubjects?: string[];
+  teacherClassLevels?: string[];
+  hireDate?: string;
+  firstName?: string;
+  lastName?: string;
 }
 
 interface EditTeacherModalProps {
@@ -75,22 +80,21 @@ export default function EditTeacherModal({ open, onOpenChange, teacher }: EditTe
   // Update form when teacher changes
   useEffect(() => {
     if (teacher && open) {
-      // Safely split the name, handling cases where name might be undefined
-      const nameParts = teacher.name ? teacher.name.split(' ') : ['', ''];
-      const [firstName, lastName] = nameParts;
+      const classLevels = teacher.teacherClassLevels || [];
+      const subjects = teacher.teacherSubjects || [];
       
       form.reset({
-        firstName: firstName || "",
-        lastName: lastName || "",
+        firstName: teacher.firstName || "",
+        lastName: teacher.lastName || "",
         email: teacher.email || "",
         phone: teacher.phone || "",
-        hireDate: new Date().toISOString().split('T')[0], // Default to today if not available
-        teacherClassLevels: [],
-        teacherSubjects: [],
+        hireDate: teacher.hireDate || new Date().toISOString().split('T')[0],
+        teacherClassLevels: classLevels,
+        teacherSubjects: subjects,
         payoutPercentage: 50,
       });
-      setSelectedClassLevels([]);
-      setSelectedSubjects([]);
+      setSelectedClassLevels(classLevels);
+      setSelectedSubjects(subjects);
     }
   }, [teacher, open, form]);
 

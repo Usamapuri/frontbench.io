@@ -39,7 +39,11 @@ interface Staff {
   isActive: boolean;
   createdAt: string;
   teacherSubjects?: string[];
+  teacherClassLevels?: string[];
   hireDate?: string;
+  position?: string;
+  firstName?: string;
+  lastName?: string;
 }
 
 export default function StaffManagement() {
