@@ -3,7 +3,9 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { useAuth } from "@/hooks/useAuth";
 import NotFound from "@/pages/not-found";
+import LoginPage from "@/pages/LoginPage";
 import RoleSelector from "@/pages/RoleSelector";
 import Layout from "@/components/Layout";
 import OfflineBanner from "@/components/OfflineBanner";
@@ -35,7 +37,7 @@ import PayoutSummary from "@/pages/management/PayoutSummary";
 import DailyCloseLog from "@/pages/management/DailyCloseLog";
 import StaffManagement from "@/pages/management/StaffManagement";
 
-function Router() {
+function AuthenticatedRouter() {
   // Get selected role from localStorage - simple and reliable
   const selectedRole = typeof window !== 'undefined' ? localStorage.getItem('selectedRole') : null;
 
@@ -125,13 +127,34 @@ function Router() {
   );
 }
 
+function AppRouter() {
+  const { user, isLoading, isAuthenticated } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <LoginPage onLoginSuccess={() => window.location.reload()} />;
+  }
+
+  return <AuthenticatedRouter />;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <OfflineBanner />
         <Toaster />
-        <Router />
+        <AppRouter />
       </TooltipProvider>
     </QueryClientProvider>
   );

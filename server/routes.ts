@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { billingService } from "./billing";
-import { isAuthenticated } from "./replitAuth";
+import { requireAuth } from "./auth-traditional";
 import { 
   insertStudentSchema, 
   insertInvoiceSchema, 
@@ -265,7 +265,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Management routes
-  app.post('/api/management', isAuthenticated, async (req, res) => {
+  app.post('/api/management', requireAuth, async (req, res) => {
     try {
       const management = await storage.createManagement(req.body);
       res.json(management);
@@ -275,7 +275,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/management/:id', isAuthenticated, async (req, res) => {
+  app.put('/api/management/:id', requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       const managementData = req.body;
@@ -293,7 +293,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/management/:id', isAuthenticated, async (req, res) => {
+  app.delete('/api/management/:id', requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       await storage.deleteManagement(id);
@@ -936,7 +936,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Attendance routes
-  app.post("/api/attendance", isAuthenticated, async (req: any, res) => {
+  app.post("/api/attendance", requireAuth, async (req: any, res) => {
     try {
       const validatedData = insertAttendanceSchema.parse({
         ...req.body,
@@ -1202,7 +1202,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/grades", isAuthenticated, async (req: any, res) => {
+  app.post("/api/grades", requireAuth, async (req: any, res) => {
     try {
       const validatedData = insertGradeSchema.parse({
         ...req.body,
@@ -1237,7 +1237,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/cash-draw-requests", isAuthenticated, async (req: any, res) => {
+  app.post("/api/cash-draw-requests", requireAuth, async (req: any, res) => {
     try {
       const requestData = {
         ...req.body,
@@ -1251,7 +1251,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/cash-draw-requests/:id", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/cash-draw-requests/:id", requireAuth, async (req: any, res) => {
     try {
       const updates = {
         ...req.body,
@@ -1288,7 +1288,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/daily-close", isAuthenticated, async (req: any, res) => {
+  app.post("/api/daily-close", requireAuth, async (req: any, res) => {
     try {
       const { closeDate } = req.body;
       
@@ -1324,7 +1324,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Daily close lock/finalize (no PDF generation)
-  app.post("/api/daily-close/lock", isAuthenticated, async (req: any, res) => {
+  app.post("/api/daily-close/lock", requireAuth, async (req: any, res) => {
     try {
       const { closeDate, dailyCloseData } = req.body;
       
