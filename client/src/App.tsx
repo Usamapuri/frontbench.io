@@ -36,10 +36,19 @@ import Expenses from "@/pages/management/Expenses";
 import PayoutSummary from "@/pages/management/PayoutSummary";
 import DailyCloseLog from "@/pages/management/DailyCloseLog";
 import StaffManagement from "@/pages/management/StaffManagement";
+import TeacherImpersonation from "@/pages/management/TeacherImpersonation";
 
 function AuthenticatedRouter() {
+  const { user } = useAuth();
   // Get selected role from localStorage - simple and reliable
   const selectedRole = typeof window !== 'undefined' ? localStorage.getItem('selectedRole') : null;
+
+  // For super admins, skip role selector and go directly to management dashboard
+  if (user?.isSuperAdmin && !selectedRole && window.location.pathname === '/') {
+    localStorage.setItem('selectedRole', 'management');
+    window.location.href = '/dashboard';
+    return null;
+  }
 
   return (
     <Switch>
@@ -114,6 +123,8 @@ function AuthenticatedRouter() {
                     <Route path="/students" component={StudentLedger} />
                     <Route path="/reports" component={Reports} />
                     <Route path="/approvals" component={CashDrawApprovals} />
+                    <Route path="/finance-dashboard" component={FinanceDashboard} />
+                    <Route path="/teacher-impersonation" component={TeacherImpersonation} />
                   </>
                 )}
                 

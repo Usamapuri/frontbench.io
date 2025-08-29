@@ -1,5 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
 import primaxLogo from "@assets/primax_logo_1756370699409.png";
 
 interface SidebarProps {
@@ -8,6 +9,7 @@ interface SidebarProps {
 
 export default function Sidebar({ selectedRole }: SidebarProps) {
   const [location] = useLocation();
+  const { user } = useAuth();
 
   const handleBackToRoleSelection = () => {
     localStorage.removeItem('selectedRole');
@@ -41,7 +43,7 @@ export default function Sidebar({ selectedRole }: SidebarProps) {
           { path: '/dashboard', icon: 'fas fa-home', label: 'Student Portal' },
         ];
       case 'management':
-        return [
+        const managementItems = [
           { path: '/dashboard', icon: 'fas fa-chart-pie', label: 'Overview' },
           { path: '/expenses', icon: 'fas fa-receipt', label: 'Expenses' },
           { path: '/payouts', icon: 'fas fa-money-bill', label: 'Payout Summary' },
@@ -51,6 +53,16 @@ export default function Sidebar({ selectedRole }: SidebarProps) {
           { path: '/reports', icon: 'fas fa-chart-line', label: 'Reports' },
           { path: '/approvals', icon: 'fas fa-check-circle', label: 'Cash Draw Approvals' },
         ];
+        
+        // Add super admin only buttons
+        if (user?.isSuperAdmin) {
+          managementItems.push(
+            { path: '/finance-dashboard', icon: 'fas fa-calculator', label: 'Finance Dashboard', superAdminOnly: true },
+            { path: '/teacher-impersonation', icon: 'fas fa-chalkboard-teacher', label: 'Teacher Impersonation', superAdminOnly: true }
+          );
+        }
+        
+        return managementItems;
       default:
         return [];
     }
