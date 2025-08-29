@@ -1840,6 +1840,11 @@ export class DatabaseStorage implements IStorage {
       .set({ enteredBy: deletedUserId })
       .where(eq(expenses.enteredBy, id));
     
+    // 11b. Update expense records - whoPaid field
+    await db.update(expenses)
+      .set({ whoPaid: deletedUserId })
+      .where(eq(expenses.whoPaid, id));
+    
     // 12. Update invoice adjustments
     await db.update(invoiceAdjustments)
       .set({ appliedBy: deletedUserId })
@@ -1849,6 +1854,16 @@ export class DatabaseStorage implements IStorage {
     await db.update(announcements)
       .set({ createdBy: deletedUserId })
       .where(eq(announcements.createdBy, id));
+    
+    // 14. Update class schedules
+    await db.update(classSchedules)
+      .set({ teacherId: deletedUserId })
+      .where(eq(classSchedules.teacherId, id));
+    
+    // 15. Update enrollments
+    await db.update(enrollments)
+      .set({ teacherId: deletedUserId })
+      .where(eq(enrollments.teacherId, id));
     
     // Finally, delete the teacher record
     await db.delete(users).where(eq(users.id, id));
@@ -1911,6 +1926,11 @@ export class DatabaseStorage implements IStorage {
     await db.update(expenses)
       .set({ enteredBy: deletedUserId })
       .where(eq(expenses.enteredBy, id));
+    
+    // 4b. Update expense records - whoPaid field for staff
+    await db.update(expenses)
+      .set({ whoPaid: deletedUserId })
+      .where(eq(expenses.whoPaid, id));
     
     // 5. Update invoice adjustments (preserve audit trail)
     await db.update(invoiceAdjustments)

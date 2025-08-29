@@ -1,0 +1,50 @@
+[vite] connecting...
+[vite] connected.
+Router: selectedRole is management current path: /dashboard
+Router: selectedRole is management current path: /staff-management
+[vite] hot updated: /src/pages/management/StaffManagement.tsx
+[vite] hot updated: /src/index.css?v=O6pbXP8OLpJxsGH8rJIza
+Cannot read properties of null (reading 'length')
+Cannot read properties of null (reading 'length')
+The above error occurred in the <StaffManagement> component:
+
+    at StaffManagement (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/src/pages/management/StaffManagement.tsx?t=1756450187479:51:57)
+    at Route (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=f0e0ca89:323:16)
+    at Switch (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=f0e0ca89:379:17)
+    at main
+    at div
+    at div
+    at Layout (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/src/components/Layout.tsx:18:34)
+    at Route (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=f0e0ca89:323:16)
+    at Switch (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=f0e0ca89:379:17)
+    at Router
+    at Provider (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=f0e0ca89:38:15)
+    at TooltipProvider (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=f0e0ca89:61:5)
+    at QueryClientProvider (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=f0e0ca89:2805:3)
+    at App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+
+at StaffManagement (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/src/pages/management/StaffManagement.tsx?t=1756450187479:51:57)
+at Route (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=f0e0ca89:323:16)
+at Switch (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=f0e0ca89:379:17)
+at main
+at div
+at div
+at Layout (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/src/components/Layout.tsx:18:34)
+at Route (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=f0e0ca89:323:16)
+at Switch (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=f0e0ca89:379:17)
+at Router
+at Provider (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=f0e0ca89:38:15)
+at TooltipProvider (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=f0e0ca89:61:5)
+at QueryClientProvider (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=f0e0ca89:2805:3)
+at App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+at t.value (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:17465)
+at new t (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:12630)
+at t.value (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:32766)
+at https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:34400
+Cannot read properties of null (reading 'length')

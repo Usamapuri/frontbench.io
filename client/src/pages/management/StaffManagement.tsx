@@ -38,6 +38,8 @@ interface Staff {
   role: string;
   isActive: boolean;
   createdAt: string;
+  teacherSubjects?: string[];
+  hireDate?: string;
 }
 
 export default function StaffManagement() {
@@ -54,6 +56,20 @@ export default function StaffManagement() {
   const { data: staff, isLoading } = useQuery<Staff[]>({
     queryKey: ["/api/staff"],
   });
+
+  // Fetch subjects to map IDs to names
+  const { data: subjects = [] } = useQuery<any[]>({
+    queryKey: ['/api/subjects'],
+  });
+
+  // Helper function to get subject names from IDs
+  const getSubjectNames = (subjectIds: string[] = []) => {
+    if (!subjects || !Array.isArray(subjects) || !subjectIds.length) return 'None';
+    const subjectNames = subjectIds
+      .map(id => subjects.find((s: any) => s.id === id)?.name)
+      .filter(Boolean);
+    return subjectNames.length > 0 ? subjectNames.join(', ') : 'None';
+  };
 
   // Delete teacher mutation
   const deleteTeacherMutation = useMutation({
@@ -229,8 +245,8 @@ export default function StaffManagement() {
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Phone</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Added</TableHead>
+                  <TableHead>Subjects</TableHead>
+                  <TableHead>Hired</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -256,10 +272,12 @@ export default function StaffManagement() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge className="bg-green-100 text-green-800">Active</Badge>
+                      <div className="text-sm text-gray-600">
+                        {getSubjectNames(teacher.teacherSubjects)}
+                      </div>
                     </TableCell>
                     <TableCell className="text-gray-500">
-                      {new Date(teacher.createdAt).toLocaleDateString()}
+                      {teacher.hireDate ? new Date(teacher.hireDate).toLocaleDateString() : 'Not set'}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -341,8 +359,7 @@ export default function StaffManagement() {
                   <TableHead>Email</TableHead>
                   <TableHead>Phone</TableHead>
                   <TableHead>Role</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Added</TableHead>
+                  <TableHead>Hired</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -372,11 +389,8 @@ export default function StaffManagement() {
                         {staffMember.role.charAt(0).toUpperCase() + staffMember.role.slice(1)}
                       </Badge>
                     </TableCell>
-                    <TableCell>
-                      <Badge className="bg-green-100 text-green-800">Active</Badge>
-                    </TableCell>
                     <TableCell className="text-gray-500">
-                      {new Date(staffMember.createdAt).toLocaleDateString()}
+                      {staffMember.hireDate ? new Date(staffMember.hireDate).toLocaleDateString() : 'Not set'}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
