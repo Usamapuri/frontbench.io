@@ -37,6 +37,7 @@ import PayoutSummary from "@/pages/management/PayoutSummary";
 import DailyCloseLog from "@/pages/management/DailyCloseLog";
 import StaffManagement from "@/pages/management/StaffManagement";
 import TeacherImpersonation from "@/pages/management/TeacherImpersonation";
+import ReadOnlyTeacherDashboard from "@/pages/management/ReadOnlyTeacherDashboard";
 
 function AuthenticatedRouter() {
   const { user } = useAuth();
@@ -125,6 +126,7 @@ function AuthenticatedRouter() {
                     <Route path="/approvals" component={CashDrawApprovals} />
                     <Route path="/finance-dashboard" component={FinanceDashboard} />
                     <Route path="/teacher-impersonation" component={TeacherImpersonation} />
+                    <Route path="/teacher-view-readonly" component={ReadOnlyTeacherDashboard} />
                   </>
                 )}
                 
