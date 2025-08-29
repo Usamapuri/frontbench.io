@@ -58,11 +58,36 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
     mutationFn: async (data: LoginForm) => {
       return await apiRequest('POST', '/api/auth/login', data);
     },
-    onSuccess: (user) => {
+    onSuccess: async (response) => {
+      const user = await response.json();
+      
       toast({
         title: "Login Successful",
         description: "Welcome to Primax School Management System!",
       });
+      
+      // Smart redirect based on user role - skip RoleSelector for non-super admins
+      if (!user.isSuperAdmin) {
+        let targetDashboard: string;
+        
+        if (user.role === 'teacher') {
+          targetDashboard = 'teacher';
+        } else if (user.role === 'finance') {
+          targetDashboard = 'finance';
+        } else if (user.role === 'management') {
+          targetDashboard = 'management';
+        } else {
+          targetDashboard = 'finance'; // Default fallback
+        }
+        
+        // Set role and redirect directly to dashboard
+        localStorage.setItem('selectedRole', targetDashboard);
+        window.location.href = '/dashboard';
+      } else {
+        // Super admins go to role selector
+        window.location.href = '/';
+      }
+      
       onLoginSuccess(user);
     },
     onError: (error: any) => {

@@ -142,7 +142,10 @@ function AppRouter() {
   }
 
   if (!isAuthenticated) {
-    return <LoginPage onLoginSuccess={() => window.location.reload()} />;
+    return <LoginPage onLoginSuccess={() => {
+      // Invalidate queries to refetch user data
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+    }} />;
   }
 
   return <AuthenticatedRouter />;

@@ -29,10 +29,8 @@ export function useAuth() {
         title: "Logged Out",
         description: "You have been successfully logged out.",
       });
-      // Redirect to login
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 500);
+      // Direct redirect - no timeout needed
+      window.location.href = '/';
     },
     onError: (error: any) => {
       console.error('Logout error:', error);

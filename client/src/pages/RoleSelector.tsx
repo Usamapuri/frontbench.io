@@ -60,30 +60,11 @@ export default function RoleSelector() {
   useEffect(() => {
     if (!user || isLoading) return;
 
-    // Clear any existing role selection
+    // Clear any existing role selection for super admins
     localStorage.removeItem('selectedRole');
-
-    // Auto-redirect non-super admin users to their designated dashboard
-    if (!user.isSuperAdmin) {
-      let targetDashboard: string;
-      
-      if (user.role === 'teacher') {
-        targetDashboard = 'teacher';
-      } else if (user.role === 'finance') {
-        targetDashboard = 'finance'; // Front-desk/Finance staff goes to Finance Dashboard
-      } else if (user.role === 'management') {
-        targetDashboard = 'management';
-      } else {
-        targetDashboard = 'finance'; // Default fallback for any other roles
-      }
-
-      // Set the dashboard role and redirect
-      localStorage.setItem('selectedRole', targetDashboard);
-      window.location.href = '/dashboard';
-      return;
-    }
     
-    // Super admins stay on this page to choose their dashboard
+    // Note: Non-super admin users are now redirected directly from LoginPage
+    // This page is only for super admins to choose their dashboard
   }, [user, isLoading]);
 
   const handleDashboardSelect = (dashboardRole: string, event?: React.MouseEvent) => {
@@ -112,11 +93,9 @@ export default function RoleSelector() {
         description: `Opening ${dashboardOptions.find(d => d.role === dashboardRole)?.title}`,
       });
       
-      // Force a page reload to ensure clean navigation
-      setTimeout(() => {
-        console.log('Navigating to /dashboard with role:', dashboardRole);
-        window.location.href = '/dashboard';
-      }, 100);
+      // Direct navigation - no timeout needed
+      console.log('Navigating to /dashboard with role:', dashboardRole);
+      window.location.href = '/dashboard';
       
     } catch (error) {
       console.error('Dashboard selection error:', error);
