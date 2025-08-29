@@ -10,9 +10,9 @@ export function getSession() {
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
     conString: process.env.DATABASE_URL,
-    createTableIfMissing: true,
+    createTableIfMissing: false, // Don't create table, use existing one
     ttl: sessionTtl,
-    tableName: "user_sessions",
+    tableName: "sessions", // Use existing sessions table
   });
   
   return session({
