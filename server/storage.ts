@@ -1769,6 +1769,88 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteTeacher(id: string): Promise<void> {
+    // Handle cascading deletion for teachers
+    // For non-nullable foreign keys, we need to create a "deleted user" placeholder
+    
+    // Ensure we have a "deleted user" placeholder
+    const deletedUserId = 'deleted-user-system';
+    const existingDeletedUser = await db.select().from(users).where(eq(users.id, deletedUserId)).limit(1);
+    
+    if (existingDeletedUser.length === 0) {
+      await db.insert(users).values({
+        id: deletedUserId,
+        email: 'deleted@system.internal',
+        firstName: 'Deleted',
+        lastName: 'User',
+        role: 'management',
+        isTeacher: false,
+        isSuperAdmin: false,
+        isActive: false,
+      });
+    }
+    
+    // 1. Update assessments to point to deleted user (preserve assessment records)
+    await db.update(assessments)
+      .set({ teacherId: deletedUserId })
+      .where(eq(assessments.teacherId, id));
+    
+    // 2. Update classes to point to deleted user (preserve class records)
+    await db.update(classes)
+      .set({ teacherId: deletedUserId })
+      .where(eq(classes.teacherId, id));
+    
+    // 3. Update grades to point to deleted user (preserve grade records) 
+    await db.update(grades)
+      .set({ enteredBy: deletedUserId })
+      .where(eq(grades.enteredBy, id));
+    
+    // 4. Update attendance records
+    await db.update(attendance)
+      .set({ markedBy: deletedUserId })
+      .where(eq(attendance.markedBy, id));
+    
+    // 5. Delete payout rules (administrative data - safe to delete)
+    await db.delete(payoutRules).where(eq(payoutRules.teacherId, id));
+    
+    // 6. Delete cash draw requests (administrative data)
+    await db.delete(cashDrawRequests).where(eq(cashDrawRequests.teacherId, id));
+    
+    // 7. Update other cash draw requests they may have reviewed
+    await db.update(cashDrawRequests)
+      .set({ reviewedBy: deletedUserId })
+      .where(eq(cashDrawRequests.reviewedBy, id));
+    
+    // 8. Update payment records to point to deleted user (preserve audit trail)
+    await db.update(payments)
+      .set({ receivedBy: deletedUserId })
+      .where(eq(payments.receivedBy, id));
+    
+    // 9. Update refunds they processed (nullable field)
+    await db.update(payments)
+      .set({ refundedBy: null })
+      .where(eq(payments.refundedBy, id));
+    
+    // 10. Update daily close records
+    await db.update(dailyClose)
+      .set({ closedBy: deletedUserId })
+      .where(eq(dailyClose.closedBy, id));
+    
+    // 11. Update expense records
+    await db.update(expenses)
+      .set({ enteredBy: deletedUserId })
+      .where(eq(expenses.enteredBy, id));
+    
+    // 12. Update invoice adjustments
+    await db.update(invoiceAdjustments)
+      .set({ appliedBy: deletedUserId })
+      .where(eq(invoiceAdjustments.appliedBy, id));
+    
+    // 13. Update announcements
+    await db.update(announcements)
+      .set({ createdBy: deletedUserId })
+      .where(eq(announcements.createdBy, id));
+    
+    // Finally, delete the teacher record
     await db.delete(users).where(eq(users.id, id));
   }
 
@@ -1790,6 +1872,72 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteStaff(id: string): Promise<void> {
+    // Handle cascading deletion for staff members
+    // For non-nullable foreign keys, we need to use a "deleted user" placeholder
+    
+    // Ensure we have a "deleted user" placeholder
+    const deletedUserId = 'deleted-user-system';
+    const existingDeletedUser = await db.select().from(users).where(eq(users.id, deletedUserId)).limit(1);
+    
+    if (existingDeletedUser.length === 0) {
+      await db.insert(users).values({
+        id: deletedUserId,
+        email: 'deleted@system.internal',
+        firstName: 'Deleted',
+        lastName: 'User',
+        role: 'management',
+        isTeacher: false,
+        isSuperAdmin: false,
+        isActive: false,
+      });
+    }
+    
+    // 1. Update payments to point to deleted user (preserve financial audit trail)
+    await db.update(payments)
+      .set({ receivedBy: deletedUserId })
+      .where(eq(payments.receivedBy, id));
+    
+    // 2. Update refunds they processed (nullable field - can be null)
+    await db.update(payments)
+      .set({ refundedBy: null })
+      .where(eq(payments.refundedBy, id));
+    
+    // 3. Update daily close records (preserve audit trail)
+    await db.update(dailyClose)
+      .set({ closedBy: deletedUserId })
+      .where(eq(dailyClose.closedBy, id));
+    
+    // 4. Update expenses (preserve financial records)
+    await db.update(expenses)
+      .set({ enteredBy: deletedUserId })
+      .where(eq(expenses.enteredBy, id));
+    
+    // 5. Update invoice adjustments (preserve audit trail)
+    await db.update(invoiceAdjustments)
+      .set({ appliedBy: deletedUserId })
+      .where(eq(invoiceAdjustments.appliedBy, id));
+    
+    // 6. Update cash draw requests they reviewed
+    await db.update(cashDrawRequests)
+      .set({ reviewedBy: deletedUserId })
+      .where(eq(cashDrawRequests.reviewedBy, id));
+    
+    // 7. Update grades entered by this staff member
+    await db.update(grades)
+      .set({ enteredBy: deletedUserId })
+      .where(eq(grades.enteredBy, id));
+    
+    // 8. Update attendance records marked by this staff member
+    await db.update(attendance)
+      .set({ markedBy: deletedUserId })
+      .where(eq(attendance.markedBy, id));
+    
+    // 9. Update announcements
+    await db.update(announcements)
+      .set({ createdBy: deletedUserId })
+      .where(eq(announcements.createdBy, id));
+    
+    // Finally, delete the staff record
     await db.delete(users).where(eq(users.id, id));
   }
 
