@@ -3,10 +3,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { 
   Dialog,
   DialogContent,
@@ -15,9 +13,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Eye, EyeOff, KeyRound } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, KeyRound } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import primaxLogoPath from "@assets/primax_logo_1756452842865.png";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -105,153 +104,157 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <Card className="border-0 shadow-2xl">
-          <CardHeader className="text-center pb-2">
-            {/* Logo Section */}
-            <div className="mx-auto mb-6 w-24 h-24 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center">
-              <span className="text-white font-bold text-2xl">PMX</span>
-            </div>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+          {/* Logo and Header Section */}
+          <div className="text-center mb-8">
+            <img 
+              src={primaxLogoPath} 
+              alt="Primax Logo" 
+              className="h-12 mx-auto mb-6"
+            />
             
-            <CardTitle className="text-2xl font-bold text-gray-900 mb-2">
+            <h1 className="text-2xl font-semibold text-gray-900 mb-2">
               Welcome to Primax
-            </CardTitle>
+            </h1>
             <p className="text-gray-600 text-sm">
-              School Management System
+              Sign in to access your account
             </p>
-          </CardHeader>
+          </div>
 
-          <CardContent className="space-y-6">
-            <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
-              {/* Email Field */}
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium text-gray-700">
-                  Email Address
-                </Label>
+          <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-5">
+            {/* Email Field */}
+            <div className="space-y-1">
+              <label htmlFor="email" className="text-sm font-medium text-gray-700 block">
+                Email
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   id="email"
                   type="email"
-                  placeholder="Enter your email"
-                  className="h-11"
+                  placeholder="hello@example.com"
+                  className="pl-10 h-12 border-gray-300 focus:border-orange-500 focus:ring-orange-500"
                   {...loginForm.register("email")}
                   data-testid="input-email"
                 />
-                {loginForm.formState.errors.email && (
-                  <p className="text-sm text-red-600">{loginForm.formState.errors.email.message}</p>
-                )}
               </div>
+              {loginForm.formState.errors.email && (
+                <p className="text-sm text-red-600">{loginForm.formState.errors.email.message}</p>
+              )}
+            </div>
 
-              {/* Password Field */}
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm font-medium text-gray-700">
-                  Password
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Enter your password"
-                    className="h-11 pr-10"
-                    {...loginForm.register("password")}
-                    data-testid="input-password"
-                  />
-                  <button
+            {/* Password Field */}
+            <div className="space-y-1">
+              <label htmlFor="password" className="text-sm font-medium text-gray-700 block">
+                Password
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="........"
+                  className="pl-10 pr-10 h-12 border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+                  {...loginForm.register("password")}
+                  data-testid="input-password"
+                />
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  onClick={() => setShowPassword(!showPassword)}
+                  data-testid="button-toggle-password"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+              {loginForm.formState.errors.password && (
+                <p className="text-sm text-red-600">{loginForm.formState.errors.password.message}</p>
+              )}
+            </div>
+
+            {/* Login Button */}
+            <Button
+              type="submit"
+              className="w-full h-12 bg-orange-600 hover:bg-orange-700 text-white font-medium text-base rounded-md"
+              disabled={loginMutation.isPending}
+              data-testid="button-login"
+            >
+              {loginMutation.isPending ? "Signing In..." : "Sign In"}
+            </Button>
+
+            {/* Forgot Password Link */}
+            <div className="text-center pt-2">
+              <Dialog open={forgotPasswordOpen} onOpenChange={setForgotPasswordOpen}>
+                <DialogTrigger asChild>
+                  <Button
                     type="button"
-                    className="absolute inset-y-0 right-0 flex items-center pr-3"
-                    onClick={() => setShowPassword(!showPassword)}
-                    data-testid="button-toggle-password"
+                    variant="link"
+                    className="text-sm text-orange-600 hover:text-orange-700 p-0 h-auto font-medium"
+                    data-testid="button-forgot-password"
                   >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-gray-400" />
-                    ) : (
-                      <Eye className="h-4 w-4 text-gray-400" />
-                    )}
-                  </button>
-                </div>
-                {loginForm.formState.errors.password && (
-                  <p className="text-sm text-red-600">{loginForm.formState.errors.password.message}</p>
-                )}
-              </div>
-
-              {/* Login Button */}
-              <Button
-                type="submit"
-                className="w-full h-11 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium"
-                disabled={loginMutation.isPending}
-                data-testid="button-login"
-              >
-                {loginMutation.isPending ? "Signing In..." : "Sign In"}
-              </Button>
-
-              {/* Forgot Password Link */}
-              <div className="text-center">
-                <Dialog open={forgotPasswordOpen} onOpenChange={setForgotPasswordOpen}>
-                  <DialogTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="link"
-                      className="text-sm text-blue-600 hover:text-blue-800 p-0 h-auto"
-                      data-testid="button-forgot-password"
-                    >
-                      Forgot your password?
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle className="flex items-center gap-2">
-                        <KeyRound className="h-5 w-5" />
-                        Reset Password
-                      </DialogTitle>
-                      <DialogDescription>
-                        Enter your email address and we'll send you instructions to reset your password.
-                      </DialogDescription>
-                    </DialogHeader>
-                    
-                    <form onSubmit={forgotPasswordForm.handleSubmit(onForgotPasswordSubmit)} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="forgot-email" className="text-sm font-medium">
-                          Email Address
-                        </Label>
+                    Forgot Password?
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <KeyRound className="h-5 w-5" />
+                      Reset Password
+                    </DialogTitle>
+                    <DialogDescription>
+                      Enter your email address and we'll send you instructions to reset your password.
+                    </DialogDescription>
+                  </DialogHeader>
+                  
+                  <form onSubmit={forgotPasswordForm.handleSubmit(onForgotPasswordSubmit)} className="space-y-4">
+                    <div className="space-y-2">
+                      <label htmlFor="forgot-email" className="text-sm font-medium text-gray-700">
+                        Email Address
+                      </label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                         <Input
                           id="forgot-email"
                           type="email"
                           placeholder="Enter your email"
+                          className="pl-10"
                           {...forgotPasswordForm.register("email")}
                           data-testid="input-forgot-email"
                         />
-                        {forgotPasswordForm.formState.errors.email && (
-                          <p className="text-sm text-red-600">{forgotPasswordForm.formState.errors.email.message}</p>
-                        )}
                       </div>
+                      {forgotPasswordForm.formState.errors.email && (
+                        <p className="text-sm text-red-600">{forgotPasswordForm.formState.errors.email.message}</p>
+                      )}
+                    </div>
 
-                      <div className="flex justify-end space-x-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => setForgotPasswordOpen(false)}
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          type="submit"
-                          disabled={forgotPasswordMutation.isPending}
-                          data-testid="button-send-reset"
-                        >
-                          {forgotPasswordMutation.isPending ? "Sending..." : "Send Reset Email"}
-                        </Button>
-                      </div>
-                    </form>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-
-        {/* Footer */}
-        <div className="text-center mt-6 text-sm text-gray-500">
-          <p>© 2025 Primax Institute. All rights reserved.</p>
+                    <div className="flex justify-end space-x-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setForgotPasswordOpen(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="submit"
+                        disabled={forgotPasswordMutation.isPending}
+                        className="bg-orange-600 hover:bg-orange-700"
+                        data-testid="button-send-reset"
+                      >
+                        {forgotPasswordMutation.isPending ? "Sending..." : "Send Reset Email"}
+                      </Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </form>
         </div>
       </div>
     </div>
