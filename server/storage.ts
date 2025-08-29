@@ -51,6 +51,7 @@ import {
 import { db } from "./db";
 import { eq, and, desc, sql, gte, lte, count, sum, avg } from "drizzle-orm";
 import { PrimaxBillingService } from "./billing";
+import { generateUserCredentials } from "./passwordUtils";
 
 const billingService = new PrimaxBillingService();
 
@@ -83,6 +84,7 @@ export interface IStorage {
   getStaff(): Promise<any[]>;
   updateStaff(id: string, staffData: any): Promise<any>;
   deleteStaff(id: string): Promise<void>;
+  createManagement(managementData: any): Promise<any>;
   createPayoutRule(payoutData: any): Promise<any>;
   
   // Subjects
@@ -1698,6 +1700,9 @@ export class DatabaseStorage implements IStorage {
 
   // Teacher and Staff Management Methods
   async createTeacher(teacherData: any): Promise<any> {
+    // Generate temporary password for new teacher
+    const credentials = await generateUserCredentials();
+    
     const teacher = await db.insert(users).values({
       firstName: teacherData.firstName,
       lastName: teacherData.lastName,
@@ -1710,10 +1715,17 @@ export class DatabaseStorage implements IStorage {
       teacherClassLevels: teacherData.teacherClassLevels || [],
       hireDate: teacherData.hireDate,
       payoutPercentage: teacherData.payoutPercentage,
+      password: credentials.password,
+      temporaryPassword: credentials.temporaryPassword,
+      mustChangePassword: credentials.mustChangePassword,
       isActive: true,
     }).returning();
     
-    return teacher[0];
+    // Return teacher data with temporary password for display
+    return {
+      ...teacher[0],
+      tempPassword: credentials.temporaryPassword, // Add temp password for admin to see
+    };
   }
 
   async getTeachers(): Promise<any[]> {
@@ -1726,6 +1738,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createStaff(staffData: any): Promise<any> {
+    // Generate temporary password for new staff
+    const credentials = await generateUserCredentials();
+    
     const staff = await db.insert(users).values({
       firstName: staffData.firstName,
       lastName: staffData.lastName,
@@ -1736,10 +1751,47 @@ export class DatabaseStorage implements IStorage {
       isTeacher: false,
       isSuperAdmin: false,
       hireDate: staffData.hireDate,
+      password: credentials.password,
+      temporaryPassword: credentials.temporaryPassword,
+      mustChangePassword: credentials.mustChangePassword,
       isActive: true,
     }).returning();
     
-    return staff[0];
+    // Return staff data with temporary password for display
+    return {
+      ...staff[0],
+      tempPassword: credentials.temporaryPassword, // Add temp password for admin to see
+    };
+  }
+
+  async createManagement(managementData: any): Promise<any> {
+    // Generate temporary password for new management
+    const credentials = await generateUserCredentials();
+    
+    const management = await db.insert(users).values({
+      firstName: managementData.firstName,
+      lastName: managementData.lastName,
+      email: managementData.email,
+      phone: managementData.phone,
+      role: 'management',
+      position: managementData.position,
+      isTeacher: managementData.isAlsoTeacher || false,
+      isSuperAdmin: true,
+      teacherSubjects: managementData.isAlsoTeacher ? (managementData.teacherSubjects || []) : [],
+      teacherClassLevels: managementData.isAlsoTeacher ? (managementData.teacherClassLevels || []) : [],
+      payoutPercentage: managementData.isAlsoTeacher ? managementData.payoutPercentage : null,
+      hireDate: managementData.hireDate,
+      password: credentials.password,
+      temporaryPassword: credentials.temporaryPassword,
+      mustChangePassword: credentials.mustChangePassword,
+      isActive: true,
+    }).returning();
+    
+    // Return management data with temporary password for display
+    return {
+      ...management[0],
+      tempPassword: credentials.temporaryPassword, // Add temp password for admin to see
+    };
   }
 
   async getStaff(): Promise<any[]> {

@@ -27,6 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import AddTeacherModal from "@/components/AddTeacherModal";
 import AddStaffModal from "@/components/AddStaffModal";
+import AddManagementModal from "@/components/AddManagementModal";
 import EditTeacherModal from "@/components/EditTeacherModal";
 import EditStaffModal from "@/components/EditStaffModal";
 
@@ -50,6 +51,7 @@ interface Staff {
 export default function StaffManagement() {
   const [addTeacherModalOpen, setAddTeacherModalOpen] = useState(false);
   const [addStaffModalOpen, setAddStaffModalOpen] = useState(false);
+  const [addManagementModalOpen, setAddManagementModalOpen] = useState(false);
   const [editTeacherModalOpen, setEditTeacherModalOpen] = useState(false);
   const [editStaffModalOpen, setEditStaffModalOpen] = useState(false);
   const [selectedTeacher, setSelectedTeacher] = useState<Staff | null>(null);
@@ -178,7 +180,7 @@ export default function StaffManagement() {
           </p>
         </CardHeader>
         <CardContent className="p-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             <Button 
               onClick={() => setAddTeacherModalOpen(true)}
               variant="outline" 
@@ -213,6 +215,25 @@ export default function StaffManagement() {
                 </span>
                 <span className="text-sm text-gray-500">
                   Administrative and support staff
+                </span>
+              </div>
+            </Button>
+
+            <Button 
+              onClick={() => setAddManagementModalOpen(true)}
+              variant="outline" 
+              className="w-full h-32 flex flex-col items-center justify-center space-y-4 hover:shadow-md hover:border-purple-300 transition-all duration-200 group"
+              data-testid="button-add-management"
+            >
+              <div className="p-3 rounded-lg bg-purple-50 group-hover:bg-purple-100 transition-colors">
+                <User className="h-8 w-8 text-purple-600" />
+              </div>
+              <div className="text-center">
+                <span className="text-lg font-medium text-gray-700 group-hover:text-purple-600 transition-colors block">
+                  Add Management Account
+                </span>
+                <span className="text-sm text-gray-500">
+                  Leadership and management staff
                 </span>
               </div>
             </Button>
@@ -456,6 +477,12 @@ export default function StaffManagement() {
       <AddStaffModal 
         open={addStaffModalOpen} 
         onOpenChange={setAddStaffModalOpen} 
+      />
+
+      {/* Add Management Modal */}
+      <AddManagementModal 
+        open={addManagementModalOpen} 
+        onOpenChange={setAddManagementModalOpen} 
       />
 
       {/* Edit Teacher Modal */}

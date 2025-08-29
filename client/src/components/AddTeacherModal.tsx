@@ -72,10 +72,11 @@ export default function AddTeacherModal({ open, onOpenChange }: AddTeacherModalP
       };
       return await apiRequest('POST', '/api/teachers', teacherData);
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       toast({
-        title: "Success",
-        description: "Teacher has been added successfully",
+        title: "Teacher Added Successfully", 
+        description: `Teacher created with temporary password: ${data.tempPassword}. Share this with the teacher for their first login.`,
+        className: "max-w-md",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/teachers'] });
       onOpenChange(false);

@@ -264,6 +264,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Management routes
+  app.post('/api/management', isAuthenticated, async (req, res) => {
+    try {
+      const management = await storage.createManagement(req.body);
+      res.json(management);
+    } catch (error) {
+      console.error('Error creating management:', error);
+      res.status(500).json({ message: 'Failed to create management account' });
+    }
+  });
+
   app.put("/api/teachers/:id", async (req, res) => {
     try {
       const { id } = req.params;

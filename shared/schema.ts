@@ -37,6 +37,9 @@ export const users = pgTable("users", {
   lastName: varchar("last_name"),
   phone: varchar("phone"), // Phone number for staff/teachers
   profileImageUrl: varchar("profile_image_url"),
+  password: varchar("password"), // Hashed password for login
+  temporaryPassword: varchar("temporary_password"), // Temporary password for first login
+  mustChangePassword: boolean("must_change_password").default(true), // Force password change on first login
   role: userRoleEnum("role").notNull(), // Primary role: teacher, finance, parent, management
   isSuperAdmin: boolean("is_super_admin").default(false), // Super admin privileges
   isTeacher: boolean("is_teacher").default(false), // Whether they teach (for super admins who are also teachers)
