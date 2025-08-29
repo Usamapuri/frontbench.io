@@ -137,7 +137,7 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
             <img 
               src={primaxLogoPath} 
               alt="Primax Logo" 
-              className="h-12 mx-auto mb-6"
+              className="h-14 mx-auto mb-6"
             />
             
             <h1 className="text-2xl font-semibold text-gray-900 mb-2">
