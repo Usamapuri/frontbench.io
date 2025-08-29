@@ -181,7 +181,10 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
             {/* Login Button */}
             <Button
               type="submit"
-              className="w-full h-12 bg-orange-600 hover:bg-orange-700 text-white font-medium text-base rounded-md"
+              className="w-full h-12 text-white font-medium text-base rounded-md"
+              style={{ backgroundColor: '#253C8D' }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1e2f6b'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#253C8D'}
               disabled={loginMutation.isPending}
               data-testid="button-login"
             >
@@ -195,7 +198,10 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
                   <Button
                     type="button"
                     variant="link"
-                    className="text-sm text-orange-600 hover:text-orange-700 p-0 h-auto font-medium"
+                    className="text-sm p-0 h-auto font-medium"
+                    style={{ color: '#253C8D' }}
+                    onMouseEnter={(e) => e.currentTarget.style.color = '#1e2f6b'}
+                    onMouseLeave={(e) => e.currentTarget.style.color = '#253C8D'}
                     data-testid="button-forgot-password"
                   >
                     Forgot Password?
@@ -244,7 +250,10 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
                       <Button
                         type="submit"
                         disabled={forgotPasswordMutation.isPending}
-                        className="bg-orange-600 hover:bg-orange-700"
+                        className="text-white"
+                        style={{ backgroundColor: '#253C8D' }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1e2f6b'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#253C8D'}
                         data-testid="button-send-reset"
                       >
                         {forgotPasswordMutation.isPending ? "Sending..." : "Send Reset Email"}
