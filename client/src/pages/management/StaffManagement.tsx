@@ -64,7 +64,7 @@ export default function StaffManagement() {
 
   // Helper function to get subject names from IDs
   const getSubjectNames = (subjectIds: string[] = []) => {
-    if (!subjects || !Array.isArray(subjects) || !subjectIds.length) return 'None';
+    if (!subjects || !Array.isArray(subjects) || !subjectIds || !Array.isArray(subjectIds) || subjectIds.length === 0) return 'None';
     const subjectNames = subjectIds
       .map(id => subjects.find((s: any) => s.id === id)?.name)
       .filter(Boolean);
