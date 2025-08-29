@@ -17,9 +17,6 @@ export default function Layout({ children, selectedRole }: LayoutProps) {
   const { user, logout, isLoggingOut } = useAuth();
 
   const handleLogout = () => {
-    // Clear selected role first
-    localStorage.removeItem('selectedRole');
-    // Call logout function from useAuth
     logout();
   };
 

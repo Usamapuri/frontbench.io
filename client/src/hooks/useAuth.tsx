@@ -18,28 +18,33 @@ export function useAuth() {
     onSuccess: () => {
       queryClient.setQueryData(["/api/auth/user"], null);
       queryClient.clear(); // Clear all cached data
+      localStorage.removeItem('selectedRole');
       toast({
         title: "Logged Out",
         description: "You have been successfully logged out.",
       });
-      // Force page reload to reset any localStorage state
-      window.location.reload();
+      // Redirect to login page
+      window.location.href = '/';
     },
     onError: (error: any) => {
       toast({
-        title: "Logout Error",
+        title: "Logout Error", 
         description: error.message || "Failed to logout properly",
         variant: "destructive",
       });
     },
   });
 
+  const handleLogout = () => {
+    logoutMutation.mutate();
+  };
+
   return {
     user,
     isLoading,
     error,
     isAuthenticated: !!user,
-    logout: () => logoutMutation.mutate(),
+    logout: handleLogout,
     isLoggingOut: logoutMutation.isPending,
   };
 }
