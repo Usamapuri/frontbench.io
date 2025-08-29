@@ -44,6 +44,7 @@ interface Staff {
   position?: string;
   firstName?: string;
   lastName?: string;
+  payoutPercentage?: number;
 }
 
 export default function StaffManagement() {

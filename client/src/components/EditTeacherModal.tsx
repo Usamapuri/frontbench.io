@@ -44,6 +44,7 @@ interface Staff {
   hireDate?: string;
   firstName?: string;
   lastName?: string;
+  payoutPercentage?: number;
 }
 
 interface EditTeacherModalProps {
@@ -91,7 +92,7 @@ export default function EditTeacherModal({ open, onOpenChange, teacher }: EditTe
         hireDate: teacher.hireDate || new Date().toISOString().split('T')[0],
         teacherClassLevels: classLevels,
         teacherSubjects: subjects,
-        payoutPercentage: 50,
+        payoutPercentage: teacher.payoutPercentage || 50,
       });
       setSelectedClassLevels(classLevels);
       setSelectedSubjects(subjects);

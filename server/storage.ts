@@ -1709,6 +1709,7 @@ export class DatabaseStorage implements IStorage {
       teacherSubjects: teacherData.teacherSubjects || [],
       teacherClassLevels: teacherData.teacherClassLevels || [],
       hireDate: teacherData.hireDate,
+      payoutPercentage: teacherData.payoutPercentage,
       isActive: true,
     }).returning();
     
@@ -1761,6 +1762,7 @@ export class DatabaseStorage implements IStorage {
         teacherSubjects: teacherData.teacherSubjects || [],
         teacherClassLevels: teacherData.teacherClassLevels || [],
         hireDate: teacherData.hireDate,
+        payoutPercentage: teacherData.payoutPercentage,
       })
       .where(eq(users.id, id))
       .returning();

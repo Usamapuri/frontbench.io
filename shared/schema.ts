@@ -42,6 +42,7 @@ export const users = pgTable("users", {
   isTeacher: boolean("is_teacher").default(false), // Whether they teach (for super admins who are also teachers)
   teacherSubjects: text("teacher_subjects").array(), // Array of subject IDs they teach (for teachers/super admin teachers)
   teacherClassLevels: text("teacher_class_levels").array(), // Array of class levels they teach
+  payoutPercentage: integer("payout_percentage"), // Teacher payout percentage
   isActive: boolean("is_active").default(true), // Whether staff member is active
   hireDate: date("hire_date"), // When they were hired
   position: varchar("position"), // Job title/position for non-teaching staff
