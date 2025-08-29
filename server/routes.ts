@@ -1689,7 +1689,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const paymentData = {
         paymentMethod,
-        receivedBy: 'demo-user', // req.user.claims.sub,
+        receivedBy: req.user?.claims?.sub || req.user?.id || 'demo-management-001',
         notes,
         transactionNumber: paymentMethod === 'bank_transfer' ? transactionNumber : null
       };
@@ -1709,7 +1709,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const paymentData = {
         paymentMethod,
-        receivedBy: 'demo-user', // req.user.claims.sub,
+        receivedBy: req.user?.claims?.sub || req.user?.id || 'demo-management-001',
         notes,
         transactionNumber: paymentMethod === 'bank_transfer' ? transactionNumber : null
       };

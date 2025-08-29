@@ -149,7 +149,7 @@ export class BillingSystemDemo {
     const studentId = this.demoStudentIds[0];
     const result = await billingService.processAdvancePayment(studentId, 25000, {
       paymentMethod: 'cash',
-      receivedBy: 'demo-user',
+      receivedBy: 'demo-management-001',
       notes: 'Advance payment for 3 months'
     });
     
@@ -176,7 +176,7 @@ export class BillingSystemDemo {
       const result = await billingService.processPartialPayment(unpaidInvoice.id, partialAmount, {
         paymentMethod: 'bank_transfer',
         transactionNumber: 'TXN123456789',
-        receivedBy: 'demo-user',
+        receivedBy: 'demo-management-001',
         notes: 'Partial payment via bank transfer'
       });
       
