@@ -75,12 +75,15 @@ export default function EditTeacherModal({ open, onOpenChange, teacher }: EditTe
   // Update form when teacher changes
   useEffect(() => {
     if (teacher && open) {
-      const [firstName, lastName] = teacher.name.split(' ');
+      // Safely split the name, handling cases where name might be undefined
+      const nameParts = teacher.name ? teacher.name.split(' ') : ['', ''];
+      const [firstName, lastName] = nameParts;
+      
       form.reset({
         firstName: firstName || "",
         lastName: lastName || "",
-        email: teacher.email,
-        phone: teacher.phone,
+        email: teacher.email || "",
+        phone: teacher.phone || "",
         hireDate: new Date().toISOString().split('T')[0], // Default to today if not available
         teacherClassLevels: [],
         teacherSubjects: [],

@@ -1717,7 +1717,11 @@ export class DatabaseStorage implements IStorage {
 
   async getTeachers(): Promise<any[]> {
     const teachers = await db.select().from(users).where(eq(users.isTeacher, true));
-    return teachers;
+    // Transform data to match frontend expectations
+    return teachers.map(teacher => ({
+      ...teacher,
+      name: `${teacher.firstName || ''} ${teacher.lastName || ''}`.trim()
+    }));
   }
 
   async createStaff(staffData: any): Promise<any> {
@@ -1738,13 +1742,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getStaff(): Promise<any[]> {
-    const staff = await db.select().from(users).where(
-      and(
-        eq(users.isTeacher, false),
-        eq(users.isActive, true)
-      )
-    );
-    return staff;
+    // Get all active users (both teachers and non-teachers) for the staff management page
+    const allUsers = await db.select().from(users).where(eq(users.isActive, true));
+    // Transform data to match frontend expectations
+    return allUsers.map(user => ({
+      ...user,
+      name: `${user.firstName || ''} ${user.lastName || ''}`.trim()
+    }));
   }
 
   async updateTeacher(id: string, teacherData: any): Promise<any> {

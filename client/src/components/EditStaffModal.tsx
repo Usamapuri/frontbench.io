@@ -79,12 +79,15 @@ export default function EditStaffModal({ open, onOpenChange, staff }: EditStaffM
   // Update form when staff changes
   useEffect(() => {
     if (staff && open) {
-      const [firstName, lastName] = staff.name.split(' ');
+      // Safely split the name, handling cases where name might be undefined
+      const nameParts = staff.name ? staff.name.split(' ') : ['', ''];
+      const [firstName, lastName] = nameParts;
+      
       form.reset({
         firstName: firstName || "",
         lastName: lastName || "",
-        email: staff.email,
-        phone: staff.phone,
+        email: staff.email || "",
+        phone: staff.phone || "",
         position: "", // Default position since we don't have it in the staff object
         hireDate: new Date().toISOString().split('T')[0], // Default to today if not available
         role: staff.role as "finance" | "management",
