@@ -705,7 +705,7 @@ export class DatabaseStorage implements IStorage {
       amount: paymentData.paymentAmount.toFixed(2),
       paymentMethod: paymentData.paymentMethod as "cash" | "bank_transfer" | "card" | "cheque",
       paymentDate: typeof paymentData.paymentDate === 'string' ? new Date(paymentData.paymentDate) : paymentData.paymentDate,
-      receivedBy: paymentData.receivedBy || 'system',
+      receivedBy: paymentData.receivedBy,
       notes: paymentData.notes,
       transactionNumber: paymentData.transactionNumber,
       status: 'completed'

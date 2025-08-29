@@ -598,7 +598,7 @@ export class PrimaxBillingService implements BillingService {
       studentId: '', // Will be filled by the invoice's student
       amount: creditAmount.toString(),
       paymentMethod: 'credit_adjustment',
-      receivedBy: 'system',
+      receivedBy: 'demo-management-001', // Use a valid user ID for credit adjustments
       notes: 'Applied student credit balance',
       receiptNumber: await this.generateReceiptNumber()
     });

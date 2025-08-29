@@ -1083,7 +1083,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           studentId: req.body.studentId,
           paymentMethod: req.body.paymentMethod,
           paymentDate: req.body.paymentDate ? new Date(req.body.paymentDate) : new Date(),
-          receivedBy: 'system',
+          receivedBy: req.user?.claims?.sub || req.user?.id || 'demo-management-001',
           notes: req.body.notes || '',
           transactionNumber: req.body.transactionNumber || '',
           invoiceId: req.body.invoiceId
@@ -1097,7 +1097,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ...req.body,
           receiptNumber: cleanReceiptNumber,
           paymentDate: new Date(req.body.paymentDate),
-          receivedBy: 'system',
+          receivedBy: req.user?.claims?.sub || req.user?.id || 'demo-management-001',
         });
         
         const payment = await storage.createPayment(validatedData);
