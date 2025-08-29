@@ -94,7 +94,11 @@ export default function AddManagementModal({ open, onOpenChange }: AddManagement
     onSuccess: (data: any) => {
       toast({
         title: "Management Account Created Successfully",
-        description: `Management account created with temporary password: ${data.tempPassword}. Share this with the manager for their first login.`,
+        description: (
+          <div>
+            Management account created with temporary password: <strong>{data.tempPassword}</strong>. Share this with the manager for their first login.
+          </div>
+        ),
         className: "max-w-md",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/staff'] });

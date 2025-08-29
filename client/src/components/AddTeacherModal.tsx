@@ -75,7 +75,11 @@ export default function AddTeacherModal({ open, onOpenChange }: AddTeacherModalP
     onSuccess: (data: any) => {
       toast({
         title: "Teacher Added Successfully", 
-        description: `Teacher created with temporary password: ${data.tempPassword}. Share this with the teacher for their first login.`,
+        description: (
+          <div>
+            Teacher created with temporary password: <strong>{data.tempPassword}</strong>. Share this with the teacher for their first login.
+          </div>
+        ),
         className: "max-w-md",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/teachers'] });

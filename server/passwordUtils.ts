@@ -1,13 +1,8 @@
 import bcrypt from 'bcryptjs';
 
-// Generate a random temporary password
+// Generate a fixed temporary password
 export function generateTemporaryPassword(): string {
-  const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let result = '';
-  for (let i = 0; i < 8; i++) {
-    result += charset.charAt(Math.floor(Math.random() * charset.length));
-  }
-  return result;
+  return 'Password123';
 }
 
 // Hash a password using bcrypt

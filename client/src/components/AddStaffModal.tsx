@@ -76,7 +76,11 @@ export default function AddStaffModal({ open, onOpenChange }: AddStaffModalProps
     onSuccess: (data: any) => {
       toast({
         title: "Staff Member Added Successfully",
-        description: `Staff account created with temporary password: ${data.tempPassword}. Share this with the staff member for their first login.`,
+        description: (
+          <div>
+            Staff account created with temporary password: <strong>{data.tempPassword}</strong>. Share this with the staff member for their first login.
+          </div>
+        ),
         className: "max-w-md",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/staff'] });
