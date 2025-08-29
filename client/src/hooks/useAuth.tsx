@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 export function useAuth() {
   const { toast } = useToast();
 
-  const { data: user, isLoading, error } = useQuery({
+  const { data: user, isLoading, error, refetch } = useQuery({
     queryKey: ["/api/auth/user"],
     retry: false,
     refetchOnWindowFocus: false,
@@ -13,30 +13,44 @@ export function useAuth() {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest('POST', '/api/auth/logout');
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      return response;
     },
     onSuccess: () => {
-      queryClient.setQueryData(["/api/auth/user"], null);
-      queryClient.clear(); // Clear all cached data
+      // Clear local storage
       localStorage.removeItem('selectedRole');
+      // Clear query cache
+      queryClient.clear();
+      // Show success message
       toast({
         title: "Logged Out",
         description: "You have been successfully logged out.",
       });
-      // Redirect to login page
-      window.location.href = '/';
+      // Redirect to login
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 500);
     },
     onError: (error: any) => {
+      console.error('Logout error:', error);
       toast({
         title: "Logout Error", 
-        description: error.message || "Failed to logout properly",
+        description: "Failed to logout properly",
         variant: "destructive",
       });
     },
   });
 
-  const handleLogout = () => {
-    logoutMutation.mutate();
+  // Simple logout function
+  const logout = async () => {
+    try {
+      logoutMutation.mutate();
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
   };
 
   return {
@@ -44,7 +58,8 @@ export function useAuth() {
     isLoading,
     error,
     isAuthenticated: !!user,
-    logout: handleLogout,
+    refetch,
+    logout,
     isLoggingOut: logoutMutation.isPending,
   };
 }
