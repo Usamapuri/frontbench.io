@@ -275,6 +275,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put('/api/management/:id', isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const managementData = req.body;
+      
+      // Validate required fields
+      if (!managementData.firstName || !managementData.lastName || !managementData.email) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      const management = await storage.updateManagement(id, managementData);
+      res.json(management);
+    } catch (error) {
+      console.error('Error updating management:', error);
+      res.status(500).json({ message: 'Failed to update management account' });
+    }
+  });
+
+  app.delete('/api/management/:id', isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteManagement(id);
+      res.json({ message: "Management account deleted successfully" });
+    } catch (error) {
+      console.error('Error deleting management:', error);
+      res.status(500).json({ message: 'Failed to delete management account' });
+    }
+  });
+
   app.put("/api/teachers/:id", async (req, res) => {
     try {
       const { id } = req.params;

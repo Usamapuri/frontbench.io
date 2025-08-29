@@ -85,6 +85,8 @@ export interface IStorage {
   updateStaff(id: string, staffData: any): Promise<any>;
   deleteStaff(id: string): Promise<void>;
   createManagement(managementData: any): Promise<any>;
+  updateManagement(id: string, managementData: any): Promise<any>;
+  deleteManagement(id: string): Promise<void>;
   createPayoutRule(payoutData: any): Promise<any>;
   
   // Subjects
@@ -1792,6 +1794,33 @@ export class DatabaseStorage implements IStorage {
       ...management[0],
       tempPassword: credentials.temporaryPassword, // Add temp password for admin to see
     };
+  }
+
+  async updateManagement(id: string, managementData: any): Promise<any> {
+    const [management] = await db
+      .update(users)
+      .set({
+        firstName: managementData.firstName,
+        lastName: managementData.lastName,
+        email: managementData.email,
+        phone: managementData.phone,
+        position: managementData.position,
+        isTeacher: managementData.isAlsoTeacher || false,
+        isSuperAdmin: true, // Management always has super admin
+        teacherSubjects: managementData.isAlsoTeacher ? (managementData.teacherSubjects || []) : [],
+        teacherClassLevels: managementData.isAlsoTeacher ? (managementData.teacherClassLevels || []) : [],
+        payoutPercentage: managementData.isAlsoTeacher ? managementData.payoutPercentage : null,
+        hireDate: managementData.hireDate,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, id))
+      .returning();
+
+    return management;
+  }
+
+  async deleteManagement(id: string): Promise<void> {
+    await db.delete(users).where(eq(users.id, id));
   }
 
   async getStaff(): Promise<any[]> {

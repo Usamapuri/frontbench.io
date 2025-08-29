@@ -30,6 +30,7 @@ import AddStaffModal from "@/components/AddStaffModal";
 import AddManagementModal from "@/components/AddManagementModal";
 import EditTeacherModal from "@/components/EditTeacherModal";
 import EditStaffModal from "@/components/EditStaffModal";
+import EditManagementModal from "@/components/EditManagementModal";
 
 interface Staff {
   id: string;
@@ -54,8 +55,10 @@ export default function StaffManagement() {
   const [addManagementModalOpen, setAddManagementModalOpen] = useState(false);
   const [editTeacherModalOpen, setEditTeacherModalOpen] = useState(false);
   const [editStaffModalOpen, setEditStaffModalOpen] = useState(false);
+  const [editManagementModalOpen, setEditManagementModalOpen] = useState(false);
   const [selectedTeacher, setSelectedTeacher] = useState<Staff | null>(null);
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
+  const [selectedManagement, setSelectedManagement] = useState<Staff | null>(null);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -120,6 +123,27 @@ export default function StaffManagement() {
     },
   });
 
+  // Delete management mutation
+  const deleteManagementMutation = useMutation({
+    mutationFn: async (managementId: string) => {
+      return await apiRequest('DELETE', `/api/management/${managementId}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Management account has been deleted successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/staff'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete management account",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Handlers
   const handleEditTeacher = (teacher: Staff) => {
     setSelectedTeacher(teacher);
@@ -131,6 +155,11 @@ export default function StaffManagement() {
     setEditStaffModalOpen(true);
   };
 
+  const handleEditManagement = (management: Staff) => {
+    setSelectedManagement(management);
+    setEditManagementModalOpen(true);
+  };
+
   const handleDeleteTeacher = (teacherId: string) => {
     deleteTeacherMutation.mutate(teacherId);
   };
@@ -139,8 +168,13 @@ export default function StaffManagement() {
     deleteStaffMutation.mutate(staffId);
   };
 
+  const handleDeleteManagement = (managementId: string) => {
+    deleteManagementMutation.mutate(managementId);
+  };
+
   const activeTeachers = staff?.filter(s => s.role === 'teacher' && s.isActive) || [];
-  const activeStaff = staff?.filter(s => s.role !== 'teacher' && s.isActive) || [];
+  const activeStaff = staff?.filter(s => s.role !== 'teacher' && s.role !== 'management' && s.isActive) || [];
+  const activeManagement = staff?.filter(s => s.role === 'management' && s.isActive) || [];
 
   if (isLoading) {
     return (
@@ -167,6 +201,9 @@ export default function StaffManagement() {
           </Badge>
           <Badge variant="outline" className="px-3 py-1">
             {activeStaff.length} Staff
+          </Badge>
+          <Badge variant="outline" className="px-3 py-1">
+            {activeManagement.length} Management
           </Badge>
         </div>
       </div>
@@ -467,6 +504,124 @@ export default function StaffManagement() {
         </CardContent>
       </Card>
 
+      {/* Management Staff List */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Management Staff
+            </CardTitle>
+            <Badge variant="outline" className="px-3 py-1">
+              {activeManagement.length} Active
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="p-6">
+          {activeManagement.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              <User className="h-16 w-16 mx-auto mb-4 opacity-50" />
+              <h3 className="text-lg font-medium mb-2">No Management Staff Added</h3>
+              <p className="text-sm mb-4">Add management accounts with leadership privileges</p>
+              <Button onClick={() => setAddManagementModalOpen(true)} data-testid="button-add-first-management">
+                Add Management Account
+              </Button>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name & Contact</TableHead>
+                  <TableHead>Position</TableHead>
+                  <TableHead>Also Teacher</TableHead>
+                  <TableHead>Hire Date</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {activeManagement.map((managementMember) => (
+                  <TableRow key={managementMember.id}>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <div className="font-medium">{managementMember.name}</div>
+                        <div className="flex items-center gap-2 text-sm text-gray-500">
+                          <Mail className="h-4 w-4 text-gray-500" />
+                          {managementMember.email}
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-500">
+                          <Phone className="h-4 w-4 text-gray-500" />
+                          {managementMember.phone}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">
+                        {managementMember.position || 'Manager'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {managementMember.isTeacher ? (
+                        <Badge variant="default" className="bg-purple-100 text-purple-800">
+                          Yes - Super Admin Teacher
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary">
+                          Management Only
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-gray-500">
+                      {managementMember.hireDate ? new Date(managementMember.hireDate).toLocaleDateString() : 'Not set'}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditManagement(managementMember)}
+                          data-testid={`button-edit-management-${managementMember.id}`}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              data-testid={`button-delete-management-${managementMember.id}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Management Account</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete {managementMember.name}? This action cannot be undone and will remove all associated data.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDeleteManagement(managementMember.id)}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Add Teacher Modal */}
       <AddTeacherModal 
         open={addTeacherModalOpen} 
@@ -497,6 +652,13 @@ export default function StaffManagement() {
         open={editStaffModalOpen}
         onOpenChange={setEditStaffModalOpen}
         staff={selectedStaff}
+      />
+
+      {/* Edit Management Modal */}
+      <EditManagementModal
+        open={editManagementModalOpen}
+        onOpenChange={setEditManagementModalOpen}
+        management={selectedManagement}
       />
     </div>
   );
