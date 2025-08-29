@@ -51,30 +51,40 @@ const dashboardOptions: DashboardOption[] = [
   }
 ];
 
-// Demo role options for testing
-const demoRoleOptions = [
-  { value: 'teacher', label: 'Regular Teacher' },
-  { value: 'super-admin-teacher', label: 'Super Admin (Teacher)' },
-  { value: 'super-admin-management', label: 'Super Admin (Management)' },
-  { value: 'finance', label: 'Finance Staff' }
-];
 
 export default function RoleSelector() {
   const [, setLocation] = useLocation();
   const { user, isLoading } = useAuth();
   const { toast } = useToast();
-  const [selectedRole, setSelectedRole] = useState<string | null>(null);
 
   useEffect(() => {
-    // Only clear role selection if we're definitely on the home page
-    const currentPath = window.location.pathname;
-    if (currentPath === '/' || currentPath === '') {
-      localStorage.removeItem('selectedRole');
-      console.log('RoleSelector mounted on home page, cleared selectedRole');
-    } else {
-      console.log('RoleSelector mounted on', currentPath, '- not clearing selectedRole');
+    if (!user || isLoading) return;
+
+    // Clear any existing role selection
+    localStorage.removeItem('selectedRole');
+
+    // Auto-redirect non-super admin users to their designated dashboard
+    if (!user.isSuperAdmin) {
+      let targetDashboard: string;
+      
+      if (user.role === 'teacher') {
+        targetDashboard = 'teacher';
+      } else if (user.role === 'finance') {
+        targetDashboard = 'finance'; // Front-desk/Finance staff goes to Finance Dashboard
+      } else if (user.role === 'management') {
+        targetDashboard = 'management';
+      } else {
+        targetDashboard = 'finance'; // Default fallback for any other roles
+      }
+
+      // Set the dashboard role and redirect
+      localStorage.setItem('selectedRole', targetDashboard);
+      window.location.href = '/dashboard';
+      return;
     }
-  }, []);
+    
+    // Super admins stay on this page to choose their dashboard
+  }, [user, isLoading]);
 
   const handleDashboardSelect = (dashboardRole: string, event?: React.MouseEvent) => {
     // Prevent event bubbling if this was called from a button click
@@ -95,8 +105,6 @@ export default function RoleSelector() {
       localStorage.setItem('selectedRole', dashboardRole);
       console.log('localStorage set to:', dashboardRole);
       
-      // Update component state
-      setSelectedRole(dashboardRole);
       
       // Show success message
       toast({
@@ -120,19 +128,6 @@ export default function RoleSelector() {
     }
   };
 
-  const getCurrentDemoRole = () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get('role') || 'finance';
-  };
-
-  const handleDemoRoleChange = (role: string) => {
-    console.log('Switching demo role to:', role);
-    // Clear any existing dashboard selection first
-    localStorage.removeItem('selectedRole');
-    localStorage.setItem('demoRole', role);
-    // Reload the page with the new role parameter to refresh authentication
-    window.location.href = `/?role=${role}`;
-  };
 
   const getAccessibleDashboards = () => {
     if (!user) return [];
@@ -193,27 +188,6 @@ export default function RoleSelector() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12">
       <div className="max-w-6xl mx-auto px-4">
-        {/* Demo Role Selector */}
-        <div className="mb-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-medium text-yellow-800">Demo Mode</h3>
-              <p className="text-xs text-yellow-700">Switch between different user roles to test the system</p>
-            </div>
-            <Select onValueChange={handleDemoRoleChange} defaultValue={getCurrentDemoRole()}>
-              <SelectTrigger className="w-64" data-testid="select-demo-role">
-                <SelectValue placeholder="Select demo role" />
-              </SelectTrigger>
-              <SelectContent>
-                {demoRoleOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value} data-testid={`option-${option.value}`}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
 
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
@@ -230,10 +204,7 @@ export default function RoleSelector() {
             </div>
           )}
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            {user?.isSuperAdmin 
-              ? 'Select which dashboard you would like to access. As a Super Admin, you have access to multiple areas of the system.'
-              : 'Access your designated dashboard below.'
-            }
+            Select which dashboard you would like to access. As a Super Admin, you have access to multiple areas of the system.
           </p>
         </div>
 
