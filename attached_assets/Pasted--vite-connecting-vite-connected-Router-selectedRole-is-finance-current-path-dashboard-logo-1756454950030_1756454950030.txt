@@ -1,0 +1,17 @@
+[vite] connecting...
+[vite] connected.
+Router: selectedRole is finance current path: /dashboard
+logout is not a function
+logout is not a function
+at handleLogout (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/src/components/Layout.tsx:31:5)
+at handleEvent (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-P6AUOPGQ.js?v=1036724d:11:45)
+at HTMLUnknownElement.callCallback2 (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=1036724d:3674:22)
+at Object.invokeGuardedCallbackDev (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=1036724d:3699:24)
+at invokeGuardedCallback (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=1036724d:3733:39)
+at invokeGuardedCallbackAndCatchFirstError (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=1036724d:3736:33)
+at executeDispatch (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=1036724d:7014:11)
+at processDispatchQueueItemsInOrder (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=1036724d:7034:15)
+at processDispatchQueue (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=1036724d:7043:13)
+at dispatchEventsForPlugins (https://f653d2e0-6a6f-4157-ac43-f3202deff83f-00-5bcefzx939sh.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=1036724d:7051:11)
+logout is not a function
+logout is not a function
