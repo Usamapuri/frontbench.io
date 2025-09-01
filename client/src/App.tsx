@@ -60,6 +60,9 @@ function AuthenticatedRouter() {
         {(params) => <StudentPortal studentId={params.studentId} />}
       </Route>
       
+      {/* Teacher Impersonation - Standalone Route (Full Page) */}
+      <Route path="/teacher-view-readonly" component={ReadOnlyTeacherDashboard} />
+      
       {/* All dashboard routes wrapped in Layout */}
       <Route path="/:rest*">
         {(params) => {
@@ -126,7 +129,6 @@ function AuthenticatedRouter() {
                     <Route path="/approvals" component={CashDrawApprovals} />
                     <Route path="/finance-dashboard" component={FinanceDashboard} />
                     <Route path="/teacher-impersonation" component={TeacherImpersonation} />
-                    <Route path="/teacher-view-readonly" component={ReadOnlyTeacherDashboard} />
                   </>
                 )}
                 
