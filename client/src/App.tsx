@@ -38,6 +38,7 @@ import DailyCloseLog from "@/pages/management/DailyCloseLog";
 import StaffManagement from "@/pages/management/StaffManagement";
 import TeacherImpersonation from "@/pages/management/TeacherImpersonation";
 import ReadOnlyTeacherDashboard from "@/pages/management/ReadOnlyTeacherDashboard";
+import StandaloneFinanceDashboard from "@/pages/management/StandaloneFinanceDashboard";
 
 function AuthenticatedRouter() {
   const { user } = useAuth();
@@ -62,6 +63,9 @@ function AuthenticatedRouter() {
       
       {/* Teacher Impersonation - Standalone Route (Full Page) */}
       <Route path="/teacher-view-readonly" component={ReadOnlyTeacherDashboard} />
+      
+      {/* Finance Dashboard - Standalone Route (Full Page) */}
+      <Route path="/finance-dashboard" component={StandaloneFinanceDashboard} />
       
       {/* All dashboard routes wrapped in Layout */}
       <Route path="/:rest*">
@@ -127,7 +131,6 @@ function AuthenticatedRouter() {
                     <Route path="/students" component={StudentLedger} />
                     <Route path="/reports" component={Reports} />
                     <Route path="/approvals" component={CashDrawApprovals} />
-                    <Route path="/finance-dashboard" component={FinanceDashboard} />
                     <Route path="/teacher-impersonation" component={TeacherImpersonation} />
                   </>
                 )}
