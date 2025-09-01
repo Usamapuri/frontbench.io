@@ -57,7 +57,7 @@ export default function Sidebar({ selectedRole }: SidebarProps) {
         // Add super admin only buttons
         if (user?.isSuperAdmin) {
           managementItems.push(
-            { path: '/finance-dashboard', icon: 'fas fa-calculator', label: 'Finance Dashboard', superAdminOnly: true },
+            { path: 'javascript:void(0)', onClick: () => window.location.href = '/finance-dashboard', icon: 'fas fa-calculator', label: 'Finance Dashboard', superAdminOnly: true },
             { path: '/teacher-impersonation', icon: 'fas fa-chalkboard-teacher', label: 'Teacher Impersonation', superAdminOnly: true }
           );
         }
@@ -83,19 +83,34 @@ export default function Sidebar({ selectedRole }: SidebarProps) {
       </div>
       
       <nav className="flex-1 p-4 space-y-2">
-        {navItems.map((item) => (
-          <Link 
-            key={item.path} 
-            href={item.path}
-            className={cn(
-              "flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors min-h-[44px]",
-              location === item.path && "bg-blue-50 text-blue-700 border-r-2 border-blue-700"
-            )}
-            data-testid={`nav-${item.label.toLowerCase().replace(' ', '-')}`}
-          >
-            <i className={`${item.icon} w-5 mr-3`}></i>
-            {item.label}
-          </Link>
+        {navItems.map((item: any) => (
+          item.onClick ? (
+            <button
+              key={item.label}
+              onClick={item.onClick}
+              className={cn(
+                "w-full flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors min-h-[44px]",
+                location === item.path && "bg-blue-50 text-blue-700 border-r-2 border-blue-700"
+              )}
+              data-testid={`nav-${item.label.toLowerCase().replace(' ', '-')}`}
+            >
+              <i className={`${item.icon} w-5 mr-3`}></i>
+              {item.label}
+            </button>
+          ) : (
+            <Link 
+              key={item.path} 
+              href={item.path}
+              className={cn(
+                "flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors min-h-[44px]",
+                location === item.path && "bg-blue-50 text-blue-700 border-r-2 border-blue-700"
+              )}
+              data-testid={`nav-${item.label.toLowerCase().replace(' ', '-')}`}
+            >
+              <i className={`${item.icon} w-5 mr-3`}></i>
+              {item.label}
+            </Link>
+          )
         ))}
       </nav>
       
