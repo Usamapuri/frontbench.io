@@ -30,6 +30,7 @@ export default function Sidebar({ selectedRole }: SidebarProps) {
           { path: '/portal-links', icon: 'fas fa-link', label: 'Portal Links' },
         ];
       case 'teacher':
+      case 'teacher-impersonation':
         return [
           { path: '/dashboard', icon: 'fas fa-home', label: 'Today' },
           { path: '/attendance', icon: 'fas fa-calendar-check', label: 'Attendance' },

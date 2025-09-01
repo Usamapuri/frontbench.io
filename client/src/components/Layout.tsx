@@ -26,8 +26,8 @@ export default function Layout({ children, selectedRole }: LayoutProps) {
     window.location.href = '/dashboard';
   };
 
-  // Show back button for super admins in Finance Dashboard
-  const showBackToManagement = user?.isSuperAdmin && selectedRole === 'finance';
+  // Show back button for super admins in Finance Dashboard or Teacher Impersonation
+  const showBackToManagement = user?.isSuperAdmin && (selectedRole === 'finance' || selectedRole === 'teacher-impersonation');
 
   // Get user initials for profile circle
   const getUserInitials = () => {
@@ -62,7 +62,7 @@ export default function Layout({ children, selectedRole }: LayoutProps) {
                   data-testid="button-back-to-management"
                 >
                   <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back to Management
+                  {selectedRole === 'teacher-impersonation' ? 'Back to Management' : 'Back to Management'}
                 </Button>
               )}
             </div>
@@ -115,6 +115,8 @@ function getRoleTitle(role?: string | null): string {
       return 'Finance Dashboard';
     case 'teacher':
       return 'Teacher Dashboard';
+    case 'teacher-impersonation':
+      return 'Teacher Dashboard (Read-Only)';
     case 'parent':
       return 'Parent Portal';
     case 'management':
