@@ -6,7 +6,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { User, LogOut, ArrowLeft } from "lucide-react";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -19,6 +20,14 @@ export default function Layout({ children, selectedRole }: LayoutProps) {
   const handleLogout = () => {
     logout();
   };
+
+  const handleBackToManagement = () => {
+    localStorage.setItem('selectedRole', 'management');
+    window.location.href = '/dashboard';
+  };
+
+  // Show back button for super admins in Finance Dashboard
+  const showBackToManagement = user?.isSuperAdmin && selectedRole === 'finance';
 
   // Get user initials for profile circle
   const getUserInitials = () => {
@@ -33,13 +42,29 @@ export default function Layout({ children, selectedRole }: LayoutProps) {
         {/* Header */}
         <header className="bg-white border-b px-6 py-4 min-h-[88px] flex items-center">
           <div className="flex items-center justify-between w-full">
-            <div>
-              <h1 className="text-2xl font-semibold text-gray-800">
-                {getRoleTitle(selectedRole)}
-              </h1>
-              <nav className="text-sm text-gray-600">
-                Home {'>'} {selectedRole} {'>'} Dashboard
-              </nav>
+            <div className="flex items-center space-x-4">
+              <div>
+                <h1 className="text-2xl font-semibold text-gray-800">
+                  {getRoleTitle(selectedRole)}
+                </h1>
+                <nav className="text-sm text-gray-600">
+                  Home {'>'} {selectedRole} {'>'} Dashboard
+                </nav>
+              </div>
+              
+              {/* Back to Management Dashboard Button */}
+              {showBackToManagement && (
+                <Button
+                  onClick={handleBackToManagement}
+                  variant="outline"
+                  size="sm"
+                  className="ml-4 bg-[#253C8D] text-white border-[#253C8D] hover:bg-[#1e3071] hover:border-[#1e3071]"
+                  data-testid="button-back-to-management"
+                >
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back to Management
+                </Button>
+              )}
             </div>
             
             {/* User Profile Dropdown */}
