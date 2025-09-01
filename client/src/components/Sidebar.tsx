@@ -54,12 +54,7 @@ export default function Sidebar({ selectedRole }: SidebarProps) {
           { path: '/approvals', icon: 'fas fa-check-circle', label: 'Cash Draw Approvals' },
         ];
         
-        // Add super admin only buttons
-        if (user?.isSuperAdmin) {
-          managementItems.push(
-            { path: 'javascript:void(0)', onClick: () => window.location.href = '/finance-dashboard', icon: 'fas fa-calculator', label: 'Finance Dashboard', superAdminOnly: true }
-          );
-        }
+        
         
         return managementItems;
       default:
