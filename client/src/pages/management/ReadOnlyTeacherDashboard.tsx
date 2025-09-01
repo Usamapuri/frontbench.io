@@ -29,7 +29,7 @@ interface ImpersonationData {
 
 export default function ReadOnlyTeacherDashboard() {
   const [impersonationData, setImpersonationData] = useState<ImpersonationData | null>(null);
-  const { user, logout, isLoggingOut } = useAuth();
+  const { user, logout, isLoggingOut } = useAuth() as any;
 
   useEffect(() => {
     const data = sessionStorage.getItem('impersonatingTeacher');
