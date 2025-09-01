@@ -57,7 +57,7 @@ export default function Sidebar({ selectedRole }: SidebarProps) {
         // Add super admin only buttons
         if (user?.isSuperAdmin) {
           managementItems.push(
-            { path: '/teacher-impersonation', icon: 'fas fa-chalkboard-teacher', label: 'Teacher Impersonation', superAdminOnly: true }
+            { path: 'javascript:void(0)', onClick: () => window.location.href = '/finance-dashboard', icon: 'fas fa-calculator', label: 'Finance Dashboard', superAdminOnly: true }
           );
         }
         
