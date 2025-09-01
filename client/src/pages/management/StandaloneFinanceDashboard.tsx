@@ -21,7 +21,7 @@ import AttendanceManagement from "@/pages/finance/AttendanceManagement";
 import PortalLinks from "@/pages/finance/PortalLinks";
 
 export default function StandaloneFinanceDashboard() {
-  const { user, logout, isLoggingOut } = useAuth();
+  const { user, logout, isLoggingOut } = useAuth() as any;
 
   const handleBackToManagement = () => {
     localStorage.setItem('selectedRole', 'management');
