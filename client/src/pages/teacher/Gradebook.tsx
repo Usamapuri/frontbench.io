@@ -32,17 +32,17 @@ export default function Gradebook() {
   const queryClient = useQueryClient();
 
   // Fetch only teacher's assigned subjects (maintaining data isolation)
-  const { data: subjects } = useQuery({
+  const { data: subjects = [] } = useQuery({
     queryKey: ['/api/teacher/subjects'],
   });
 
   // Fetch only teacher's students (enrolled in subjects they teach)
-  const { data: students } = useQuery<Student[]>({
+  const { data: students = [] } = useQuery<Student[]>({
     queryKey: ['/api/teacher/students'],
   });
 
   // Fetch only teacher's assessments (maintaining data isolation)
-  const { data: assessments } = useQuery<Assessment[]>({
+  const { data: assessments = [] } = useQuery<Assessment[]>({
     queryKey: ['/api/teacher/assessments'],
   });
 
@@ -196,7 +196,7 @@ export default function Gradebook() {
 
   // Get subject name by ID
   const getSubjectName = (subjectId: string) => {
-    return subjects?.find((s: any) => s.id === subjectId)?.name || 'Unknown Subject';
+    return Array.isArray(subjects) ? subjects.find((s: any) => s.id === subjectId)?.name || 'Unknown Subject' : 'Unknown Subject';
   };
 
   const selectedAssessmentData = assessments?.find(a => a.id === selectedAssessmentForGrading);
@@ -324,7 +324,7 @@ export default function Gradebook() {
                     <SelectValue placeholder="Choose a subject..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {subjects?.map((subject: any) => (
+                    {Array.isArray(subjects) && subjects.map((subject: any) => (
                       <SelectItem key={subject.id} value={subject.id}>
                         {subject.name}
                       </SelectItem>
