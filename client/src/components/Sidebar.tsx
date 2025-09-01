@@ -16,6 +16,10 @@ export default function Sidebar({ selectedRole }: SidebarProps) {
     window.location.href = '/';
   };
 
+  const handleLogout = () => {
+    window.location.href = '/api/logout';
+  };
+
   const getNavItems = () => {
     switch (selectedRole) {
       case 'finance':
@@ -108,7 +112,7 @@ export default function Sidebar({ selectedRole }: SidebarProps) {
         ))}
       </nav>
       
-      <div className="p-4 border-t">
+      <div className="p-4 border-t space-y-2">
         <button 
           onClick={handleBackToRoleSelection}
           className="w-full flex items-center px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors min-h-[44px]"
@@ -116,6 +120,14 @@ export default function Sidebar({ selectedRole }: SidebarProps) {
         >
           <i className="fas fa-arrow-left w-5 mr-3"></i>
           Change Role
+        </button>
+        <button 
+          onClick={handleLogout}
+          className="w-full flex items-center px-3 py-2 text-red-600 hover:bg-red-50 rounded-md transition-colors min-h-[44px]"
+          data-testid="button-logout"
+        >
+          <i className="fas fa-sign-out-alt w-5 mr-3"></i>
+          Logout
         </button>
       </div>
     </div>
