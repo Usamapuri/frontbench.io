@@ -105,16 +105,14 @@ async function seedTenants() {
 }
 
 // Run the seeding script
-if (require.main === module) {
-  seedTenants()
-    .then(() => {
-      console.log('🏁 Seeding script completed.');
-      process.exit(0);
-    })
-    .catch((error) => {
-      console.error('💥 Seeding script failed:', error);
-      process.exit(1);
-    });
-}
+seedTenants()
+  .then(() => {
+    console.log('🏁 Seeding script completed.');
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error('💥 Seeding script failed:', error);
+    process.exit(1);
+  });
 
 export { seedTenants };
