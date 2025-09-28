@@ -1,0 +1,1406 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Primax School Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    primary: '#1976D2',
+                    secondary: '#388E3C',
+                    accent: '#FF6F00',
+                    success: '#4CAF50',
+                    error: '#FF5722',
+                    warning: '#FF9800'
+                },
+                fontFamily: {
+                    'inter': ['Inter', 'system-ui', 'sans-serif']
+                }
+            }
+        }
+    };
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        .print-receipt {
+            width: 80mm;
+        }
+        
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+        }
+        
+        .offline-indicator {
+            background: linear-gradient(45deg, #FF5722, #FF8A50);
+        }
+        
+        .tap-target {
+            min-height: 44px;
+            min-width: 44px;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-inter">
+    <!-- @COMPONENT: App [main application container] -->
+    <div id="app" class="min-h-screen">
+        
+        <!-- Offline Banner -->
+        <!-- @COMPONENT: OfflineBanner [shows when offline] -->
+        <div id="offline-banner" class="offline-indicator text-white px-4 py-2 text-center text-sm hidden" data-mock="true">
+            <i class="fas fa-wifi-slash mr-2"></i>
+            You're offline. Changes will sync when connection is restored.
+        </div>
+        <!-- @END_COMPONENT: OfflineBanner -->
+
+        <!-- Login Screen -->
+        <!-- @COMPONENT: LoginScreen [role-based authentication] -->
+        <div id="login-screen" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary to-blue-700">
+            <div class="bg-white rounded-lg shadow-xl p-8 w-full max-w-md mx-4">
+                <div class="text-center mb-8">
+                    <h1 class="text-3xl font-bold text-gray-800">Primax</h1>
+                    <p class="text-gray-600 mt-2">School Management System</p>
+                </div>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Select Your Role</label>
+                        <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" data-bind="selectedRole">
+                            <option value="">Choose your role...</option>
+                            <option value="finance">Finance / Front Desk</option>
+                            <option value="teacher">Teacher</option>
+                            <option value="parent">Parent</option>
+                            <option value="management">Management / Owner</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Username</label>
+                        <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Enter username" data-bind="username" data-mock="true">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                        <input type="password" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Enter password" data-bind="password" data-mock="true">
+                    </div>
+                    
+                    <button class="w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors tap-target" data-event="click:handleLogin">
+                        Sign In
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: LoginScreen -->
+
+        <!-- Main Application Layout -->
+        <!-- @COMPONENT: MainLayout [contains sidebar and content area] -->
+        <div id="main-app" class="hidden flex h-screen bg-gray-50">
+            
+            <!-- Sidebar Navigation -->
+            <!-- @COMPONENT: Sidebar [role-based navigation] -->
+            <div class="w-64 bg-white shadow-lg flex flex-col">
+                <div class="p-4 border-b">
+                    <h2 class="text-xl font-bold text-gray-800">Primax</h2>
+                    <p class="text-sm text-gray-600" data-bind="user.role" data-mock="true">Finance Desk</p>
+                </div>
+                
+                <!-- Finance Navigation -->
+                <nav id="finance-nav" class="flex-1 p-4 space-y-2">
+                    <a href="#" class="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md tap-target" data-route="dashboard">
+                        <i class="fas fa-tachometer-alt w-5 mr-3"></i>
+                        Dashboard
+                    </a>
+                    <a href="#" class="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md tap-target" data-route="enrollment">
+                        <i class="fas fa-user-plus w-5 mr-3"></i>
+                        Enrollment
+                    </a>
+                    <a href="#" class="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md tap-target" data-route="invoices">
+                        <i class="fas fa-file-invoice w-5 mr-3"></i>
+                        Invoices
+                    </a>
+                    <a href="#" class="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md tap-target" data-route="receipts">
+                        <i class="fas fa-receipt w-5 mr-3"></i>
+                        Receipts
+                    </a>
+                    <a href="#" class="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md tap-target" data-route="students">
+                        <i class="fas fa-users w-5 mr-3"></i>
+                        Student Ledger
+                    </a>
+                    <a href="#" class="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md tap-target" data-route="daily-close">
+                        <i class="fas fa-lock w-5 mr-3"></i>
+                        Daily Close
+                    </a>
+                    <a href="#" class="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md tap-target" data-route="reports">
+                        <i class="fas fa-chart-line w-5 mr-3"></i>
+                        Reports
+                    </a>
+                    <a href="#" class="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md tap-target" data-route="approvals">
+                        <i class="fas fa-check-circle w-5 mr-3"></i>
+                        Cash Draw Approvals
+                    </a>
+                </nav>
+                
+                <div class="p-4 border-t">
+                    <button class="w-full flex items-center px-3 py-2 text-red-600 hover:bg-red-50 rounded-md tap-target" data-event="click:handleLogout">
+                        <i class="fas fa-sign-out-alt w-5 mr-3"></i>
+                        Sign Out
+                    </button>
+                </div>
+            </div>
+            <!-- @END_COMPONENT: Sidebar -->
+
+            <!-- Main Content Area -->
+            <!-- @COMPONENT: ContentArea [dynamic content based on route] -->
+            <div class="flex-1 flex flex-col overflow-hidden">
+                
+                <!-- Header -->
+                <!-- @COMPONENT: Header [breadcrumbs and user info] -->
+                <header class="bg-white shadow-sm border-b px-6 py-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h1 class="text-2xl font-semibold text-gray-800" data-bind="currentPage.title" data-mock="true">Dashboard</h1>
+                            <nav class="text-sm text-gray-600" data-bind="breadcrumbs" data-mock="true">
+                                Home > Finance > Dashboard
+                            </nav>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <div class="text-right">
+                                <p class="text-sm font-medium text-gray-800" data-bind="user.name" data-mock="true">Sarah Ahmed</p>
+                                <p class="text-xs text-gray-600" data-bind="user.role" data-mock="true">Finance Manager</p>
+                            </div>
+                            <!-- A professional headshot of a female finance manager -->
+                            <img src="https://pixabay.com/get/gddd9ff3fd9d50a83a38cd9b6b0c83cc0b8bfb7272493f3e8d9fec7801a40eaf80ad6f24ebce84d873f197c730fd750ed9b59cb440941d514b697b47d96e33495_1280.jpg" alt="User profile" class="w-10 h-10 rounded-full object-cover">
+                        </div>
+                    </div>
+                </header>
+                <!-- @END_COMPONENT: Header -->
+
+                <!-- Page Content -->
+                <main class="flex-1 overflow-y-auto p-6">
+                    
+                    <!-- Finance Dashboard -->
+                    <!-- @COMPONENT: FinanceDashboard [overview cards and recent activity] -->
+                    <div id="finance-dashboard" class="space-y-6">
+                        
+                        <!-- Stats Cards -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <div class="bg-white rounded-lg shadow p-6">
+                                <div class="flex items-center">
+                                    <div class="p-2 bg-primary bg-opacity-10 rounded-lg">
+                                        <i class="fas fa-users text-primary text-xl"></i>
+                                    </div>
+                                    <div class="ml-4">
+                                        <p class="text-sm font-medium text-gray-600">Total Students</p>
+                                        <p class="text-2xl font-semibold text-gray-900" data-bind="stats.totalStudents" data-mock="true">342</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white rounded-lg shadow p-6">
+                                <div class="flex items-center">
+                                    <div class="p-2 bg-success bg-opacity-10 rounded-lg">
+                                        <i class="fas fa-dollar-sign text-success text-xl"></i>
+                                    </div>
+                                    <div class="ml-4">
+                                        <p class="text-sm font-medium text-gray-600">Monthly Revenue</p>
+                                        <p class="text-2xl font-semibold text-gray-900" data-bind="stats.monthlyRevenue" data-mock="true">₹2,84,500</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white rounded-lg shadow p-6">
+                                <div class="flex items-center">
+                                    <div class="p-2 bg-warning bg-opacity-10 rounded-lg">
+                                        <i class="fas fa-exclamation-triangle text-warning text-xl"></i>
+                                    </div>
+                                    <div class="ml-4">
+                                        <p class="text-sm font-medium text-gray-600">Pending Fees</p>
+                                        <p class="text-2xl font-semibold text-gray-900" data-bind="stats.pendingFees" data-mock="true">₹45,200</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white rounded-lg shadow p-6">
+                                <div class="flex items-center">
+                                    <div class="p-2 bg-secondary bg-opacity-10 rounded-lg">
+                                        <i class="fas fa-percentage text-secondary text-xl"></i>
+                                    </div>
+                                    <div class="ml-4">
+                                        <p class="text-sm font-medium text-gray-600">Avg Attendance</p>
+                                        <p class="text-2xl font-semibold text-gray-900" data-bind="stats.avgAttendance" data-mock="true">94.2%</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Actions -->
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4">Quick Actions</h3>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <button class="flex flex-col items-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary hover:bg-primary hover:bg-opacity-5 transition-colors tap-target" data-event="click:startEnrollment">
+                                    <i class="fas fa-user-plus text-2xl text-primary mb-2"></i>
+                                    <span class="text-sm font-medium">New Enrollment</span>
+                                </button>
+                                
+                                <button class="flex flex-col items-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary hover:bg-primary hover:bg-opacity-5 transition-colors tap-target" data-event="click:createInvoice">
+                                    <i class="fas fa-file-invoice text-2xl text-primary mb-2"></i>
+                                    <span class="text-sm font-medium">Create Invoice</span>
+                                </button>
+                                
+                                <button class="flex flex-col items-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary hover:bg-primary hover:bg-opacity-5 transition-colors tap-target" data-event="click:recordPayment">
+                                    <i class="fas fa-credit-card text-2xl text-primary mb-2"></i>
+                                    <span class="text-sm font-medium">Record Payment</span>
+                                </button>
+                                
+                                <button class="flex flex-col items-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary hover:bg-primary hover:bg-opacity-5 transition-colors tap-target" data-event="click:dailyClose">
+                                    <i class="fas fa-lock text-2xl text-primary mb-2"></i>
+                                    <span class="text-sm font-medium">Daily Close</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Recent Activity & Pending Items -->
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            
+                            <!-- Recent Transactions -->
+                            <div class="bg-white rounded-lg shadow p-6">
+                                <h3 class="text-lg font-semibold text-gray-800 mb-4">Recent Transactions</h3>
+                                <div class="space-y-3">
+                                    <!-- @MAP: recentTransactions.map(transaction => ( -->
+                                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg" data-mock="true">
+                                        <div class="flex items-center">
+                                            <div class="w-2 h-2 bg-success rounded-full mr-3"></div>
+                                            <div>
+                                                <p class="text-sm font-medium text-gray-900" data-bind="transaction.studentName">Ahmad Ali</p>
+                                                <p class="text-xs text-gray-600" data-bind="transaction.description">Monthly Fee Payment</p>
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-sm font-semibold text-success" data-bind="transaction.amount">₹9,000</p>
+                                            <p class="text-xs text-gray-500" data-bind="transaction.time">2:30 PM</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg" data-mock="true">
+                                        <div class="flex items-center">
+                                            <div class="w-2 h-2 bg-warning rounded-full mr-3"></div>
+                                            <div>
+                                                <p class="text-sm font-medium text-gray-900" data-bind="transaction.studentName">Fatima Khan</p>
+                                                <p class="text-xs text-gray-600" data-bind="transaction.description">Partial Payment</p>
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-sm font-semibold text-warning" data-bind="transaction.amount">₹4,500</p>
+                                            <p class="text-xs text-gray-500" data-bind="transaction.time">1:45 PM</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg" data-mock="true">
+                                        <div class="flex items-center">
+                                            <div class="w-2 h-2 bg-primary rounded-full mr-3"></div>
+                                            <div>
+                                                <p class="text-sm font-medium text-gray-900" data-bind="transaction.studentName">Hassan Sheikh</p>
+                                                <p class="text-xs text-gray-600" data-bind="transaction.description">New Enrollment</p>
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-sm font-semibold text-primary" data-bind="transaction.amount">₹18,000</p>
+                                            <p class="text-xs text-gray-500" data-bind="transaction.time">11:20 AM</p>
+                                        </div>
+                                    </div>
+                                    <!-- @END_MAP )) -->
+                                </div>
+                                <button class="w-full mt-4 text-center text-primary hover:underline text-sm font-medium" data-event="click:viewAllTransactions">
+                                    View All Transactions
+                                </button>
+                            </div>
+
+                            <!-- Pending Approvals -->
+                            <div class="bg-white rounded-lg shadow p-6">
+                                <h3 class="text-lg font-semibold text-gray-800 mb-4">Pending Cash Draw Approvals</h3>
+                                <div class="space-y-3">
+                                    <!-- @MAP: pendingApprovals.map(approval => ( -->
+                                    <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg" data-mock="true">
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900" data-bind="approval.teacherName">Mr. Tariq Ahmed</p>
+                                            <p class="text-xs text-gray-600" data-bind="approval.reason">Monthly Payout Request</p>
+                                            <p class="text-xs text-gray-500" data-bind="approval.time">Submitted 45 min ago</p>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-sm font-semibold text-gray-900" data-bind="approval.amount">₹15,400</p>
+                                            <div class="flex space-x-2 mt-1">
+                                                <button class="px-2 py-1 bg-success text-white text-xs rounded hover:bg-green-600 tap-target" data-event="click:approveRequest">
+                                                    Approve
+                                                </button>
+                                                <button class="px-2 py-1 bg-error text-white text-xs rounded hover:bg-red-600 tap-target" data-event="click:denyRequest">
+                                                    Deny
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg" data-mock="true">
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900" data-bind="approval.teacherName">Ms. Ayesha Malik</p>
+                                            <p class="text-xs text-gray-600" data-bind="approval.reason">Advance Request</p>
+                                            <p class="text-xs text-gray-500" data-bind="approval.time">Submitted 2 hours ago</p>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-sm font-semibold text-gray-900" data-bind="approval.amount">₹8,000</p>
+                                            <div class="flex space-x-2 mt-1">
+                                                <button class="px-2 py-1 bg-success text-white text-xs rounded hover:bg-green-600 tap-target" data-event="click:approveRequest">
+                                                    Approve
+                                                </button>
+                                                <button class="px-2 py-1 bg-error text-white text-xs rounded hover:bg-red-600 tap-target" data-event="click:denyRequest">
+                                                    Deny
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- @END_MAP )) -->
+                                </div>
+                                <button class="w-full mt-4 text-center text-primary hover:underline text-sm font-medium" data-event="click:viewAllApprovals">
+                                    View All Pending Approvals
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- @END_COMPONENT: FinanceDashboard -->
+
+                    <!-- Enrollment Wizard -->
+                    <!-- @COMPONENT: EnrollmentWizard [multi-step enrollment process] -->
+                    <div id="enrollment-wizard" class="hidden space-y-6">
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <div class="flex items-center justify-between mb-6">
+                                <h2 class="text-2xl font-semibold text-gray-800">New Student Enrollment</h2>
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-sm text-gray-600">Step</span>
+                                    <span class="text-sm font-semibold text-primary" data-bind="currentStep" data-mock="true">1</span>
+                                    <span class="text-sm text-gray-600">of 4</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Progress Bar -->
+                            <div class="w-full bg-gray-200 rounded-full h-2 mb-6">
+                                <div class="bg-primary h-2 rounded-full transition-all duration-300" style="width: 25%" data-bind="progressPercent"></div>
+                            </div>
+                            
+                            <!-- Step 1: Student Information -->
+                            <div id="step-1" class="space-y-4">
+                                <h3 class="text-lg font-medium text-gray-800 mb-4">Student Information</h3>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Full Name *</label>
+                                        <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Enter student's full name" data-bind="student.name" data-mock="true">
+                                    </div>
+                                    
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Date of Birth *</label>
+                                        <input type="date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" data-bind="student.dob" data-mock="true">
+                                    </div>
+                                    
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Gender *</label>
+                                        <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" data-bind="student.gender">
+                                            <option value="">Select gender</option>
+                                            <option value="male">Male</option>
+                                            <option value="female">Female</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Class Level *</label>
+                                        <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" data-bind="student.classLevel">
+                                            <option value="">Select class level</option>
+                                            <option value="o-level">O-Level</option>
+                                            <option value="a-level">A-Level</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Parent/Guardian Name *</label>
+                                        <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Enter parent's name" data-bind="parent.name" data-mock="true">
+                                    </div>
+                                    
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Contact Number *</label>
+                                        <input type="tel" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="+92 300 1234567" data-bind="parent.phone" data-mock="true">
+                                    </div>
+                                    
+                                    <div class="md:col-span-2">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                                        <input type="email" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="parent@example.com" data-bind="parent.email" data-mock="true">
+                                    </div>
+                                </div>
+                                
+                                <div class="flex justify-end mt-6">
+                                    <button class="bg-primary text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors tap-target" data-event="click:nextStep">
+                                        Next: Select Subjects
+                                        <i class="fas fa-arrow-right ml-2"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- @END_COMPONENT: EnrollmentWizard -->
+
+                    <!-- Teacher Dashboard -->
+                    <!-- @COMPONENT: TeacherDashboard [today's schedule and quick actions] -->
+                    <div id="teacher-dashboard" class="hidden space-y-6">
+                        
+                        <!-- Today's Overview -->
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <h2 class="text-xl font-semibold text-gray-800">Today's Schedule</h2>
+                                <div class="text-sm text-gray-600" data-bind="currentDate" data-mock="true">
+                                    Monday, March 18, 2024
+                                </div>
+                            </div>
+                            
+                            <!-- Sync Status -->
+                            <div class="flex items-center justify-between p-3 bg-success bg-opacity-10 rounded-lg mb-4">
+                                <div class="flex items-center">
+                                    <i class="fas fa-sync-alt text-success mr-2"></i>
+                                    <span class="text-sm text-success font-medium">All data synced</span>
+                                </div>
+                                <div class="text-xs text-gray-600" data-bind="lastSyncTime" data-mock="true">
+                                    Last sync: 2 minutes ago
+                                </div>
+                            </div>
+                            
+                            <!-- Class Cards -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <!-- @MAP: todayClasses.map(class => ( -->
+                                <div class="border-l-4 border-success bg-gray-50 p-4 rounded-r-lg" data-mock="true">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <h3 class="font-medium text-gray-900" data-bind="class.subject">Physics A-Level</h3>
+                                        <span class="text-xs bg-success text-white px-2 py-1 rounded-full">Completed</span>
+                                    </div>
+                                    <p class="text-sm text-gray-600" data-bind="class.time">9:00 AM - 10:30 AM</p>
+                                    <p class="text-xs text-gray-500" data-bind="class.students">24 students</p>
+                                    <div class="mt-2 flex items-center justify-between">
+                                        <span class="text-xs text-success">Attendance: 22/24</span>
+                                        <button class="text-xs text-primary hover:underline" data-event="click:viewAttendance">
+                                            View Details
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="border-l-4 border-primary bg-gray-50 p-4 rounded-r-lg" data-mock="true">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <h3 class="font-medium text-gray-900" data-bind="class.subject">Chemistry O-Level</h3>
+                                        <span class="text-xs bg-primary text-white px-2 py-1 rounded-full">In Progress</span>
+                                    </div>
+                                    <p class="text-sm text-gray-600" data-bind="class.time">11:00 AM - 12:30 PM</p>
+                                    <p class="text-xs text-gray-500" data-bind="class.students">18 students</p>
+                                    <div class="mt-2">
+                                        <button class="w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors tap-target" data-event="click:takeAttendance">
+                                            Take Attendance
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="border-l-4 border-gray-300 bg-gray-50 p-4 rounded-r-lg" data-mock="true">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <h3 class="font-medium text-gray-900" data-bind="class.subject">Biology A-Level</h3>
+                                        <span class="text-xs bg-gray-400 text-white px-2 py-1 rounded-full">Upcoming</span>
+                                    </div>
+                                    <p class="text-sm text-gray-600" data-bind="class.time">2:00 PM - 3:30 PM</p>
+                                    <p class="text-xs text-gray-500" data-bind="class.students">16 students</p>
+                                    <div class="mt-2">
+                                        <button class="w-full bg-gray-300 text-gray-600 py-2 px-4 rounded-md cursor-not-allowed tap-target" disabled>
+                                            Not Started
+                                        </button>
+                                    </div>
+                                </div>
+                                <!-- @END_MAP )) -->
+                            </div>
+                        </div>
+
+                        <!-- Quick Actions -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            
+                            <!-- Attendance Methods -->
+                            <div class="bg-white rounded-lg shadow p-6">
+                                <h3 class="text-lg font-semibold text-gray-800 mb-4">Attendance Methods</h3>
+                                <div class="space-y-3">
+                                    <button class="w-full flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors tap-target" data-event="click:tapAttendance">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-hand-paper text-primary text-xl mr-3"></i>
+                                            <div class="text-left">
+                                                <p class="font-medium text-gray-900">Tap Method</p>
+                                                <p class="text-sm text-gray-600">Quick present/absent toggles</p>
+                                            </div>
+                                        </div>
+                                        <i class="fas fa-arrow-right text-gray-400"></i>
+                                    </button>
+                                    
+                                    <button class="w-full flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors tap-target" data-event="click:qrAttendance">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-qrcode text-primary text-xl mr-3"></i>
+                                            <div class="text-left">
+                                                <p class="font-medium text-gray-900">QR Scan Method</p>
+                                                <p class="text-sm text-gray-600">Scan student ID cards</p>
+                                            </div>
+                                        </div>
+                                        <i class="fas fa-arrow-right text-gray-400"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Earnings Summary -->
+                            <div class="bg-white rounded-lg shadow p-6">
+                                <h3 class="text-lg font-semibold text-gray-800 mb-4">This Month's Earnings</h3>
+                                <div class="space-y-3">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-gray-600">Base Rate (70%)</span>
+                                        <span class="font-semibold text-gray-900" data-bind="earnings.base" data-mock="true">₹21,000</span>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-gray-600">Extra Classes</span>
+                                        <span class="font-semibold text-gray-900" data-bind="earnings.extra" data-mock="true">₹3,500</span>
+                                    </div>
+                                    <div class="flex items-center justify-between border-t pt-2">
+                                        <span class="text-gray-900 font-medium">Total Earned</span>
+                                        <span class="font-bold text-primary text-lg" data-bind="earnings.total" data-mock="true">₹24,500</span>
+                                    </div>
+                                    <button class="w-full bg-secondary text-white py-2 px-4 rounded-md hover:bg-green-600 transition-colors tap-target" data-event="click:requestCashDraw">
+                                        Request Cash Draw
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- @END_COMPONENT: TeacherDashboard -->
+
+                    <!-- Attendance Capture -->
+                    <!-- @COMPONENT: AttendanceCapture [tap and QR methods] -->
+                    <div id="attendance-capture" class="hidden space-y-6">
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <div class="flex items-center justify-between mb-6">
+                                <div>
+                                    <h2 class="text-2xl font-semibold text-gray-800">Take Attendance</h2>
+                                    <p class="text-gray-600" data-bind="class.info" data-mock="true">Chemistry O-Level - 11:00 AM</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-sm text-gray-600">Present</p>
+                                    <p class="text-2xl font-bold text-success" data-bind="attendance.present" data-mock="true">16</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Method Toggle -->
+                            <div class="flex bg-gray-100 rounded-lg p-1 mb-6">
+                                <button class="flex-1 py-2 px-4 rounded-md bg-white shadow-sm text-primary font-medium tap-target" data-event="click:switchToTap">
+                                    <i class="fas fa-hand-paper mr-2"></i>
+                                    Tap Method
+                                </button>
+                                <button class="flex-1 py-2 px-4 rounded-md text-gray-600 hover:text-gray-800 tap-target" data-event="click:switchToQR">
+                                    <i class="fas fa-qrcode mr-2"></i>
+                                    QR Scan
+                                </button>
+                            </div>
+                            
+                            <!-- Tap Method Interface -->
+                            <div id="tap-method" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <!-- @MAP: students.map(student => ( -->
+                                <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg" data-mock="true">
+                                    <div class="flex items-center">
+                                        <!-- A young Pakistani student in school uniform -->
+                                        <img src="https://images.unsplash.com/photo-1607990281513-2c110a25bd8c?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=40&h=40" alt="Student photo" class="w-8 h-8 rounded-full object-cover mr-3">
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900" data-bind="student.name">Ahmad Hassan</p>
+                                            <p class="text-xs text-gray-500" data-bind="student.rollNumber">Roll: 001</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex space-x-1">
+                                        <button class="w-8 h-8 bg-success text-white rounded-full hover:bg-green-600 transition-colors tap-target" data-event="click:markPresent" data-student-id="001">
+                                            <i class="fas fa-check text-xs"></i>
+                                        </button>
+                                        <button class="w-8 h-8 bg-error text-white rounded-full hover:bg-red-600 transition-colors tap-target" data-event="click:markAbsent" data-student-id="001">
+                                            <i class="fas fa-times text-xs"></i>
+                                        </button>
+                                        <button class="w-8 h-8 bg-warning text-white rounded-full hover:bg-orange-600 transition-colors tap-target" data-event="click:markLate" data-student-id="001">
+                                            <i class="fas fa-clock text-xs"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg bg-success bg-opacity-10" data-mock="true">
+                                    <div class="flex items-center">
+                                        <!-- A young Pakistani female student in school uniform -->
+                                        <img src="https://pixabay.com/get/ga9db18ef7f34ab8a2ab4d554bbe11667aa9abddf6fdc7624fbdb776111acdfa8c268448b32cf6627d190f072912d6affb9158b02bf036c7da262d4ede4b00bfc_1280.jpg" alt="Student photo" class="w-8 h-8 rounded-full object-cover mr-3">
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900" data-bind="student.name">Ayesha Khan</p>
+                                            <p class="text-xs text-gray-500" data-bind="student.rollNumber">Roll: 002</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-1">
+                                        <span class="text-xs text-success font-medium">Present</span>
+                                        <button class="w-6 h-6 bg-gray-300 text-gray-600 rounded-full hover:bg-gray-400 transition-colors" data-event="click:undoMark" data-student-id="002">
+                                            <i class="fas fa-undo text-xs"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg bg-warning bg-opacity-10" data-mock="true">
+                                    <div class="flex items-center">
+                                        <!-- A young Pakistani male student in school uniform -->
+                                        <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=40&h=40" alt="Student photo" class="w-8 h-8 rounded-full object-cover mr-3">
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900" data-bind="student.name">Ali Ahmed</p>
+                                            <p class="text-xs text-gray-500" data-bind="student.rollNumber">Roll: 003</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-1">
+                                        <span class="text-xs text-warning font-medium">Late</span>
+                                        <button class="w-6 h-6 bg-gray-300 text-gray-600 rounded-full hover:bg-gray-400 transition-colors" data-event="click:undoMark" data-student-id="003">
+                                            <i class="fas fa-undo text-xs"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <!-- @END_MAP )) -->
+                            </div>
+                            
+                            <!-- Action Buttons -->
+                            <div class="flex justify-between items-center mt-6 pt-6 border-t">
+                                <div class="text-sm text-gray-600">
+                                    <span data-bind="attendance.completed" data-mock="true">16</span> of <span data-bind="attendance.total" data-mock="true">18</span> students marked
+                                </div>
+                                <div class="flex space-x-3">
+                                    <button class="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors tap-target" data-event="click:saveAsDraft">
+                                        Save as Draft
+                                    </button>
+                                    <button class="px-6 py-2 bg-primary text-white rounded-md hover:bg-blue-700 transition-colors tap-target" data-event="click:submitAttendance">
+                                        Submit Attendance
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- @END_COMPONENT: AttendanceCapture -->
+
+                    <!-- Student Ledger -->
+                    <!-- @COMPONENT: StudentLedger [comprehensive student overview] -->
+                    <div id="student-ledger" class="hidden space-y-6">
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <div class="flex items-center justify-between mb-6">
+                                <h2 class="text-2xl font-semibold text-gray-800">Student Ledger</h2>
+                                <div class="flex space-x-3">
+                                    <div class="relative">
+                                        <input type="text" placeholder="Search students..." class="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" data-bind="searchQuery">
+                                        <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                                    </div>
+                                    <button class="px-4 py-2 bg-primary text-white rounded-md hover:bg-blue-700 transition-colors tap-target" data-event="click:exportLedger">
+                                        <i class="fas fa-download mr-2"></i>
+                                        Export
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Filters -->
+                            <div class="flex flex-wrap gap-4 mb-6">
+                                <select class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" data-bind="filters.class">
+                                    <option value="">All Classes</option>
+                                    <option value="o-level">O-Level</option>
+                                    <option value="a-level">A-Level</option>
+                                </select>
+                                
+                                <select class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" data-bind="filters.feeStatus">
+                                    <option value="">All Fee Status</option>
+                                    <option value="paid">Paid</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="overdue">Overdue</option>
+                                </select>
+                                
+                                <select class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" data-bind="filters.attendance">
+                                    <option value="">All Attendance</option>
+                                    <option value="excellent">90%+</option>
+                                    <option value="good">75-89%</option>
+                                    <option value="poor">&lt;75%</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Student Table -->
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-4 py-3 text-left font-medium text-gray-700">Student</th>
+                                            <th class="px-4 py-3 text-left font-medium text-gray-700">Class</th>
+                                            <th class="px-4 py-3 text-left font-medium text-gray-700">Outstanding Fees</th>
+                                            <th class="px-4 py-3 text-left font-medium text-gray-700">Attendance %</th>
+                                            <th class="px-4 py-3 text-left font-medium text-gray-700">Avg Grade</th>
+                                            <th class="px-4 py-3 text-left font-medium text-gray-700">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-200">
+                                        <!-- @MAP: students.map(student => ( -->
+                                        <tr class="hover:bg-gray-50" data-mock="true">
+                                            <td class="px-4 py-3">
+                                                <div class="flex items-center">
+                                                    <!-- A young Pakistani student in school uniform -->
+                                                    <img src="https://images.unsplash.com/photo-1607990281513-2c110a25bd8c?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=32&h=32" alt="Student photo" class="w-8 h-8 rounded-full object-cover mr-3">
+                                                    <div>
+                                                        <p class="font-medium text-gray-900" data-bind="student.name">Ahmad Hassan</p>
+                                                        <p class="text-gray-500" data-bind="student.rollNumber">Roll: AH001</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="px-4 py-3">
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800" data-bind="student.class">
+                                                    A-Level
+                                                </span>
+                                            </td>
+                                            <td class="px-4 py-3">
+                                                <span class="text-error font-semibold" data-bind="student.outstandingFees">₹4,500</span>
+                                            </td>
+                                            <td class="px-4 py-3">
+                                                <div class="flex items-center">
+                                                    <div class="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                                                        <div class="bg-success h-2 rounded-full" style="width: 92%" data-bind="student.attendancePercent"></div>
+                                                    </div>
+                                                    <span class="text-sm font-medium text-success" data-bind="student.attendance">92%</span>
+                                                </div>
+                                            </td>
+                                            <td class="px-4 py-3">
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800" data-bind="student.avgGrade">
+                                                    A
+                                                </span>
+                                            </td>
+                                            <td class="px-4 py-3">
+                                                <div class="flex space-x-2">
+                                                    <button class="text-primary hover:text-blue-700 tap-target" data-event="click:viewDetails" data-student-id="AH001">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                    <button class="text-success hover:text-green-700 tap-target" data-event="click:recordPayment" data-student-id="AH001">
+                                                        <i class="fas fa-dollar-sign"></i>
+                                                    </button>
+                                                    <button class="text-gray-600 hover:text-gray-800 tap-target" data-event="click:sendReminder" data-student-id="AH001">
+                                                        <i class="fas fa-bell"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        
+                                        <tr class="hover:bg-gray-50" data-mock="true">
+                                            <td class="px-4 py-3">
+                                                <div class="flex items-center">
+                                                    <!-- A young Pakistani female student in school uniform -->
+                                                    <img src="https://pixabay.com/get/ga9db18ef7f34ab8a2ab4d554bbe11667aa9abddf6fdc7624fbdb776111acdfa8c268448b32cf6627d190f072912d6affb9158b02bf036c7da262d4ede4b00bfc_1280.jpg" alt="Student photo" class="w-8 h-8 rounded-full object-cover mr-3">
+                                                    <div>
+                                                        <p class="font-medium text-gray-900" data-bind="student.name">Ayesha Khan</p>
+                                                        <p class="text-gray-500" data-bind="student.rollNumber">Roll: AK002</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="px-4 py-3">
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800" data-bind="student.class">
+                                                    O-Level
+                                                </span>
+                                            </td>
+                                            <td class="px-4 py-3">
+                                                <span class="text-success font-semibold" data-bind="student.outstandingFees">₹0</span>
+                                            </td>
+                                            <td class="px-4 py-3">
+                                                <div class="flex items-center">
+                                                    <div class="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                                                        <div class="bg-success h-2 rounded-full" style="width: 96%" data-bind="student.attendancePercent"></div>
+                                                    </div>
+                                                    <span class="text-sm font-medium text-success" data-bind="student.attendance">96%</span>
+                                                </div>
+                                            </td>
+                                            <td class="px-4 py-3">
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800" data-bind="student.avgGrade">
+                                                    A+
+                                                </span>
+                                            </td>
+                                            <td class="px-4 py-3">
+                                                <div class="flex space-x-2">
+                                                    <button class="text-primary hover:text-blue-700 tap-target" data-event="click:viewDetails" data-student-id="AK002">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                    <button class="text-success hover:text-green-700 tap-target" data-event="click:recordPayment" data-student-id="AK002">
+                                                        <i class="fas fa-dollar-sign"></i>
+                                                    </button>
+                                                    <button class="text-gray-600 hover:text-gray-800 tap-target" data-event="click:sendReminder" data-student-id="AK002">
+                                                        <i class="fas fa-bell"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        
+                                        <tr class="hover:bg-gray-50" data-mock="true">
+                                            <td class="px-4 py-3">
+                                                <div class="flex items-center">
+                                                    <!-- A young Pakistani male student in school uniform -->
+                                                    <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=32&h=32" alt="Student photo" class="w-8 h-8 rounded-full object-cover mr-3">
+                                                    <div>
+                                                        <p class="font-medium text-gray-900" data-bind="student.name">Ali Ahmed</p>
+                                                        <p class="text-gray-500" data-bind="student.rollNumber">Roll: AA003</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="px-4 py-3">
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800" data-bind="student.class">
+                                                    A-Level
+                                                </span>
+                                            </td>
+                                            <td class="px-4 py-3">
+                                                <span class="text-warning font-semibold" data-bind="student.outstandingFees">₹9,000</span>
+                                            </td>
+                                            <td class="px-4 py-3">
+                                                <div class="flex items-center">
+                                                    <div class="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                                                        <div class="bg-warning h-2 rounded-full" style="width: 78%" data-bind="student.attendancePercent"></div>
+                                                    </div>
+                                                    <span class="text-sm font-medium text-warning" data-bind="student.attendance">78%</span>
+                                                </div>
+                                            </td>
+                                            <td class="px-4 py-3">
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800" data-bind="student.avgGrade">
+                                                    B
+                                                </span>
+                                            </td>
+                                            <td class="px-4 py-3">
+                                                <div class="flex space-x-2">
+                                                    <button class="text-primary hover:text-blue-700 tap-target" data-event="click:viewDetails" data-student-id="AA003">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                    <button class="text-success hover:text-green-700 tap-target" data-event="click:recordPayment" data-student-id="AA003">
+                                                        <i class="fas fa-dollar-sign"></i>
+                                                    </button>
+                                                    <button class="text-gray-600 hover:text-gray-800 tap-target" data-event="click:sendReminder" data-student-id="AA003">
+                                                        <i class="fas fa-bell"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <!-- @END_MAP )) -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- Pagination -->
+                            <div class="flex items-center justify-between mt-6">
+                                <div class="text-sm text-gray-600">
+                                    Showing <span data-bind="pagination.start" data-mock="true">1</span> to <span data-bind="pagination.end" data-mock="true">10</span> of <span data-bind="pagination.total" data-mock="true">342</span> students
+                                </div>
+                                <div class="flex space-x-2">
+                                    <button class="px-3 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors tap-target" data-event="click:previousPage">
+                                        Previous
+                                    </button>
+                                    <button class="px-3 py-2 bg-primary text-white rounded-md hover:bg-blue-700 transition-colors tap-target" data-bind="currentPage" data-mock="true">
+                                        1
+                                    </button>
+                                    <button class="px-3 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors tap-target" data-event="click:nextPage">
+                                        Next
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- @END_COMPONENT: StudentLedger -->
+
+                    <!-- Parent Portal -->
+                    <!-- @COMPONENT: ParentPortal [read-only student information] -->
+                    <div id="parent-portal" class="hidden space-y-6">
+                        
+                        <!-- Child Selector & Overview -->
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <div class="flex items-center justify-between mb-6">
+                                <h2 class="text-2xl font-semibold text-gray-800">Parent Portal</h2>
+                                <select class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" data-bind="selectedChild">
+                                    <option value="child1">Ahmad Hassan (A-Level)</option>
+                                    <option value="child2">Fatima Hassan (O-Level)</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Child Overview Cards -->
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div class="bg-gradient-to-r from-primary to-blue-600 text-white rounded-lg p-6">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <p class="text-blue-100">Fee Balance</p>
+                                            <p class="text-2xl font-bold" data-bind="child.feeBalance" data-mock="true">₹4,500</p>
+                                            <p class="text-sm text-blue-100" data-bind="child.dueDate" data-mock="true">Due: March 25, 2024</p>
+                                        </div>
+                                        <i class="fas fa-credit-card text-3xl text-blue-200"></i>
+                                    </div>
+                                </div>
+                                
+                                <div class="bg-gradient-to-r from-success to-green-600 text-white rounded-lg p-6">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <p class="text-green-100">Attendance</p>
+                                            <p class="text-2xl font-bold" data-bind="child.attendance" data-mock="true">92%</p>
+                                            <p class="text-sm text-green-100">This month: 23/25 days</p>
+                                        </div>
+                                        <i class="fas fa-calendar-check text-3xl text-green-200"></i>
+                                    </div>
+                                </div>
+                                
+                                <div class="bg-gradient-to-r from-accent to-orange-600 text-white rounded-lg p-6">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <p class="text-orange-100">Average Grade</p>
+                                            <p class="text-2xl font-bold" data-bind="child.avgGrade" data-mock="true">A</p>
+                                            <p class="text-sm text-orange-100">Last assessment: A+</p>
+                                        </div>
+                                        <i class="fas fa-graduation-cap text-3xl text-orange-200"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Activity & Notifications -->
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            
+                            <!-- Recent Activity -->
+                            <div class="bg-white rounded-lg shadow p-6">
+                                <h3 class="text-lg font-semibold text-gray-800 mb-4">Recent Activity</h3>
+                                <div class="space-y-4">
+                                    <!-- @MAP: recentActivity.map(activity => ( -->
+                                    <div class="flex items-start space-x-3" data-mock="true">
+                                        <div class="w-2 h-2 bg-success rounded-full mt-2"></div>
+                                        <div class="flex-1">
+                                            <p class="text-sm font-medium text-gray-900" data-bind="activity.title">Payment Received</p>
+                                            <p class="text-xs text-gray-600" data-bind="activity.description">Monthly fee payment of ₹9,000 processed</p>
+                                            <p class="text-xs text-gray-500" data-bind="activity.time">2 hours ago</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex items-start space-x-3" data-mock="true">
+                                        <div class="w-2 h-2 bg-primary rounded-full mt-2"></div>
+                                        <div class="flex-1">
+                                            <p class="text-sm font-medium text-gray-900" data-bind="activity.title">Grade Updated</p>
+                                            <p class="text-xs text-gray-600" data-bind="activity.description">Physics test result: A+ (92%)</p>
+                                            <p class="text-xs text-gray-500" data-bind="activity.time">Yesterday</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex items-start space-x-3" data-mock="true">
+                                        <div class="w-2 h-2 bg-warning rounded-full mt-2"></div>
+                                        <div class="flex-1">
+                                            <p class="text-sm font-medium text-gray-900" data-bind="activity.title">Attendance Alert</p>
+                                            <p class="text-xs text-gray-600" data-bind="activity.description">Marked late for Chemistry class</p>
+                                            <p class="text-xs text-gray-500" data-bind="activity.time">2 days ago</p>
+                                        </div>
+                                    </div>
+                                    <!-- @END_MAP )) -->
+                                </div>
+                            </div>
+
+                            <!-- Quick Links -->
+                            <div class="bg-white rounded-lg shadow p-6">
+                                <h3 class="text-lg font-semibold text-gray-800 mb-4">Quick Links</h3>
+                                <div class="space-y-3">
+                                    <button class="w-full flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors tap-target" data-event="click:viewAttendance">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-calendar-check text-primary mr-3"></i>
+                                            <span class="font-medium text-gray-900">View Attendance</span>
+                                        </div>
+                                        <i class="fas fa-arrow-right text-gray-400"></i>
+                                    </button>
+                                    
+                                    <button class="w-full flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors tap-target" data-event="click:viewGrades">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-chart-line text-primary mr-3"></i>
+                                            <span class="font-medium text-gray-900">View Grades</span>
+                                        </div>
+                                        <i class="fas fa-arrow-right text-gray-400"></i>
+                                    </button>
+                                    
+                                    <button class="w-full flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors tap-target" data-event="click:viewFees">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-file-invoice text-primary mr-3"></i>
+                                            <span class="font-medium text-gray-900">Fee Details</span>
+                                        </div>
+                                        <i class="fas fa-arrow-right text-gray-400"></i>
+                                    </button>
+                                    
+                                    <button class="w-full flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors tap-target" data-event="click:downloadReceipts">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-download text-primary mr-3"></i>
+                                            <span class="font-medium text-gray-900">Download Receipts</span>
+                                        </div>
+                                        <i class="fas fa-arrow-right text-gray-400"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Attendance Calendar -->
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4">March 2024 Attendance</h3>
+                            <div class="grid grid-cols-7 gap-2 text-center">
+                                <!-- Calendar Headers -->
+                                <div class="p-2 text-xs font-medium text-gray-600">Sun</div>
+                                <div class="p-2 text-xs font-medium text-gray-600">Mon</div>
+                                <div class="p-2 text-xs font-medium text-gray-600">Tue</div>
+                                <div class="p-2 text-xs font-medium text-gray-600">Wed</div>
+                                <div class="p-2 text-xs font-medium text-gray-600">Thu</div>
+                                <div class="p-2 text-xs font-medium text-gray-600">Fri</div>
+                                <div class="p-2 text-xs font-medium text-gray-600">Sat</div>
+                                
+                                <!-- Calendar Days -->
+                                <!-- @MAP: calendarDays.map(day => ( -->
+                                <!-- Empty cells for previous month -->
+                                <div class="p-2"></div>
+                                <div class="p-2"></div>
+                                <div class="p-2"></div>
+                                
+                                <!-- Present Days -->
+                                <div class="p-2 text-sm bg-success text-white rounded-full w-8 h-8 flex items-center justify-center mx-auto" data-mock="true">1</div>
+                                <div class="p-2 text-sm bg-success text-white rounded-full w-8 h-8 flex items-center justify-center mx-auto" data-mock="true">2</div>
+                                <div class="p-2 text-sm bg-success text-white rounded-full w-8 h-8 flex items-center justify-center mx-auto" data-mock="true">3</div>
+                                <div class="p-2 text-sm bg-gray-200 text-gray-600 rounded-full w-8 h-8 flex items-center justify-center mx-auto" data-mock="true">4</div>
+                                
+                                <!-- Week 2 -->
+                                <div class="p-2 text-sm bg-gray-200 text-gray-600 rounded-full w-8 h-8 flex items-center justify-center mx-auto" data-mock="true">5</div>
+                                <div class="p-2 text-sm bg-success text-white rounded-full w-8 h-8 flex items-center justify-center mx-auto" data-mock="true">6</div>
+                                <div class="p-2 text-sm bg-success text-white rounded-full w-8 h-8 flex items-center justify-center mx-auto" data-mock="true">7</div>
+                                <div class="p-2 text-sm bg-warning text-white rounded-full w-8 h-8 flex items-center justify-center mx-auto" data-mock="true">8</div>
+                                <div class="p-2 text-sm bg-success text-white rounded-full w-8 h-8 flex items-center justify-center mx-auto" data-mock="true">9</div>
+                                <div class="p-2 text-sm bg-success text-white rounded-full w-8 h-8 flex items-center justify-center mx-auto" data-mock="true">10</div>
+                                <div class="p-2 text-sm bg-gray-200 text-gray-600 rounded-full w-8 h-8 flex items-center justify-center mx-auto" data-mock="true">11</div>
+                                
+                                <!-- Continue pattern with mixed attendance -->
+                                <div class="p-2 text-sm bg-gray-200 text-gray-600 rounded-full w-8 h-8 flex items-center justify-center mx-auto" data-mock="true">12</div>
+                                <div class="p-2 text-sm bg-success text-white rounded-full w-8 h-8 flex items-center justify-center mx-auto" data-mock="true">13</div>
+                                <div class="p-2 text-sm bg-success text-white rounded-full w-8 h-8 flex items-center justify-center mx-auto" data-mock="true">14</div>
+                                <div class="p-2 text-sm bg-success text-white rounded-full w-8 h-8 flex items-center justify-center mx-auto" data-mock="true">15</div>
+                                <div class="p-2 text-sm bg-success text-white rounded-full w-8 h-8 flex items-center justify-center mx-auto" data-mock="true">16</div>
+                                <div class="p-2 text-sm bg-success text-white rounded-full w-8 h-8 flex items-center justify-center mx-auto" data-mock="true">17</div>
+                                <div class="p-2 text-sm bg-primary text-white rounded-full w-8 h-8 flex items-center justify-center mx-auto" data-mock="true">18</div>
+                                <!-- @END_MAP )) -->
+                                
+                                <!-- Remaining days -->
+                                <div class="p-2 text-sm text-gray-400">19</div>
+                                <div class="p-2 text-sm text-gray-400">20</div>
+                                <div class="p-2 text-sm text-gray-400">21</div>
+                                <div class="p-2 text-sm text-gray-400">22</div>
+                                <div class="p-2 text-sm text-gray-400">23</div>
+                                <div class="p-2 text-sm text-gray-400">24</div>
+                                <div class="p-2 text-sm text-gray-400">25</div>
+                            </div>
+                            
+                            <!-- Legend -->
+                            <div class="flex items-center justify-center space-x-6 mt-4 text-xs">
+                                <div class="flex items-center">
+                                    <div class="w-3 h-3 bg-success rounded-full mr-2"></div>
+                                    <span class="text-gray-600">Present</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <div class="w-3 h-3 bg-error rounded-full mr-2"></div>
+                                    <span class="text-gray-600">Absent</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <div class="w-3 h-3 bg-warning rounded-full mr-2"></div>
+                                    <span class="text-gray-600">Late</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <div class="w-3 h-3 bg-primary rounded-full mr-2"></div>
+                                    <span class="text-gray-600">Today</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <div class="w-3 h-3 bg-gray-200 rounded-full mr-2"></div>
+                                    <span class="text-gray-600">Holiday</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- @END_COMPONENT: ParentPortal -->
+
+                    <!-- Receipt Preview -->
+                    <!-- @COMPONENT: ReceiptPreview [thermal and A4 receipt formats] -->
+                    <div id="receipt-preview" class="hidden space-y-6">
+                        <div class="flex items-center justify-between">
+                            <h2 class="text-2xl font-semibold text-gray-800">Receipt Preview</h2>
+                            <div class="flex space-x-3">
+                                <button class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors tap-target no-print" data-event="click:switchFormat">
+                                    <i class="fas fa-exchange-alt mr-2"></i>
+                                    Switch Format
+                                </button>
+                                <button class="px-4 py-2 bg-primary text-white rounded-md hover:bg-blue-700 transition-colors tap-target no-print" data-event="click:printReceipt">
+                                    <i class="fas fa-print mr-2"></i>
+                                    Print
+                                </button>
+                                <button class="px-4 py-2 bg-secondary text-white rounded-md hover:bg-green-600 transition-colors tap-target no-print" data-event="click:downloadPDF">
+                                    <i class="fas fa-download mr-2"></i>
+                                    Download PDF
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Thermal Receipt (80mm) -->
+                        <div id="thermal-receipt" class="print-receipt mx-auto bg-white border border-gray-300 p-4 font-mono text-sm">
+                            <div class="text-center border-b border-gray-300 pb-2 mb-2">
+                                <h3 class="font-bold text-lg">PRIMAX</h3>
+                                <p class="text-xs">School Management System</p>
+                                <p class="text-xs">123 Education Street, Karachi</p>
+                                <p class="text-xs">Tel: +92 21 1234567</p>
+                            </div>
+                            
+                            <div class="space-y-1 border-b border-gray-300 pb-2 mb-2">
+                                <div class="flex justify-between">
+                                    <span>Receipt #:</span>
+                                    <span data-bind="receipt.number" data-mock="true">RCP-2024-0321</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Date:</span>
+                                    <span data-bind="receipt.date" data-mock="true">18/03/2024</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Time:</span>
+                                    <span data-bind="receipt.time" data-mock="true">2:30 PM</span>
+                                </div>
+                            </div>
+                            
+                            <div class="space-y-1 border-b border-gray-300 pb-2 mb-2">
+                                <div class="flex justify-between">
+                                    <span>Student:</span>
+                                    <span data-bind="student.name" data-mock="true">Ahmad Hassan</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Roll #:</span>
+                                    <span data-bind="student.rollNumber" data-mock="true">AH001</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Class:</span>
+                                    <span data-bind="student.class" data-mock="true">A-Level</span>
+                                </div>
+                            </div>
+                            
+                            <div class="space-y-1 border-b border-gray-300 pb-2 mb-2">
+                                <div class="font-bold text-center">PAYMENT DETAILS</div>
+                                <div class="flex justify-between">
+                                    <span>Monthly Fee:</span>
+                                    <span data-bind="fee.monthly" data-mock="true">₹9,000</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Late Fee:</span>
+                                    <span data-bind="fee.late" data-mock="true">₹0</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Discount:</span>
+                                    <span data-bind="fee.discount" data-mock="true">₹0</span>
+                                </div>
+                                <div class="flex justify-between font-bold border-t pt-1">
+                                    <span>TOTAL PAID:</span>
+                                    <span data-bind="payment.total" data-mock="true">₹9,000</span>
+                                </div>
+                            </div>
+                            
+                            <div class="space-y-1 border-b border-gray-300 pb-2 mb-2">
+                                <div class="flex justify-between">
+                                    <span>Payment Mode:</span>
+                                    <span data-bind="payment.method" data-mock="true">Cash</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Received By:</span>
+                                    <span data-bind="payment.receivedBy" data-mock="true">Sarah Ahmed</span>
+                                </div>
+                            </div>
+                            
+                            <div class="text-center text-xs space-y-1">
+                                <p>Thank you for your payment!</p>
+                                <p>Keep this receipt for your records</p>
+                                <p>Visit: www.primax.edu.pk</p>
+                            </div>
+                        </div>
+                        
+                        <!-- A4 Statement (hidden by default) -->
+                        <div id="a4-statement" class="hidden mx-auto bg-white border border-gray-300 p-8 max-w-2xl">
+                            <div class="flex items-center justify-between border-b border-gray-300 pb-4 mb-6">
+                                <div>
+                                    <h2 class="text-2xl font-bold text-gray-800">PRIMAX</h2>
+                                    <p class="text-sm text-gray-600">School Management System</p>
+                                </div>
+                                <div class="text-right text-sm text-gray-600">
+                                    <p>123 Education Street, Karachi</p>
+                                    <p>Tel: +92 21 1234567</p>
+                                    <p>Email: info@primax.edu.pk</p>
+                                </div>
+                            </div>
+                            
+                            <div class="text-center mb-6">
+                                <h3 class="text-xl font-semibold text-gray-800">PAYMENT RECEIPT</h3>
+                                <p class="text-sm text-gray-600">Receipt #: <span data-bind="receipt.number" data-mock="true">RCP-2024-0321</span></p>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-6 mb-6">
+                                <div>
+                                    <h4 class="font-semibold text-gray-800 mb-2">Student Information</h4>
+                                    <div class="space-y-1 text-sm">
+                                        <p><span class="font-medium">Name:</span> <span data-bind="student.name" data-mock="true">Ahmad Hassan</span></p>
+                                        <p><span class="font-medium">Roll Number:</span> <span data-bind="student.rollNumber" data-mock="true">AH001</span></p>
+                                        <p><span class="font-medium">Class:</span> <span data-bind="student.class" data-mock="true">A-Level</span></p>
+                                        <p><span class="font-medium">Father's Name:</span> <span data-bind="parent.name" data-mock="true">Hassan Ali</span></p>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold text-gray-800 mb-2">Payment Information</h4>
+                                    <div class="space-y-1 text-sm">
+                                        <p><span class="font-medium">Date:</span> <span data-bind="receipt.date" data-mock="true">18th March, 2024</span></p>
+                                        <p><span class="font-medium">Time:</span> <span data-bind="receipt.time" data-mock="true">2:30 PM</span></p>
+                                        <p><span class="font-medium">Method:</span> <span data-bind="payment.method" data-mock="true">Cash</span></p>
+                                        <p><span class="font-medium">Received By:</span> <span data-bind="payment.receivedBy" data-mock="true">Sarah Ahmed</span></p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Payment Details Table -->
+                            <table class="w-full border border-gray-300 mb-6">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="border border-gray-300 px-4 py-2 text-left">Description</th>
+                                        <th class="border border-gray-300 px-4 py-2 text-right">Amount (₹)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="border border-gray-300 px-4 py-2">Monthly Fee - March 2024</td>
+                                        <td class="border border-gray-300 px-4 py-2 text-right" data-bind="fee.monthly" data-mock="true">9,000</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="border border-gray-300 px-4 py-2">Late Fee</td>
+                                        <td class="border border-gray-300 px-4 py-2 text-right" data-bind="fee.late" data-mock="true">0</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="border border-gray-300 px-4 py-2">Sibling Discount</td>
+                                        <td class="border border-gray-300 px-4 py-2 text-right" data-bind="fee.discount" data-mock="true">0</td>
+                                    </tr>
+                                    <tr class="bg-gray-50 font-semibold">
+                                        <td class="border border-gray-300 px-4 py-2">Total Amount Paid</td>
+                                        <td class="border border-gray-300 px-4 py-2 text-right" data-bind="payment.total" data-mock="true">9,000</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            
+                            <div class="text-center text-sm text-gray-600">
+                                <p class="mb-2">Thank you for your payment. This is a computer-generated receipt.</p>
+                                <p>For any queries, please contact the finance office.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- @END_COMPONENT: ReceiptPreview -->
+
+                </main>
+            </div>
+            <!-- @END_COMPONENT: ContentArea -->
+        </div>
+        <!-- @END_COMPONENT: MainLayout -->
+    </div>
+    <!-- @END_COMPONENT: App -->
+
+    <script>
+    // TODO: Implement business logic, API calls, and state management
+    (function() {
+        'use strict';
+        
+        // @STATE: currentUser:object = null
+        // @STATE: currentRoute:string = 'login'
+        // @STATE: isOffline:boolean = false
+        
+        // Simple router for demo purposes
+        const router = {
+            currentRoute: 'login',
+            
+            navigateTo(route) {
+                this.currentRoute = route;
+                this.render();
+            },
+            
+            render() {
+                // Hide all screens
+                document.querySelectorAll('#app > div').forEach(el => el.classList.add('hidden'));
+                
+                // Show current screen
+                if (this.currentRoute === 'login') {
+                    document.getElementById('login-screen').classList.remove('hidden');
+                } else {
+                    document.getElementById('main-app').classList.remove('hidden');
+                    this.renderMainContent();
+                }
+            },
+            
+            renderMainContent() {
+                // Hide all main content
+                document.querySelectorAll('main > div').forEach(el => el.classList.add('hidden'));
+                
+                // Show current page
+                const pageMap = {
+                    'dashboard': 'finance-dashboard',
+                    'enrollment': 'enrollment-wizard',
+                    'teacher-dashboard': 'teacher-dashboard',
+                    'attendance': 'attendance-capture',
+                    'students': 'student-ledger',
+                    'parent-portal': 'parent-portal',
+                    'receipts': 'receipt-preview'
+                };
+                
+                const pageElement = document.getElementById(pageMap[this.currentRoute] || 'finance-dashboard');
+                if (pageElement) {
+                    pageElement.classList.remove('hidden');
+                }
+            }
+        };
+        
+        // Event handlers
+        const handleLogin = () => {
+            router.navigateTo('dashboard');
+        };
+        
+        const handleLogout = () => {
+            router.navigateTo('login');
+        };
+        
+        const handleNavigation = (route) => {
+            router.navigateTo(route);
+        };
+        
+        const handleOfflineStatus = () => {
+            const isOffline = !navigator.onLine;
+            const banner = document.getElementById('offline-banner');
+            if (isOffline) {
+                banner.classList.remove('hidden');
+            } else {
+                banner.classList.add('hidden');
+            }
+        };
+        
+        // Attach event listeners
+        document.addEventListener('click', (e) => {
+            if (e.target.matches('[data-event*="handleLogin"]')) {
+                e.preventDefault();
+                handleLogin();
+            } else if (e.target.matches('[data-event*="handleLogout"]')) {
+                e.preventDefault();
+                handleLogout();
+            } else if (e.target.matches('[data-route]')) {
+                e.preventDefault();
+                const route = e.target.getAttribute('data-route');
+                handleNavigation(route);
+            }
+        });
+        
+        // Network status monitoring
+        window.addEventListener('online', handleOfflineStatus);
+        window.addEventListener('offline', handleOfflineStatus);
+        
+        // Initialize
+        router.render();
+        handleOfflineStatus();
+        
+    })();
+    </script>
+</body>
+</html>

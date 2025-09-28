@@ -67,9 +67,10 @@ export function setupTraditionalAuth(app: Express) {
         return res.status(401).json({ message: "Invalid email or password" });
       }
 
-      // Store user in session (exclude password)
+      // Store user in session (exclude password) - include tenantId for multi-tenant isolation
       const userSession = {
         id: user.id,
+        tenantId: user.tenantId, // Critical for multi-tenant data isolation
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,

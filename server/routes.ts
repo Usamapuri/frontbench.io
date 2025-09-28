@@ -4,6 +4,14 @@ import { storage } from "./storage";
 import { billingService } from "./billing";
 import { requireAuth } from "./auth-traditional";
 import { 
+  tenantContextMiddleware, 
+  requireTenantContextMiddleware,
+  getCurrentTenantId,
+  logTenantContext 
+} from "./tenantContext";
+import { scopedDb } from "./scopedDb";
+import { setupTenantOnboardingRoutes } from "./tenantOnboarding";
+import { 
   insertStudentSchema, 
   insertInvoiceSchema, 
   insertPaymentSchema,
@@ -40,6 +48,13 @@ import { and, desc, eq, gte, lte, sql } from 'drizzle-orm';
 import { ObjectStorageService } from "./objectStorage";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Setup tenant onboarding routes (must be before tenant context middleware)
+  setupTenantOnboardingRoutes(app);
+  
+  // Apply tenant context middleware to all routes
+  // This must be applied AFTER session middleware but BEFORE route handlers
+  app.use(tenantContextMiddleware);
+
   // Enhanced demo authentication with role-based access control
   app.use((req: any, res, next) => {
     // Parse role from URL query parameter for demo purposes
@@ -148,10 +163,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Students routes
-  app.get("/api/students", async (req, res) => {
+  // Students routes - now with tenant isolation
+  app.get("/api/students", requireTenantContextMiddleware, async (req, res) => {
     try {
-      const students = await storage.getStudents();
+      logTenantContext('GET /api/students');
+      const students = await scopedDb.students.findMany();
       res.json(students);
     } catch (error) {
       console.error("Error fetching students:", error);
@@ -159,8 +175,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Toggle student active status
-  app.patch("/api/students/:id/toggle-active", async (req, res) => {
+  // Toggle student active status - tenant scoped
+  app.patch("/api/students/:id/toggle-active", requireTenantContextMiddleware, async (req, res) => {
     try {
       const { id } = req.params;
       const { isActive } = req.body;
@@ -169,7 +185,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "isActive must be a boolean" });
       }
       
-      const updatedStudent = await storage.toggleStudentActiveStatus(id, isActive);
+      logTenantContext('PATCH /api/students/:id/toggle-active');
+      const [updatedStudent] = await scopedDb.students.update(id, { isActive });
+      
+      if (!updatedStudent) {
+        return res.status(404).json({ message: "Student not found or access denied" });
+      }
+      
       res.json(updatedStudent);
     } catch (error) {
       console.error("Error toggling student active status:", error);
@@ -629,14 +651,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Subjects routes
-  app.get("/api/subjects", async (req, res) => {
+  // Subjects routes - tenant scoped
+  app.get("/api/subjects", requireTenantContextMiddleware, async (req, res) => {
     try {
+      logTenantContext('GET /api/subjects');
       const classLevel = req.query.classLevel as string;
-      const subjects = classLevel 
-        ? await storage.getSubjectsByClassLevel(classLevel)
-        : await storage.getSubjects();
-      res.json(subjects);
+      
+      let conditions;
+      if (classLevel) {
+        // Add class level filter to tenant-scoped query
+        conditions = sql`${classLevel} = ANY(${subjects.classLevels})`;
+      }
+      
+      const subjectsData = await scopedDb.subjects.findMany(conditions);
+      res.json(subjectsData);
     } catch (error) {
       console.error("Error fetching subjects:", error);
       res.status(500).json({ message: "Failed to fetch subjects" });

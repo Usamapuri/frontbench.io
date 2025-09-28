@@ -26,13 +26,35 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
+// Tenants table - Multi-tenant architecture
+export const tenants = pgTable("tenants", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(),
+  slug: varchar("slug").notNull().unique(), // URL-friendly identifier
+  domain: varchar("domain").unique(), // Custom domain (optional)
+  primaryColor: varchar("primary_color").default('#3B82F6'), // Brand primary color
+  secondaryColor: varchar("secondary_color").default('#1E40AF'), // Brand secondary color
+  logoUrl: varchar("logo_url"), // Logo image URL
+  faviconUrl: varchar("favicon_url"), // Favicon URL
+  timezone: varchar("timezone").default('Asia/Karachi'), // School timezone
+  currency: varchar("currency").default('PKR'), // Currency code
+  address: text("address"), // School address
+  phone: varchar("phone"), // Contact phone
+  email: varchar("email"), // Contact email
+  website: varchar("website"), // School website
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Enhanced role system enums
 export const userRoleEnum = pgEnum('user_role', ['teacher', 'finance', 'parent', 'management']);
 
 // User storage table - mandatory for Replit Auth
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  email: varchar("email").unique(),
+  tenantId: varchar("tenant_id").references(() => tenants.id).notNull(), // Multi-tenant isolation
+  email: varchar("email"), // Remove unique constraint - will be unique per tenant
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   phone: varchar("phone"), // Phone number for staff/teachers
@@ -51,7 +73,10 @@ export const users = pgTable("users", {
   position: varchar("position"), // Job title/position for non-teaching staff
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => [
+  // Unique constraint per tenant
+  unique("users_email_tenant_unique").on(table.email, table.tenantId),
+]);
 
 // Enums
 export const classLevelEnum = pgEnum('class_level', ['o-level', 'igcse', 'as-level', 'a2-level']);
@@ -72,7 +97,8 @@ export const notificationStatusEnum = pgEnum('notification_status', ['pending', 
 // Students table
 export const students = pgTable("students", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  rollNumber: varchar("roll_number").notNull().unique(),
+  tenantId: varchar("tenant_id").references(() => tenants.id).notNull(), // Multi-tenant isolation
+  rollNumber: varchar("roll_number").notNull(), // Remove unique constraint - will be unique per tenant
   firstName: varchar("first_name").notNull(),
   lastName: varchar("last_name").notNull(),
   dateOfBirth: date("date_of_birth").notNull(),
@@ -96,23 +122,31 @@ export const students = pgTable("students", {
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => [
+  // Unique constraint per tenant
+  unique("students_roll_number_tenant_unique").on(table.rollNumber, table.tenantId),
+]);
 
 // Subjects table
 export const subjects = pgTable("subjects", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").references(() => tenants.id).notNull(), // Multi-tenant isolation
   name: varchar("name").notNull(),
-  code: varchar("code").notNull().unique(),
+  code: varchar("code").notNull(), // Remove unique constraint - will be unique per tenant
   classLevels: text("class_levels").array().notNull(),
   baseFee: decimal("base_fee", { precision: 10, scale: 2 }).notNull(),
   description: text("description"),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  // Unique constraint per tenant
+  unique("subjects_code_tenant_unique").on(table.code, table.tenantId),
+]);
 
 // Subject combinations/combos
 export const subjectCombos = pgTable("subject_combos", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").references(() => tenants.id).notNull(), // Multi-tenant isolation
   name: varchar("name").notNull(),
   classLevels: text("class_levels").array().notNull(),
   discountedFee: decimal("discounted_fee", { precision: 10, scale: 2 }).notNull(),
@@ -124,6 +158,7 @@ export const subjectCombos = pgTable("subject_combos", {
 // Junction table for combo subjects
 export const comboSubjects = pgTable("combo_subjects", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").references(() => tenants.id).notNull(), // Multi-tenant isolation
   comboId: varchar("combo_id").references(() => subjectCombos.id).notNull(),
   subjectId: varchar("subject_id").references(() => subjects.id).notNull(),
 });
@@ -131,6 +166,7 @@ export const comboSubjects = pgTable("combo_subjects", {
 // Student enrollments with subject-specific discount tracking
 export const enrollments = pgTable("enrollments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").references(() => tenants.id).notNull(), // Multi-tenant isolation
   studentId: varchar("student_id").references(() => students.id).notNull(),
   subjectId: varchar("subject_id").references(() => subjects.id),
   comboId: varchar("combo_id").references(() => subjectCombos.id),
@@ -146,7 +182,8 @@ export const enrollments = pgTable("enrollments", {
 // Invoices
 export const invoices = pgTable("invoices", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  invoiceNumber: varchar("invoice_number").notNull().unique(),
+  tenantId: varchar("tenant_id").references(() => tenants.id).notNull(), // Multi-tenant isolation
+  invoiceNumber: varchar("invoice_number").notNull(), // Remove unique constraint - will be unique per tenant
   studentId: varchar("student_id").references(() => students.id).notNull(),
   type: invoiceTypeEnum("type").default('monthly'),
   billingPeriodStart: date("billing_period_start").notNull(),
@@ -167,11 +204,15 @@ export const invoices = pgTable("invoices", {
   createdBy: varchar("created_by").references(() => users.id).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => [
+  // Unique constraint per tenant
+  unique("invoices_invoice_number_tenant_unique").on(table.invoiceNumber, table.tenantId),
+]);
 
 // Add-ons/Services table
 export const addOns = pgTable("add_ons", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").references(() => tenants.id).notNull(), // Multi-tenant isolation
   name: varchar("name").notNull(),
   description: text("description"),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
@@ -183,6 +224,7 @@ export const addOns = pgTable("add_ons", {
 // Enhanced invoice line items with subject-specific discounts
 export const invoiceItems = pgTable("invoice_items", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").references(() => tenants.id).notNull(), // Multi-tenant isolation
   invoiceId: varchar("invoice_id").references(() => invoices.id).notNull(),
   subjectId: varchar("subject_id").references(() => subjects.id),
   addOnId: varchar("add_on_id").references(() => addOns.id),
@@ -200,7 +242,8 @@ export const invoiceItems = pgTable("invoice_items", {
 // Payments
 export const payments = pgTable("payments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  receiptNumber: varchar("receipt_number").notNull().unique(),
+  tenantId: varchar("tenant_id").references(() => tenants.id).notNull(), // Multi-tenant isolation
+  receiptNumber: varchar("receipt_number").notNull(), // Remove unique constraint - will be unique per tenant
   studentId: varchar("student_id").references(() => students.id).notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   paymentMethod: paymentMethodEnum("payment_method").notNull(),
@@ -213,11 +256,15 @@ export const payments = pgTable("payments", {
   refundedAt: timestamp("refunded_at"),
   refundedBy: varchar("refunded_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  // Unique constraint per tenant
+  unique("payments_receipt_number_tenant_unique").on(table.receiptNumber, table.tenantId),
+]);
 
 // Payment allocations - many-to-many between payments and invoices
 export const paymentAllocations = pgTable("payment_allocations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").references(() => tenants.id).notNull(), // Multi-tenant isolation
   paymentId: varchar("payment_id").references(() => payments.id).notNull(),
   invoiceId: varchar("invoice_id").references(() => invoices.id).notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
@@ -227,6 +274,7 @@ export const paymentAllocations = pgTable("payment_allocations", {
 // Invoice adjustments for audit trail
 export const invoiceAdjustments = pgTable("invoice_adjustments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").references(() => tenants.id).notNull(), // Multi-tenant isolation
   invoiceId: varchar("invoice_id").references(() => invoices.id).notNull(),
   type: adjustmentTypeEnum("type").notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
@@ -239,6 +287,7 @@ export const invoiceAdjustments = pgTable("invoice_adjustments", {
 // Billing schedules for recurring invoices
 export const billingSchedules = pgTable("billing_schedules", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").references(() => tenants.id).notNull(), // Multi-tenant isolation
   studentId: varchar("student_id").references(() => students.id).notNull(),
   enrollmentId: varchar("enrollment_id").references(() => enrollments.id).notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
@@ -256,6 +305,7 @@ export const billingSchedules = pgTable("billing_schedules", {
 // Classes/Periods
 export const classes = pgTable("classes", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").references(() => tenants.id).notNull(), // Multi-tenant isolation
   name: varchar("name").notNull(),
   subjectId: varchar("subject_id").references(() => subjects.id).notNull(),
   teacherId: varchar("teacher_id").references(() => users.id).notNull(),
@@ -269,6 +319,7 @@ export const classes = pgTable("classes", {
 // Attendance records
 export const attendance = pgTable("attendance", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").references(() => tenants.id).notNull(), // Multi-tenant isolation
   classId: varchar("class_id").references(() => classes.id).notNull(),
   studentId: varchar("student_id").references(() => students.id).notNull(),
   attendanceDate: date("attendance_date").notNull(),
@@ -281,6 +332,7 @@ export const attendance = pgTable("attendance", {
 // Grades/Assessments
 export const assessments = pgTable("assessments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").references(() => tenants.id).notNull(), // Multi-tenant isolation
   name: varchar("name").notNull(),
   subjectId: varchar("subject_id").references(() => subjects.id).notNull(),
   teacherId: varchar("teacher_id").references(() => users.id).notNull(),
@@ -292,6 +344,7 @@ export const assessments = pgTable("assessments", {
 
 export const grades = pgTable("grades", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").references(() => tenants.id).notNull(), // Multi-tenant isolation
   assessmentId: varchar("assessment_id").references(() => assessments.id).notNull(),
   studentId: varchar("student_id").references(() => students.id).notNull(),
   marksObtained: integer("marks_obtained").notNull(),
@@ -304,6 +357,7 @@ export const grades = pgTable("grades", {
 // Teacher payout rules
 export const payoutRules = pgTable("payout_rules", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").references(() => tenants.id).notNull(), // Multi-tenant isolation
   teacherId: varchar("teacher_id").references(() => users.id).notNull(),
   isFixed: boolean("is_fixed").default(false),
   fixedPercentage: decimal("fixed_percentage", { precision: 5, scale: 2 }),
@@ -318,6 +372,7 @@ export const payoutRules = pgTable("payout_rules", {
 // Cash draw requests
 export const cashDrawRequests = pgTable("cash_draw_requests", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").references(() => tenants.id).notNull(), // Multi-tenant isolation
   teacherId: varchar("teacher_id").references(() => users.id).notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   reason: text("reason").notNull(),
@@ -331,7 +386,8 @@ export const cashDrawRequests = pgTable("cash_draw_requests", {
 // Daily close records
 export const dailyClose = pgTable("daily_close", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  closeDate: date("close_date").notNull().unique(),
+  tenantId: varchar("tenant_id").references(() => tenants.id).notNull(), // Multi-tenant isolation
+  closeDate: date("close_date").notNull(), // Remove unique constraint - will be unique per tenant
   totalCash: decimal("total_cash", { precision: 10, scale: 2 }).notNull(),
   totalBank: decimal("total_bank", { precision: 10, scale: 2 }).notNull(),
   expectedCash: decimal("expected_cash", { precision: 10, scale: 2 }).notNull(),
@@ -344,11 +400,15 @@ export const dailyClose = pgTable("daily_close", {
   closedBy: varchar("closed_by").references(() => users.id).notNull(),
   closedAt: timestamp("closed_at").defaultNow(),
   notes: text("notes"),
-});
+}, (table) => [
+  // Unique constraint per tenant
+  unique("daily_close_close_date_tenant_unique").on(table.closeDate, table.tenantId),
+]);
 
 // Expenses
 export const expenses = pgTable("expenses", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").references(() => tenants.id).notNull(), // Multi-tenant isolation
   category: varchar("category").notNull(),
   description: text("description").notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
@@ -363,6 +423,7 @@ export const expenses = pgTable("expenses", {
 // Digital Diary - Announcements
 export const announcements = pgTable("announcements", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").references(() => tenants.id).notNull(), // Multi-tenant isolation
   title: varchar("title").notNull(),
   content: text("content").notNull(),
   type: announcementTypeEnum("type").notNull(),
@@ -379,6 +440,7 @@ export const announcements = pgTable("announcements", {
 // Announcement Recipients - Many-to-many relationship
 export const announcementRecipients = pgTable("announcement_recipients", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").references(() => tenants.id).notNull(), // Multi-tenant isolation
   announcementId: varchar("announcement_id").references(() => announcements.id).notNull(),
   studentId: varchar("student_id").references(() => students.id).notNull(),
   isRead: boolean("is_read").default(false),
@@ -389,6 +451,7 @@ export const announcementRecipients = pgTable("announcement_recipients", {
 // Class Schedules - Regular recurring schedules
 export const classSchedules = pgTable("class_schedules", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").references(() => tenants.id).notNull(), // Multi-tenant isolation
   teacherId: varchar("teacher_id").references(() => users.id).notNull(),
   subjectId: varchar("subject_id").references(() => subjects.id).notNull(),
   dayOfWeek: dayOfWeekEnum("day_of_week").notNull(),
@@ -403,6 +466,7 @@ export const classSchedules = pgTable("class_schedules", {
 // Schedule Changes - One-time modifications to regular schedules
 export const scheduleChanges = pgTable("schedule_changes", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").references(() => tenants.id).notNull(), // Multi-tenant isolation
   scheduleId: varchar("schedule_id").references(() => classSchedules.id),
   teacherId: varchar("teacher_id").references(() => users.id).notNull(),
   subjectId: varchar("subject_id").references(() => subjects.id).notNull(),
@@ -422,6 +486,7 @@ export const scheduleChanges = pgTable("schedule_changes", {
 // Student Notifications - Track alerts for schedule changes
 export const studentNotifications = pgTable("student_notifications", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").references(() => tenants.id).notNull(), // Multi-tenant isolation
   studentId: varchar("student_id").references(() => students.id).notNull(),
   scheduleChangeId: varchar("schedule_change_id").references(() => scheduleChanges.id).notNull(),
   message: text("message").notNull(), // Generated notification message
@@ -432,7 +497,26 @@ export const studentNotifications = pgTable("student_notifications", {
 });
 
 // Relations
-export const usersRelations = relations(users, ({ many }) => ({
+export const tenantsRelations = relations(tenants, ({ many }) => ({
+  users: many(users),
+  students: many(students),
+  subjects: many(subjects),
+  subjectCombos: many(subjectCombos),
+  enrollments: many(enrollments),
+  invoices: many(invoices),
+  payments: many(payments),
+  classes: many(classes),
+  attendance: many(attendance),
+  assessments: many(assessments),
+  grades: many(grades),
+  announcements: many(announcements),
+}));
+
+export const usersRelations = relations(users, ({ one, many }) => ({
+  tenant: one(tenants, {
+    fields: [users.tenantId],
+    references: [tenants.id],
+  }),
   studentsAsParent: many(students),
   enrollmentsAsTeacher: many(enrollments),
   classesAsTeacher: many(classes),
@@ -448,6 +532,10 @@ export const usersRelations = relations(users, ({ many }) => ({
 }));
 
 export const studentsRelations = relations(students, ({ one, many }) => ({
+  tenant: one(tenants, {
+    fields: [students.tenantId],
+    references: [tenants.id],
+  }),
   parent: one(users, {
     fields: [students.parentId],
     references: [users.id],
@@ -738,6 +826,12 @@ export const studentNotificationsRelations = relations(studentNotifications, ({ 
 }));
 
 // Insert schemas
+export const insertTenantSchema = createInsertSchema(tenants).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
@@ -836,6 +930,8 @@ export const insertStaffSchema = createInsertSchema(users).omit({
 });
 
 // Types
+export type Tenant = typeof tenants.$inferSelect;
+export type InsertTenant = typeof tenants.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type UpsertUser = typeof users.$inferInsert;
 export type Student = typeof students.$inferSelect;
