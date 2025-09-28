@@ -11,6 +11,8 @@ import {
 } from "./tenantContext";
 import { scopedDb } from "./scopedDb";
 import { setupTenantOnboardingRoutes } from "./tenantOnboarding";
+import { subdomainMiddleware, requireTenantMiddleware } from "./subdomainMiddleware";
+import { tenantRegistrationRouter } from "./tenantRegistration";
 import { 
   insertStudentSchema, 
   insertInvoiceSchema, 
@@ -48,8 +50,85 @@ import { and, desc, eq, gte, lte, sql } from 'drizzle-orm';
 import { ObjectStorageService } from "./objectStorage";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Apply subdomain middleware first (before any other middleware)
+  app.use(subdomainMiddleware);
+  
   // Setup tenant onboarding routes (must be before tenant context middleware)
   setupTenantOnboardingRoutes(app);
+  
+  // Setup tenant registration routes (for main domain)
+  app.use('/api/tenants', tenantRegistrationRouter);
+  
+  // Serve landing page for main domain (frontbench.io or app.frontbench.io)
+  app.get('/', (req: any, res) => {
+    if (!req.tenant) {
+      // Main domain or app subdomain - serve landing page
+      return res.send(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Frontbench.io - Complete School Management Platform</title>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+              .container { max-width: 800px; text-align: center; }
+              h1 { font-size: 3rem; margin-bottom: 1rem; }
+              p { font-size: 1.2rem; margin-bottom: 2rem; opacity: 0.9; }
+              .cta { display: inline-block; background: white; color: #667eea; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 10px; }
+              .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 3rem; }
+              .feature { background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h1>🏫 Frontbench.io</h1>
+              <p>The Complete School Management Platform</p>
+              <p>Everything your school needs in one place. Student management, billing, attendance, grades, and more.</p>
+              
+              <a href="#register" class="cta">Start Free Trial</a>
+              <a href="#demo" class="cta">View Demo</a>
+              
+              <div class="features">
+                <div class="feature">
+                  <h3>🎯 Student Management</h3>
+                  <p>Complete student profiles and enrollment tracking</p>
+                </div>
+                <div class="feature">
+                  <h3>💰 Financial Management</h3>
+                  <p>Invoicing, payments, and financial reporting</p>
+                </div>
+                <div class="feature">
+                  <h3>📊 Academic Management</h3>
+                  <p>Subjects, classes, attendance, and grades</p>
+                </div>
+                <div class="feature">
+                  <h3>🔒 Secure & Private</h3>
+                  <p>Complete data isolation between schools</p>
+                </div>
+                <div class="feature">
+                  <h3>🎨 Custom Branding</h3>
+                  <p>Your own subdomain with custom colors and logos</p>
+                </div>
+                <div class="feature">
+                  <h3>⚡ Easy Setup</h3>
+                  <p>Get started in minutes with our intuitive setup</p>
+                </div>
+              </div>
+              
+              <p style="margin-top: 3rem; opacity: 0.7;">
+                Ready to transform your school management? 
+                <br>Access your school at <strong>your-school.frontbench.io</strong>
+              </p>
+            </div>
+          </body>
+        </html>
+      `);
+    } else {
+      // Tenant subdomain - redirect to dashboard
+      return res.redirect('/dashboard');
+    }
+  });
   
   // Apply tenant context middleware to all routes
   // This must be applied AFTER session middleware but BEFORE route handlers
@@ -164,7 +243,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Students routes - now with tenant isolation
-  app.get("/api/students", requireTenantContextMiddleware, async (req, res) => {
+  app.get("/api/students", requireTenantMiddleware, async (req, res) => {
     try {
       logTenantContext('GET /api/students');
       const students = await scopedDb.students.findMany();
@@ -176,7 +255,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Toggle student active status - tenant scoped
-  app.patch("/api/students/:id/toggle-active", requireTenantContextMiddleware, async (req, res) => {
+  app.patch("/api/students/:id/toggle-active", requireTenantMiddleware, async (req, res) => {
     try {
       const { id } = req.params;
       const { isActive } = req.body;
@@ -652,7 +731,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Subjects routes - tenant scoped
-  app.get("/api/subjects", requireTenantContextMiddleware, async (req, res) => {
+  app.get("/api/subjects", requireTenantMiddleware, async (req, res) => {
     try {
       logTenantContext('GET /api/subjects');
       const classLevel = req.query.classLevel as string;

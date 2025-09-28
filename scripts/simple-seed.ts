@@ -15,18 +15,18 @@ async function seedTenants() {
     
     // Get existing tenants
     const tenants = await sql`
-      SELECT id, name, slug FROM tenants 
-      WHERE slug IN ('default-tenant-primax', 'siddeeq-public-school')
-      ORDER BY slug
+      SELECT id, name, slug, subdomain FROM tenants 
+      WHERE subdomain IN ('primax', 'siddeeq')
+      ORDER BY subdomain
     `;
     
     let defaultTenantId, siddeeqTenantId;
     
     for (const tenant of tenants) {
-      if (tenant.slug === 'default-tenant-primax') {
+      if (tenant.subdomain === 'primax') {
         defaultTenantId = tenant.id;
         console.log(`✅ Found existing tenant: ${tenant.name}`);
-      } else if (tenant.slug === 'siddeeq-public-school') {
+      } else if (tenant.subdomain === 'siddeeq') {
         siddeeqTenantId = tenant.id;
         console.log(`✅ Found existing tenant: ${tenant.name}`);
       }
@@ -38,16 +38,18 @@ async function seedTenants() {
       defaultTenantId = randomUUID();
       await sql`
         INSERT INTO tenants (
-          id, name, slug, primary_color, secondary_color, 
-          timezone, currency, is_active, created_at, updated_at
+          id, name, slug, subdomain, primary_color, secondary_color, 
+          timezone, currency, is_active, is_verified, created_at, updated_at
         ) VALUES (
           ${defaultTenantId}, 
           'Primax Academy', 
-          'default-tenant-primax',
+          'primax-academy',
+          'primax',
           '#3B82F6',
           '#1E40AF',
           'Asia/Karachi',
           'PKR',
+          true,
           true,
           NOW(),
           NOW()
@@ -61,16 +63,18 @@ async function seedTenants() {
       siddeeqTenantId = randomUUID();
       await sql`
         INSERT INTO tenants (
-          id, name, slug, primary_color, secondary_color, 
-          timezone, currency, is_active, created_at, updated_at
+          id, name, slug, subdomain, primary_color, secondary_color, 
+          timezone, currency, is_active, is_verified, created_at, updated_at
         ) VALUES (
           ${siddeeqTenantId}, 
           'Siddeeq Public School', 
           'siddeeq-public-school',
+          'siddeeq',
           '#10B981',
           '#047857',
           'Asia/Karachi',
           'PKR',
+          true,
           true,
           NOW(),
           NOW()
@@ -191,6 +195,10 @@ async function seedTenants() {
     console.log(`   • Test tenant: Siddeeq Public School (${siddeeqTenantId})`);
     console.log('   • Admin users created with password: admin123');
     console.log('   • Default subjects created for both tenants');
+    console.log('');
+    console.log('🌐 Access URLs:');
+    console.log('   • Primax Academy: https://primax.frontbench.io');
+    console.log('   • Siddeeq Public School: https://siddeeq.frontbench.io');
     console.log('');
     console.log('🔐 Login credentials:');
     console.log('   • Primax Academy: admin@primax.edu.pk / admin123');

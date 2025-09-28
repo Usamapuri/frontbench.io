@@ -31,8 +31,9 @@ export const sessions = pgTable(
 export const tenants = pgTable("tenants", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: varchar("name").notNull(),
-  slug: varchar("slug").notNull().unique(), // URL-friendly identifier
-  domain: varchar("domain").unique(), // Custom domain (optional)
+  slug: varchar("slug").notNull().unique(), // URL-friendly identifier for subdomain
+  subdomain: varchar("subdomain").notNull().unique(), // Subdomain (e.g., primax, siddeeq)
+  domain: varchar("domain").unique(), // Custom domain (optional, overrides subdomain)
   primaryColor: varchar("primary_color").default('#3B82F6'), // Brand primary color
   secondaryColor: varchar("secondary_color").default('#1E40AF'), // Brand secondary color
   logoUrl: varchar("logo_url"), // Logo image URL
@@ -44,6 +45,7 @@ export const tenants = pgTable("tenants", {
   email: varchar("email"), // Contact email
   website: varchar("website"), // School website
   isActive: boolean("is_active").default(true),
+  isVerified: boolean("is_verified").default(false), // Email verification status
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
