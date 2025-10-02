@@ -15,6 +15,10 @@ import { subdomainMiddleware, requireTenantMiddleware } from "./subdomainMiddlew
 import { tenantRegistrationRouter } from "./tenantRegistration";
 import { superAdminRoutes } from "./superAdminRoutes";
 import { tenantAnalyticsRoutes } from "./tenantAnalyticsRoutes";
+import billingRoutes from "./billingRoutes";
+import notificationRoutes from "./notificationRoutes";
+import { NotificationService } from "./notificationService";
+import { SystemMonitoringService } from "./systemMonitoringService";
 import { 
   insertStudentSchema, 
   insertInvoiceSchema, 
@@ -141,6 +145,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Setup tenant analytics routes (tenant-scoped)
   app.use('/api/analytics', tenantAnalyticsRoutes);
+  
+  // Setup billing routes
+  app.use('/api/billing', billingRoutes);
+  
+  // Setup notification routes
+  app.use('/api/notifications', notificationRoutes);
 
   // Enhanced demo authentication with role-based access control
   app.use((req: any, res, next) => {
