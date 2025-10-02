@@ -152,6 +152,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup notification routes
   app.use('/api/notifications', notificationRoutes);
 
+  // Health check endpoint
+  app.get('/api/health', async (req, res) => {
+    try {
+      // Test database connection
+      await db.select().from(tenants).limit(1);
+      
+      res.json({
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        database: 'connected',
+        environment: process.env.NODE_ENV || 'development'
+      });
+    } catch (error) {
+      console.error('Health check failed:', error);
+      res.status(500).json({
+        status: 'unhealthy',
+        timestamp: new Date().toISOString(),
+        database: 'disconnected',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        environment: process.env.NODE_ENV || 'development'
+      });
+    }
+  });
+
   // Enhanced demo authentication with role-based access control
   app.use((req: any, res, next) => {
     // Parse role from URL query parameter for demo purposes

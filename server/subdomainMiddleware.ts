@@ -80,11 +80,33 @@ export async function subdomainMiddleware(req: Request, res: Response, next: Nex
     }
 
     // Look up tenant by subdomain
-    const tenant = await db
-      .select()
-      .from(tenants)
-      .where(eq(tenants.subdomain, subdomain))
-      .limit(1);
+    let tenant;
+    try {
+      tenant = await db
+        .select()
+        .from(tenants)
+        .where(eq(tenants.subdomain, subdomain))
+        .limit(1);
+    } catch (dbError) {
+      console.error('Database error in subdomain middleware:', dbError);
+      // For development, create a default tenant if database fails
+      if (hostname.includes('localhost') || hostname.includes('127.0.0.1')) {
+        req.tenant = {
+          id: 'default-tenant-id',
+          name: 'Default Development Tenant',
+          subdomain: subdomain,
+          primaryColor: '#3B82F6',
+          secondaryColor: '#1E40AF',
+          timezone: 'Asia/Karachi',
+          currency: 'PKR',
+          isActive: true,
+          isVerified: true
+        };
+        req.subdomain = subdomain;
+        return next();
+      }
+      throw dbError;
+    }
 
     if (tenant.length === 0) {
       // Tenant not found - show 404 or redirect to main domain
