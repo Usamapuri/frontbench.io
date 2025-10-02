@@ -103,3 +103,6 @@ export function getAccessibleTenantIds(user: any): string[] {
   // Regular users can only access their own tenant
   return [user.tenantId];
 }
+
+// Export alias for compatibility
+export const superAdminMiddleware = requireSuperAdmin;
