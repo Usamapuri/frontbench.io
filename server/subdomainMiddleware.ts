@@ -21,7 +21,6 @@ declare global {
         isActive: boolean;
         isVerified: boolean;
       };
-      hostname?: string;
       subdomain?: string;
     }
   }
@@ -33,7 +32,7 @@ declare global {
 export async function subdomainMiddleware(req: Request, res: Response, next: NextFunction) {
   try {
     const hostname = req.get('host') || req.hostname;
-    req.hostname = hostname;
+    // Don't try to set hostname as it's read-only, just use the variable
     
     // Skip subdomain resolution for localhost and IP addresses
     if (hostname === 'localhost' || hostname.startsWith('127.0.0.1') || hostname.startsWith('192.168.') || /^\d+\.\d+\.\d+\.\d+/.test(hostname)) {
