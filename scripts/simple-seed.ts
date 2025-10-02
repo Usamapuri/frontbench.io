@@ -160,6 +160,43 @@ async function seedTenants() {
       console.log('✅ Admin users already exist!');
     }
     
+    // Create super admin user (system-wide access)
+    console.log('👑 Creating super admin user...');
+    
+    const superAdminExists = await sql`
+      SELECT id FROM users 
+      WHERE email = 'superadmin@frontbench.io'
+    `;
+    
+    if (superAdminExists.length === 0) {
+      const superAdminPassword = '$2a$10$rQZ8K9vL2mN3pO4qR5sT6uV7wX8yZ9aA0bB1cC2dD3eE4fF5gG6hH'; // "admin123"
+      
+      await sql`
+        INSERT INTO users (
+          id, tenant_id, email, password, first_name, last_name, 
+          role, is_super_admin, is_teacher, is_active, created_at, updated_at
+        ) VALUES (
+          ${randomUUID()}, 
+          ${defaultTenantId}, 
+          'superadmin@frontbench.io',
+          ${superAdminPassword},
+          'Super',
+          'Admin',
+          'super_admin',
+          true,
+          false,
+          true,
+          NOW(),
+          NOW()
+        )
+      `;
+      
+      console.log('✅ Super admin user created successfully!');
+      console.log('🔐 Super Admin Login: superadmin@frontbench.io / admin123');
+    } else {
+      console.log('✅ Super admin user already exists!');
+    }
+    
     // Create default subjects for both tenants
     console.log('📚 Creating default subjects...');
     
@@ -203,6 +240,12 @@ async function seedTenants() {
     console.log('🔐 Login credentials:');
     console.log('   • Primax Academy: admin@primax.edu.pk / admin123');
     console.log('   • Siddeeq Public School: admin@siddeeq.edu.pk / admin123');
+    console.log('   • Super Admin: superadmin@frontbench.io / admin123');
+    console.log('');
+    console.log('🎯 Super Admin Access:');
+    console.log('   • Dashboard: https://primax.frontbench.io/api/super-admin/dashboard');
+    console.log('   • Tenant Management: https://primax.frontbench.io/api/super-admin/tenants');
+    console.log('   • Analytics: https://primax.frontbench.io/api/super-admin/analytics');
     
   } catch (error) {
     console.error('❌ Error seeding tenants:', error);

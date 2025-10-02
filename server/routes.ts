@@ -13,6 +13,8 @@ import { scopedDb } from "./scopedDb";
 import { setupTenantOnboardingRoutes } from "./tenantOnboarding";
 import { subdomainMiddleware, requireTenantMiddleware } from "./subdomainMiddleware";
 import { tenantRegistrationRouter } from "./tenantRegistration";
+import { superAdminRoutes } from "./superAdminRoutes";
+import { tenantAnalyticsRoutes } from "./tenantAnalyticsRoutes";
 import { 
   insertStudentSchema, 
   insertInvoiceSchema, 
@@ -58,6 +60,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Setup tenant registration routes (for main domain)
   app.use('/api/tenants', tenantRegistrationRouter);
+  
+  // Setup super admin routes (accessible from any subdomain with super admin privileges)
+  app.use('/api/super-admin', superAdminRoutes);
   
   // Serve landing page for main domain (frontbench.io or app.frontbench.io)
   app.get('/', (req: any, res) => {
@@ -133,6 +138,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Apply tenant context middleware to all routes
   // This must be applied AFTER session middleware but BEFORE route handlers
   app.use(tenantContextMiddleware);
+  
+  // Setup tenant analytics routes (tenant-scoped)
+  app.use('/api/analytics', tenantAnalyticsRoutes);
 
   // Enhanced demo authentication with role-based access control
   app.use((req: any, res, next) => {

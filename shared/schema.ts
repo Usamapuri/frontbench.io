@@ -46,12 +46,30 @@ export const tenants = pgTable("tenants", {
   website: varchar("website"), // School website
   isActive: boolean("is_active").default(true),
   isVerified: boolean("is_verified").default(false), // Email verification status
+  // Subscription and billing
+  subscriptionPlan: varchar("subscription_plan").default('free'), // free, basic, premium, enterprise
+  subscriptionStatus: varchar("subscription_status").default('active'), // active, suspended, cancelled
+  subscriptionStartDate: timestamp("subscription_start_date"),
+  subscriptionEndDate: timestamp("subscription_end_date"),
+  maxUsers: integer("max_users").default(10), // Maximum number of users allowed
+  maxStudents: integer("max_students").default(100), // Maximum number of students allowed
+  // Analytics and usage tracking
+  lastLoginAt: timestamp("last_login_at"),
+  totalLogins: integer("total_logins").default(0),
+  totalUsers: integer("total_users").default(0),
+  totalStudents: integer("total_students").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Enhanced role system enums
-export const userRoleEnum = pgEnum('user_role', ['teacher', 'finance', 'parent', 'management']);
+export const userRoleEnum = pgEnum('user_role', ['teacher', 'finance', 'parent', 'management', 'super_admin']);
+
+// Subscription plan enum
+export const subscriptionPlanEnum = pgEnum('subscription_plan', ['free', 'basic', 'premium', 'enterprise']);
+
+// Subscription status enum
+export const subscriptionStatusEnum = pgEnum('subscription_status', ['active', 'suspended', 'cancelled', 'expired']);
 
 // User storage table - mandatory for Replit Auth
 export const users = pgTable("users", {
@@ -499,6 +517,111 @@ export const studentNotifications = pgTable("student_notifications", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// System Analytics and Usage Tracking
+export const tenantAnalytics = pgTable("tenant_analytics", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").references(() => tenants.id).notNull(),
+  date: date("date").notNull(),
+  // User metrics
+  activeUsers: integer("active_users").default(0),
+  totalUsers: integer("total_users").default(0),
+  newUsers: integer("new_users").default(0),
+  // Student metrics
+  activeStudents: integer("active_students").default(0),
+  totalStudents: integer("total_students").default(0),
+  newStudents: integer("new_students").default(0),
+  // Financial metrics
+  totalRevenue: decimal("total_revenue", { precision: 12, scale: 2 }).default('0.00'),
+  monthlyRevenue: decimal("monthly_revenue", { precision: 12, scale: 2 }).default('0.00'),
+  outstandingInvoices: decimal("outstanding_invoices", { precision: 12, scale: 2 }).default('0.00'),
+  // Academic metrics
+  totalClasses: integer("total_classes").default(0),
+  totalAttendance: integer("total_attendance").default(0),
+  averageAttendance: decimal("average_attendance", { precision: 5, scale: 2 }).default('0.00'),
+  // System usage
+  apiCalls: integer("api_calls").default(0),
+  storageUsed: integer("storage_used").default(0), // in bytes
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Billing and Subscriptions
+export const subscriptions = pgTable("subscriptions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").references(() => tenants.id).notNull(),
+  plan: subscriptionPlanEnum("plan").notNull(),
+  status: subscriptionStatusEnum("status").notNull(),
+  pricePerMonth: decimal("price_per_month", { precision: 10, scale: 2 }).notNull(),
+  billingCycle: varchar("billing_cycle").default('monthly'), // monthly, yearly
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date"),
+  trialEndDate: timestamp("trial_end_date"),
+  autoRenew: boolean("auto_renew").default(true),
+  stripeSubscriptionId: varchar("stripe_subscription_id"),
+  stripeCustomerId: varchar("stripe_customer_id"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Billing History
+export const billingHistory = pgTable("billing_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").references(() => tenants.id).notNull(),
+  subscriptionId: varchar("subscription_id").references(() => subscriptions.id).notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  currency: varchar("currency").default('USD'),
+  status: varchar("status").notNull(), // paid, pending, failed, refunded
+  billingPeriodStart: timestamp("billing_period_start").notNull(),
+  billingPeriodEnd: timestamp("billing_period_end").notNull(),
+  dueDate: timestamp("due_date").notNull(),
+  paidAt: timestamp("paid_at"),
+  stripeInvoiceId: varchar("stripe_invoice_id"),
+  paymentMethod: varchar("payment_method"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// System Notifications and Alerts
+export const systemNotifications = pgTable("system_notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").references(() => tenants.id), // null for system-wide notifications
+  type: varchar("type").notNull(), // info, warning, error, success
+  title: varchar("title").notNull(),
+  message: text("message").notNull(),
+  category: varchar("category").notNull(), // billing, security, system, maintenance
+  priority: varchar("priority").default('medium'), // low, medium, high, critical
+  isRead: boolean("is_read").default(false),
+  isDismissible: boolean("is_dismissible").default(true),
+  expiresAt: timestamp("expires_at"),
+  metadata: jsonb("metadata"), // Additional data for the notification
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// System Health Monitoring
+export const systemHealth = pgTable("system_health", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  service: varchar("service").notNull(), // database, api, storage, email, etc.
+  status: varchar("status").notNull(), // healthy, degraded, down
+  responseTime: integer("response_time"), // in milliseconds
+  errorRate: decimal("error_rate", { precision: 5, scale: 2 }).default('0.00'),
+  uptime: decimal("uptime", { precision: 5, scale: 2 }).default('100.00'),
+  lastCheck: timestamp("last_check").notNull(),
+  details: jsonb("details"), // Additional health check details
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Audit Logs for Super Admin
+export const auditLogs = pgTable("audit_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").references(() => tenants.id), // null for system-wide actions
+  userId: varchar("user_id").references(() => users.id),
+  action: varchar("action").notNull(), // create, update, delete, login, logout, etc.
+  resource: varchar("resource").notNull(), // tenant, user, student, invoice, etc.
+  resourceId: varchar("resource_id"),
+  details: jsonb("details"), // Additional action details
+  ipAddress: varchar("ip_address"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Relations
 export const tenantsRelations = relations(tenants, ({ many }) => ({
   users: many(users),
@@ -513,6 +636,12 @@ export const tenantsRelations = relations(tenants, ({ many }) => ({
   assessments: many(assessments),
   grades: many(grades),
   announcements: many(announcements),
+  // New relations for super admin features
+  analytics: many(tenantAnalytics),
+  subscriptions: many(subscriptions),
+  billingHistory: many(billingHistory),
+  systemNotifications: many(systemNotifications),
+  auditLogs: many(auditLogs),
 }));
 
 export const usersRelations = relations(users, ({ one, many }) => ({
@@ -932,6 +1061,38 @@ export const insertStaffSchema = createInsertSchema(users).omit({
   position: z.string().min(1, "Position is required"),
 });
 
+// Insert schemas for super admin features
+export const insertTenantAnalyticsSchema = createInsertSchema(tenantAnalytics).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertSubscriptionSchema = createInsertSchema(subscriptions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertBillingHistorySchema = createInsertSchema(billingHistory).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertSystemNotificationSchema = createInsertSchema(systemNotifications).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertSystemHealthSchema = createInsertSchema(systemHealth).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type Tenant = typeof tenants.$inferSelect;
 export type InsertTenant = typeof tenants.$inferInsert;
@@ -968,3 +1129,16 @@ export type StudentNotification = typeof studentNotifications.$inferSelect;
 export type InsertStudentNotification = z.infer<typeof insertStudentNotificationSchema>;
 export type InsertTeacher = z.infer<typeof insertTeacherSchema>;
 export type InsertStaff = z.infer<typeof insertStaffSchema>;
+
+// New types for super admin features
+export type TenantAnalytics = typeof tenantAnalytics.$inferSelect;
+export type InsertTenantAnalytics = z.infer<typeof insertTenantAnalyticsSchema>;
+export type Subscription = typeof subscriptions.$inferSelect;
+export type InsertSubscription = z.infer<typeof insertSubscriptionSchema>;
+export type BillingHistory = typeof billingHistory.$inferSelect;
+export type InsertBillingHistory = z.infer<typeof insertBillingHistorySchema>;
+export type SystemNotification = typeof systemNotifications.$inferSelect;
+export type InsertSystemNotification = z.infer<typeof insertSystemNotificationSchema>;
+export type SystemHealth = typeof systemHealth.$inferSelect;
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
