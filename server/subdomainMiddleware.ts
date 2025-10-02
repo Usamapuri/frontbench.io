@@ -34,9 +34,12 @@ export async function subdomainMiddleware(req: Request, res: Response, next: Nex
     const hostname = req.get('host') || req.hostname;
     // Don't try to set hostname as it's read-only, just use the variable
     
-    // Skip subdomain resolution for localhost and IP addresses
-    if (hostname === 'localhost' || hostname.startsWith('127.0.0.1') || hostname.startsWith('192.168.') || /^\d+\.\d+\.\d+\.\d+/.test(hostname)) {
-      // For development, use default tenant
+    // Skip subdomain resolution for localhost, IP addresses, and deployment platforms
+    const isLocalhost = hostname === 'localhost' || hostname.startsWith('127.0.0.1') || hostname.startsWith('192.168.') || /^\d+\.\d+\.\d+\.\d+/.test(hostname);
+    const isDeploymentPlatform = hostname.includes('.railway.app') || hostname.includes('.vercel.app') || hostname.includes('.netlify.app') || hostname.includes('.herokuapp.com');
+    
+    if (isLocalhost || isDeploymentPlatform) {
+      // For development and deployment platforms, use default tenant
       req.tenant = {
         id: 'default-tenant-id',
         name: 'Default Development Tenant',
@@ -52,30 +55,38 @@ export async function subdomainMiddleware(req: Request, res: Response, next: Nex
       return next();
     }
 
-    // Parse subdomain from hostname
+    // Parse subdomain from hostname (only for custom domains)
     const parts = hostname.split('.');
     let subdomain = '';
     let isMainDomain = false;
 
-    if (parts.length >= 3) {
-      // Format: subdomain.frontbench.io
-      subdomain = parts[0];
-    } else if (parts.length === 2) {
-      // Format: frontbench.io (main domain)
-      isMainDomain = true;
-    }
+    // Only parse subdomains for frontbench.io domains
+    if (hostname.endsWith('.frontbench.io') || hostname === 'frontbench.io') {
+      if (parts.length >= 3) {
+        // Format: subdomain.frontbench.io
+        subdomain = parts[0];
+      } else if (parts.length === 2) {
+        // Format: frontbench.io (main domain)
+        isMainDomain = true;
+      }
 
-    req.subdomain = subdomain;
+      req.subdomain = subdomain;
 
-    // Handle main domain (frontbench.io) - show landing page
-    if (isMainDomain || !subdomain) {
-      req.tenant = null; // No tenant for main domain
-      return next();
-    }
+      // Handle main domain (frontbench.io) - show landing page
+      if (isMainDomain || !subdomain) {
+        req.tenant = null; // No tenant for main domain
+        return next();
+      }
 
-    // Handle app subdomain (app.frontbench.io) - show landing page
-    if (subdomain === 'app') {
+      // Handle app subdomain (app.frontbench.io) - show landing page
+      if (subdomain === 'app') {
+        req.tenant = null;
+        return next();
+      }
+    } else {
+      // For any other domain, treat as main domain
       req.tenant = null;
+      req.subdomain = '';
       return next();
     }
 
@@ -89,8 +100,8 @@ export async function subdomainMiddleware(req: Request, res: Response, next: Nex
         .limit(1);
     } catch (dbError) {
       console.error('Database error in subdomain middleware:', dbError);
-      // For development, create a default tenant if database fails
-      if (hostname.includes('localhost') || hostname.includes('127.0.0.1')) {
+      // For development and deployment platforms, create a default tenant if database fails
+      if (isLocalhost || isDeploymentPlatform) {
         req.tenant = {
           id: 'default-tenant-id',
           name: 'Default Development Tenant',
