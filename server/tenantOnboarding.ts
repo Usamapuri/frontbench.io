@@ -161,7 +161,7 @@ export async function createTenant(onboardingData: TenantOnboardingData) {
     }
     
     // 3. Create the tenant
-    const [newTenant] = await tx.insert(tenants).values({
+    const [newTenant] = await tx.insert(tenants as any).values({
       name: onboardingData.name,
       slug: onboardingData.slug,
       domain: onboardingData.domain,

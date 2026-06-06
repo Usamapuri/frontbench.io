@@ -12,6 +12,7 @@ import { AsyncLocalStorage } from 'async_hooks';
 // Type definitions for tenant context
 export interface TenantContext {
   tenantId: string;
+  branchId: string | null; // Active branch (org dimension within the tenant)
   userId: string;
   userRole: string;
   isSuperAdmin: boolean;
@@ -53,6 +54,7 @@ export function tenantContextMiddleware(req: Request, res: Response, next: NextF
   // Create tenant context
   const context: TenantContext = {
     tenantId: user.tenantId,
+    branchId: (user as any).branchId ?? null,
     userId: user.id,
     userRole: user.role,
     isSuperAdmin: user.isSuperAdmin,
@@ -89,6 +91,17 @@ export function getCurrentTenantId(): string | null {
   try {
     const context = getCurrentTenantContext();
     return context.tenantId;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Get the current active branch ID safely (null = head office / all branches)
+ */
+export function getCurrentBranchId(): string | null {
+  try {
+    return getCurrentTenantContext().branchId;
   } catch {
     return null;
   }

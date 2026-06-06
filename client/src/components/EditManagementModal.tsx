@@ -66,7 +66,7 @@ export default function EditManagementModal({ open, onOpenChange, management }: 
   });
 
   // Fetch subjects for selection
-  const { data: subjects } = useQuery({
+  const { data: subjects } = useQuery<any[]>({
     queryKey: ['/api/subjects'],
   });
 

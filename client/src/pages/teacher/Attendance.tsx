@@ -33,7 +33,7 @@ export default function Attendance() {
   const queryClient = useQueryClient();
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  const { data: todayClasses } = useQuery({
+  const { data: todayClasses } = useQuery<any[]>({
     queryKey: ['/api/teacher/classes/today'],
   });
 

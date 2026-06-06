@@ -1,5 +1,7 @@
 import {
+  tenants,
   users,
+  branches,
   students,
   subjects,
   classes,
@@ -49,9 +51,16 @@ import {
   type InsertStudentNotification,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, sql, gte, lte, count, sum, avg } from "drizzle-orm";
+import { getCurrentTenantId, getCurrentBranchId } from "./tenantContext";
+import { eq, and, desc, sql, gte, lte, count, sum, avg, isNull } from "drizzle-orm";
 import { PrimaxBillingService } from "./billing";
 import { generateUserCredentials } from "./passwordUtils";
+
+// In-memory roll-number reservations (dev convenience; see reserveRollNumber)
+declare global {
+  // eslint-disable-next-line no-var
+  var rollNumberReservations: Map<string, Date> | undefined;
+}
 
 const billingService = new PrimaxBillingService();
 
@@ -263,19 +272,28 @@ export class DatabaseStorage implements IStorage {
     return newStudent;
   }
 
+  // Per-tenant roll-number prefix (configurable; falls back to a code derived from the
+  // school subdomain, else "STU"). Roll numbers are unique per tenant.
+  async getRollNumberPrefix(): Promise<string> {
+    const [t] = await db.select().from(tenants).limit(1); // RLS-scoped to current tenant
+    const raw = t?.rollNumberPrefix || t?.subdomain || 'STU';
+    return raw.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 4) || 'STU';
+  }
+
   // Roll number generation system
   async generateRollNumber(): Promise<string> {
     const currentYear = new Date().getFullYear();
     const yearSuffix = currentYear.toString().slice(-2); // Last 2 digits (e.g., "25" for 2025)
-    
+    const prefix = await this.getRollNumberPrefix();
+
     let rollNumber: string;
     let attempts = 0;
     const maxAttempts = 100;
-    
+
     do {
       // Generate random 4-digit number
       const randomNum = Math.floor(Math.random() * 9000) + 1000; // 1000-9999
-      rollNumber = `PMX${yearSuffix}-${randomNum}`;
+      rollNumber = `${prefix}${yearSuffix}-${randomNum}`;
       attempts++;
       
       // Check if this roll number already exists
@@ -544,7 +562,7 @@ export class DatabaseStorage implements IStorage {
 
   // Invoices
   async getInvoices(limit = 50): Promise<any[]> {
-    return await db
+    return await (db as any)
       .select({
         ...invoices,
         studentRollNumber: students.rollNumber,
@@ -639,13 +657,13 @@ export class DatabaseStorage implements IStorage {
     invoiceId: string;
     amount: string;
   }): Promise<any> {
-    const [allocation] = await db.insert(paymentAllocations).values(allocationData).returning();
+    const [allocation] = await (db as any).insert(paymentAllocations).values(allocationData).returning();
     return allocation;
   }
 
   // Payments
   async getPayments(limit = 50): Promise<any[]> {
-    return await db
+    return await (db as any)
       .select({
         ...payments,
         studentRollNumber: students.rollNumber,
@@ -699,7 +717,7 @@ export class DatabaseStorage implements IStorage {
 
     // Create payment record with clean receipt number based on invoice
     const cleanReceiptNumber = await billingService.generateReceiptNumber(invoice.invoiceNumber);
-    const [payment] = await db.insert(payments).values({
+    const [payment] = await (db as any).insert(payments).values({
       receiptNumber: cleanReceiptNumber,
       studentId: paymentData.studentId,
       amount: paymentData.paymentAmount.toFixed(2),
@@ -712,7 +730,7 @@ export class DatabaseStorage implements IStorage {
     }).returning();
 
     // Create payment allocation
-    await db.insert(paymentAllocations).values({
+    await (db as any).insert(paymentAllocations).values({
       paymentId: payment.id,
       invoiceId: paymentData.invoiceId,
       amount: paymentData.paymentAmount.toFixed(2)
@@ -885,15 +903,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Daily Close
+  // Daily close is per branch: scope by the active branch (or unassigned when none).
+  private dailyCloseBranchCond() {
+    const bid = getCurrentBranchId();
+    return bid ? eq(dailyClose.branchId, bid) : isNull(dailyClose.branchId);
+  }
+
   async getDailyClose(date: string): Promise<DailyClose | undefined> {
     const [dailyCloseRecord] = await db
       .select()
       .from(dailyClose)
-      .where(eq(dailyClose.closeDate, date));
+      .where(and(eq(dailyClose.closeDate, date), this.dailyCloseBranchCond()));
     return dailyCloseRecord;
   }
 
   async createDailyClose(dailyCloseData: any): Promise<DailyClose> {
+    // branch_id is auto-stamped from app.branch_id (GUC default)
     const [dailyCloseRecord] = await db.insert(dailyClose).values(dailyCloseData).returning();
     return dailyCloseRecord;
   }
@@ -902,7 +927,7 @@ export class DatabaseStorage implements IStorage {
     const [updatedRecord] = await db
       .update(dailyClose)
       .set(updates)
-      .where(eq(dailyClose.closeDate, date))
+      .where(and(eq(dailyClose.closeDate, date), this.dailyCloseBranchCond()))
       .returning();
     return updatedRecord;
   }
@@ -1161,7 +1186,7 @@ export class DatabaseStorage implements IStorage {
       ? and(eq(announcements.isActive, true), eq(announcements.createdBy, teacherId))
       : eq(announcements.isActive, true);
 
-    return await db
+    return await (db as any)
       .select({
         id: announcements.id,
         title: announcements.title,
@@ -1207,7 +1232,7 @@ export class DatabaseStorage implements IStorage {
       studentId,
     }));
     
-    await db.insert(announcementRecipients).values(recipients);
+    await (db as any).insert(announcementRecipients).values(recipients);
   }
 
   async getStudentAnnouncements(studentId: string): Promise<any[]> {
@@ -1295,7 +1320,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createAddOn(addOnData: any): Promise<any> {
-    const [addOn] = await db.insert(addOns).values({
+    const [addOn] = await (db as any).insert(addOns).values({
       name: addOnData.name,
       description: addOnData.description || '',
       price: addOnData.price.toString(),
@@ -1317,7 +1342,7 @@ export class DatabaseStorage implements IStorage {
     const total = parseFloat(invoiceData.total) || (subtotal - discountAmount);
 
     // Create invoice
-    const [invoice] = await db.insert(invoices).values({
+    const [invoice] = await (db as any).insert(invoices).values({
       invoiceNumber,
       studentId: invoiceData.studentId,
       billingPeriodStart: invoiceData.billingPeriodStart || invoiceData.dueDate,
@@ -1393,7 +1418,7 @@ export class DatabaseStorage implements IStorage {
 
   // Teacher Data Isolation Methods
   async getTeacherSubjects(teacherId: string): Promise<Subject[]> {
-    return await db
+    return await (db as any)
       .select({
         id: subjects.id,
         name: subjects.name,
@@ -1414,7 +1439,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTeacherStudents(teacherId: string): Promise<Student[]> {
-    return await db
+    return await (db as any)
       .select({
         id: students.id,
         rollNumber: students.rollNumber,
@@ -1476,7 +1501,7 @@ export class DatabaseStorage implements IStorage {
 
   async getTeacherAnnouncements(teacherId: string): Promise<Announcement[]> {
     // Get announcements created by this teacher only
-    return await db
+    return await (db as any)
       .select({
         id: announcements.id,
         title: announcements.title,
@@ -1501,7 +1526,7 @@ export class DatabaseStorage implements IStorage {
 
   // Schedule Management Implementation
   async getTeacherSchedules(teacherId: string): Promise<ClassSchedule[]> {
-    return await db
+    return await (db as any)
       .select({
         id: classSchedules.id,
         teacherId: classSchedules.teacherId,
@@ -1559,7 +1584,7 @@ export class DatabaseStorage implements IStorage {
       conditions.push(lte(scheduleChanges.affectedDate, endDate.toISOString().split('T')[0]));
     }
 
-    return await db
+    return await (db as any)
       .select()
       .from(scheduleChanges)
       .innerJoin(subjects, eq(scheduleChanges.subjectId, subjects.id))
@@ -1646,7 +1671,7 @@ export class DatabaseStorage implements IStorage {
     }));
 
     if (notifications.length > 0) {
-      await db.insert(studentNotifications).values(notifications);
+      await (db as any).insert(studentNotifications).values(notifications);
     }
   }
 
@@ -1678,11 +1703,11 @@ export class DatabaseStorage implements IStorage {
         )
       );
 
-    return { regularSchedules, scheduleChanges: [] };
+    return { regularSchedules, scheduleChanges: [] } as any;
   }
 
   async getStudentNotifications(studentId: string): Promise<StudentNotification[]> {
-    return await db
+    return await (db as any)
       .select()
       .from(studentNotifications)
       .innerJoin(scheduleChanges, eq(studentNotifications.scheduleChangeId, scheduleChanges.id))
@@ -1711,7 +1736,7 @@ export class DatabaseStorage implements IStorage {
     // Generate temporary password for new teacher
     const credentials = await generateUserCredentials();
     
-    const teacher = await db.insert(users).values({
+    const teacher = await (db as any).insert(users).values({
       firstName: teacherData.firstName,
       lastName: teacherData.lastName,
       email: teacherData.email,
@@ -1749,7 +1774,7 @@ export class DatabaseStorage implements IStorage {
     // Generate temporary password for new staff
     const credentials = await generateUserCredentials();
     
-    const staff = await db.insert(users).values({
+    const staff = await (db as any).insert(users).values({
       firstName: staffData.firstName,
       lastName: staffData.lastName,
       email: staffData.email,
@@ -1776,7 +1801,7 @@ export class DatabaseStorage implements IStorage {
     // Generate temporary password for new management
     const credentials = await generateUserCredentials();
     
-    const management = await db.insert(users).values({
+    const management = await (db as any).insert(users).values({
       firstName: managementData.firstName,
       lastName: managementData.lastName,
       email: managementData.email,
@@ -1866,7 +1891,7 @@ export class DatabaseStorage implements IStorage {
     const existingDeletedUser = await db.select().from(users).where(eq(users.id, deletedUserId)).limit(1);
     
     if (existingDeletedUser.length === 0) {
-      await db.insert(users).values({
+      await (db as any).insert(users).values({
         id: deletedUserId,
         email: 'deleted@system.internal',
         firstName: 'Deleted',
@@ -1984,7 +2009,7 @@ export class DatabaseStorage implements IStorage {
     const existingDeletedUser = await db.select().from(users).where(eq(users.id, deletedUserId)).limit(1);
     
     if (existingDeletedUser.length === 0) {
-      await db.insert(users).values({
+      await (db as any).insert(users).values({
         id: deletedUserId,
         email: 'deleted@system.internal',
         firstName: 'Deleted',
@@ -2051,7 +2076,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createPayoutRule(payoutData: any): Promise<any> {
-    const rule = await db.insert(payoutRules).values({
+    const rule = await (db as any).insert(payoutRules).values({
       teacherId: payoutData.teacherId,
       isFixed: payoutData.isFixed,
       fixedPercentage: payoutData.fixedPercentage?.toString(),
@@ -2063,6 +2088,36 @@ export class DatabaseStorage implements IStorage {
     }).returning();
     
     return rule[0];
+  }
+
+  // ---- Branches / campuses (tenant-scoped via RLS) ----
+  async getBranches(): Promise<any[]> {
+    return await db.select().from(branches).orderBy(desc(branches.isMain), branches.name);
+  }
+
+  async getMainBranch(): Promise<any | undefined> {
+    const [b] = await db.select().from(branches).where(eq(branches.isMain, true)).limit(1);
+    return b;
+  }
+
+  async createBranch(data: any): Promise<any> {
+    const [b] = await (db as any).insert(branches).values({
+      name: data.name,
+      code: data.code || null,
+      address: data.address || null,
+      phone: data.phone || null,
+      isMain: data.isMain ?? false,
+      isActive: data.isActive ?? true,
+    }).returning();
+    return b;
+  }
+
+  async updateBranch(id: string, data: any): Promise<any> {
+    const [b] = await db.update(branches)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(branches.id, id))
+      .returning();
+    return b;
   }
 }
 

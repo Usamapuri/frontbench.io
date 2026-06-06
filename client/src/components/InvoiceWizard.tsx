@@ -272,7 +272,7 @@ export default function InvoiceWizard({ open, onOpenChange, editingInvoice }: In
 
   const handleSubmit = () => {
     // Create items array from selected subjects and add-ons
-    const items = [];
+    const items: any[] = [];
     
     // Add selected subjects
     formData.selectedSubjects
@@ -307,7 +307,7 @@ export default function InvoiceWizard({ open, onOpenChange, editingInvoice }: In
           type: 'addon',
           itemId: addOn.id,
           name: addOn.name,
-          description: addOn.description || `Add-on: ${addOn.name}`,
+          description: (addOn as any).description || `Add-on: ${addOn.name}`,
           quantity: 1,
           unitPrice: addOn.price.toFixed(2),
           totalPrice: addOn.price.toFixed(2),
@@ -349,7 +349,7 @@ export default function InvoiceWizard({ open, onOpenChange, editingInvoice }: In
             name: subject.name,
             price: parseFloat(subject.baseFee),
             selected: isEnrolled, // Pre-select enrolled subjects
-            discountType: (enrollment?.discountType || 'none') as const,
+            discountType: (enrollment?.discountType || 'none') as any,
             discountValue: enrollment?.discountValue || 0,
             discountReason: enrollment?.discountReason || '',
             isCurrentlyEnrolled: isEnrolled, // Track enrollment status

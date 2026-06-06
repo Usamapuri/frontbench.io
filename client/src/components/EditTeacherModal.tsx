@@ -74,7 +74,7 @@ export default function EditTeacherModal({ open, onOpenChange, teacher }: EditTe
   });
 
   // Fetch subjects for selection
-  const { data: subjects } = useQuery({
+  const { data: subjects } = useQuery<any[]>({
     queryKey: ['/api/subjects'],
   });
 
@@ -198,7 +198,7 @@ export default function EditTeacherModal({ open, onOpenChange, teacher }: EditTe
                   id="email"
                   type="email"
                   {...form.register("email")}
-                  placeholder="teacher@primax.edu"
+                  placeholder="teacher@yourschool.edu"
                 />
                 {form.formState.errors.email && (
                   <p className="text-sm text-red-600">{form.formState.errors.email.message}</p>

@@ -40,6 +40,7 @@ export const tenants = pgTable("tenants", {
   faviconUrl: varchar("favicon_url"), // Favicon URL
   timezone: varchar("timezone").default('Asia/Karachi'), // School timezone
   currency: varchar("currency").default('PKR'), // Currency code
+  rollNumberPrefix: varchar("roll_number_prefix"), // Per-school student roll-number prefix (e.g. PMX, SID)
   address: text("address"), // School address
   phone: varchar("phone"), // Contact phone
   email: varchar("email"), // Contact email
@@ -62,6 +63,25 @@ export const tenants = pgTable("tenants", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Branches / campuses within a school (tenant).
+// The tenant remains the hard isolation boundary (RLS); a branch is an organizational
+// dimension within a school. Head office (management/super_admin) sees all branches;
+// branch-bound staff are scoped to their branch at the application layer.
+export const branches = pgTable("branches", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").references(() => tenants.id).notNull(), // Multi-tenant isolation
+  name: varchar("name").notNull(),
+  code: varchar("code"), // short code, e.g. "MAIN", "DHA"
+  address: text("address"),
+  phone: varchar("phone"),
+  isMain: boolean("is_main").default(false), // the primary / head-office branch
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  unique("branches_code_tenant_unique").on(table.code, table.tenantId),
+]);
+
 // Enhanced role system enums
 export const userRoleEnum = pgEnum('user_role', ['teacher', 'finance', 'parent', 'management', 'super_admin']);
 
@@ -75,6 +95,7 @@ export const subscriptionStatusEnum = pgEnum('subscription_status', ['active', '
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   tenantId: varchar("tenant_id").references(() => tenants.id).notNull(), // Multi-tenant isolation
+  branchId: varchar("branch_id").references(() => branches.id), // Branch / campus (null = head office / all branches)
   email: varchar("email"), // Remove unique constraint - will be unique per tenant
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
@@ -119,6 +140,7 @@ export const notificationStatusEnum = pgEnum('notification_status', ['pending', 
 export const students = pgTable("students", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   tenantId: varchar("tenant_id").references(() => tenants.id).notNull(), // Multi-tenant isolation
+  branchId: varchar("branch_id").references(() => branches.id), // Branch / campus
   rollNumber: varchar("roll_number").notNull(), // Remove unique constraint - will be unique per tenant
   firstName: varchar("first_name").notNull(),
   lastName: varchar("last_name").notNull(),
@@ -204,6 +226,7 @@ export const enrollments = pgTable("enrollments", {
 export const invoices = pgTable("invoices", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   tenantId: varchar("tenant_id").references(() => tenants.id).notNull(), // Multi-tenant isolation
+  branchId: varchar("branch_id").references(() => branches.id), // Branch / campus
   invoiceNumber: varchar("invoice_number").notNull(), // Remove unique constraint - will be unique per tenant
   studentId: varchar("student_id").references(() => students.id).notNull(),
   type: invoiceTypeEnum("type").default('monthly'),
@@ -264,6 +287,7 @@ export const invoiceItems = pgTable("invoice_items", {
 export const payments = pgTable("payments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   tenantId: varchar("tenant_id").references(() => tenants.id).notNull(), // Multi-tenant isolation
+  branchId: varchar("branch_id").references(() => branches.id), // Branch / campus
   receiptNumber: varchar("receipt_number").notNull(), // Remove unique constraint - will be unique per tenant
   studentId: varchar("student_id").references(() => students.id).notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
@@ -327,6 +351,7 @@ export const billingSchedules = pgTable("billing_schedules", {
 export const classes = pgTable("classes", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   tenantId: varchar("tenant_id").references(() => tenants.id).notNull(), // Multi-tenant isolation
+  branchId: varchar("branch_id").references(() => branches.id), // Branch / campus
   name: varchar("name").notNull(),
   subjectId: varchar("subject_id").references(() => subjects.id).notNull(),
   teacherId: varchar("teacher_id").references(() => users.id).notNull(),
@@ -394,6 +419,7 @@ export const payoutRules = pgTable("payout_rules", {
 export const cashDrawRequests = pgTable("cash_draw_requests", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   tenantId: varchar("tenant_id").references(() => tenants.id).notNull(), // Multi-tenant isolation
+  branchId: varchar("branch_id").references(() => branches.id), // Branch / campus
   teacherId: varchar("teacher_id").references(() => users.id).notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   reason: text("reason").notNull(),
@@ -408,6 +434,7 @@ export const cashDrawRequests = pgTable("cash_draw_requests", {
 export const dailyClose = pgTable("daily_close", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   tenantId: varchar("tenant_id").references(() => tenants.id).notNull(), // Multi-tenant isolation
+  branchId: varchar("branch_id").references(() => branches.id), // Branch / campus (daily close is per branch)
   closeDate: date("close_date").notNull(), // Remove unique constraint - will be unique per tenant
   totalCash: decimal("total_cash", { precision: 10, scale: 2 }).notNull(),
   totalBank: decimal("total_bank", { precision: 10, scale: 2 }).notNull(),
@@ -430,6 +457,7 @@ export const dailyClose = pgTable("daily_close", {
 export const expenses = pgTable("expenses", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   tenantId: varchar("tenant_id").references(() => tenants.id).notNull(), // Multi-tenant isolation
+  branchId: varchar("branch_id").references(() => branches.id), // Branch / campus
   category: varchar("category").notNull(),
   description: text("description").notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),

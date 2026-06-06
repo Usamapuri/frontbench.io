@@ -63,7 +63,7 @@ export default function StaffManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: staff, isLoading } = useQuery<Staff[]>({
+  const { data: staff, isLoading } = useQuery<any[]>({
     queryKey: ["/api/staff"],
   });
 

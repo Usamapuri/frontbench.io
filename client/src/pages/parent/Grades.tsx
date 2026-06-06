@@ -10,16 +10,16 @@ export default function Grades() {
   const [selectedChild, setSelectedChild] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("all");
 
-  const { data: children } = useQuery<Student[]>({
+  const { data: children } = useQuery<any[]>({
     queryKey: ['/api/students'], // In real implementation, filter by parent ID
   });
 
-  const { data: grades } = useQuery<Grade[]>({
+  const { data: grades } = useQuery<any[]>({
     queryKey: ['/api/grades/student', selectedChild],
     enabled: !!selectedChild,
   });
 
-  const { data: subjects } = useQuery({
+  const { data: subjects } = useQuery<any[]>({
     queryKey: ['/api/subjects'],
   });
 

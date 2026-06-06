@@ -26,7 +26,7 @@ export default function FinanceDashboard() {
     queryKey: ['/api/dashboard/stats'],
   });
 
-  const { data: recentPayments } = useQuery<Transaction[]>({
+  const { data: recentPayments } = useQuery<any[]>({
     queryKey: ['/api/payments'],
   });
 

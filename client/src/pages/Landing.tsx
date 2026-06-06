@@ -1,59 +1,90 @@
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import Logo from "@/components/Logo";
+import {
+  Users,
+  Wallet,
+  BookOpen,
+  ShieldCheck,
+  Palette,
+  Zap,
+} from "lucide-react";
+
+const FEATURES = [
+  { icon: Users, title: "Student Management", desc: "Complete student profiles and enrollment tracking." },
+  { icon: Wallet, title: "Financial Management", desc: "Invoicing, payments, and financial reporting." },
+  { icon: BookOpen, title: "Academic Management", desc: "Subjects, classes, attendance, and grades." },
+  { icon: ShieldCheck, title: "Secure & Private", desc: "Complete data isolation between schools." },
+  { icon: Palette, title: "Custom Branding", desc: "Your own subdomain with custom colors and logos." },
+  { icon: Zap, title: "Easy Setup", desc: "Get started in minutes with an intuitive setup." },
+];
 
 export default function Landing() {
-  const handleLogin = () => {
-    window.location.href = '/api/login';
-  };
+  const [, setLocation] = useLocation();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-600 to-blue-800">
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle className="text-3xl font-bold text-gray-800">Primax</CardTitle>
-            <CardDescription className="text-lg">School Management System</CardDescription>
-          </CardHeader>
-          
-          <CardContent className="space-y-6">
-            <div className="text-center text-gray-600">
-              <p>A unified workspace for efficient school management</p>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div className="text-center p-3 bg-blue-50 rounded-lg">
-                <i className="fas fa-users text-blue-600 text-xl mb-2"></i>
-                <p className="font-medium">Student Management</p>
-              </div>
-              <div className="text-center p-3 bg-green-50 rounded-lg">
-                <i className="fas fa-calendar-check text-green-600 text-xl mb-2"></i>
-                <p className="font-medium">Attendance Tracking</p>
-              </div>
-              <div className="text-center p-3 bg-orange-50 rounded-lg">
-                <i className="fas fa-file-invoice text-orange-600 text-xl mb-2"></i>
-                <p className="font-medium">Billing & Invoices</p>
-              </div>
-              <div className="text-center p-3 bg-purple-50 rounded-lg">
-                <i className="fas fa-chart-line text-purple-600 text-xl mb-2"></i>
-                <p className="font-medium">Analytics & Reports</p>
-              </div>
-            </div>
-            
-            <Button 
-              onClick={handleLogin}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3"
+    <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-violet-500 to-purple-600 text-white">
+      {/* Top bar */}
+      <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
+        <div className="rounded-lg bg-white/95 px-3 py-1.5">
+          <Logo />
+        </div>
+        <Button
+          variant="ghost"
+          className="text-white hover:bg-white/15 hover:text-white"
+          onClick={() => setLocation("/login")}
+          data-testid="link-sign-in"
+        >
+          Sign In
+        </Button>
+      </header>
+
+      {/* Hero */}
+      <main className="mx-auto max-w-6xl px-6 pb-20">
+        <section className="mx-auto max-w-3xl pt-10 text-center sm:pt-16">
+          <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">
+            The Complete School<br className="hidden sm:block" /> Management Platform
+          </h1>
+          <p className="mx-auto mt-6 max-w-2xl text-lg text-white/85">
+            Everything your school needs in one place — student management, billing,
+            attendance, grades, and more.
+          </p>
+
+          <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Button
               size="lg"
-              data-testid="button-sign-in"
+              className="w-full bg-white px-8 text-violet-700 hover:bg-white/90 sm:w-auto"
+              onClick={() => setLocation("/register")}
+              data-testid="button-start-trial"
             >
-              Sign In to Continue
+              Start Free Trial
             </Button>
-            
-            <div className="text-center text-xs text-gray-500">
-              <p>Role-based access for Finance, Teachers, Parents & Management</p>
+            <Button
+              size="lg"
+              variant="outline"
+              className="w-full border-white/40 bg-transparent px-8 text-white hover:bg-white/15 hover:text-white sm:w-auto"
+              onClick={() => setLocation("/login")}
+              data-testid="button-view-demo"
+            >
+              View Demo
+            </Button>
+          </div>
+        </section>
+
+        {/* Features */}
+        <section className="mt-16 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {FEATURES.map(({ icon: Icon, title, desc }) => (
+            <div
+              key={title}
+              className="rounded-2xl border border-white/15 bg-white/10 p-6 backdrop-blur-sm transition hover:bg-white/15"
+            >
+              <Icon className="mb-3 h-7 w-7 text-white" />
+              <h3 className="text-lg font-semibold">{title}</h3>
+              <p className="mt-1 text-sm text-white/80">{desc}</p>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          ))}
+        </section>
+      </main>
     </div>
   );
 }

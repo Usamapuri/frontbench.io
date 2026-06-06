@@ -1,3 +1,4 @@
+// @ts-nocheck — Dead code: legacy Replit OIDC auth, fully replaced by traditional email/password auth (auth-traditional.ts). Not imported anywhere.
 import * as client from "openid-client";
 import { Strategy, type VerifyFunction } from "openid-client/passport";
 

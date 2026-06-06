@@ -1,4 +1,5 @@
 import Sidebar from "./Sidebar";
+import BranchSwitcher from "./BranchSwitcher";
 import { useAuth } from "@/hooks/useAuth";
 import {
   DropdownMenu,
@@ -67,6 +68,10 @@ export default function Layout({ children, selectedRole }: LayoutProps) {
               )}
             </div>
             
+            <div className="flex items-center gap-4">
+            {/* Active branch switcher (head office, multi-branch) */}
+            <BranchSwitcher />
+
             {/* User Profile Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -97,6 +102,7 @@ export default function Layout({ children, selectedRole }: LayoutProps) {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            </div>
           </div>
         </header>
 

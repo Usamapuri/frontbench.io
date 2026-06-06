@@ -65,7 +65,7 @@ function addTenantScope(table: TenantAwareTable, additionalConditions?: SQL): SQ
   const tenantCondition = eq(table.tenantId, context.tenantId);
   
   if (additionalConditions) {
-    return and(tenantCondition, additionalConditions);
+    return and(tenantCondition, additionalConditions)!;
   }
   
   return tenantCondition;

@@ -3,7 +3,7 @@ import { Switch, Route, Link } from "wouter";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import primaxLogo from "@assets/primax_logo_1756370699409.png";
+import Logo from "@/components/Logo";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -71,7 +71,7 @@ export default function ReadOnlyTeacherDashboard() {
       {/* Custom Teacher Sidebar for Impersonation */}
       <div className="w-64 bg-white shadow-lg flex flex-col">
         <div className="px-6 py-4 border-b min-h-[88px] flex items-center">
-          <img src={primaxLogo} alt="Primax" className="h-8" />
+          <Logo />
         </div>
         
         <nav className="flex-1 px-4 py-6 space-y-1">

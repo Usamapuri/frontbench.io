@@ -62,7 +62,7 @@ export function setupTraditionalAuth(app: Express) {
       }
 
       // Verify password
-      const isValidPassword = await comparePassword(password, user.password);
+      const isValidPassword = await comparePassword(password, user.password ?? '');
       if (!isValidPassword) {
         return res.status(401).json({ message: "Invalid email or password" });
       }
@@ -71,6 +71,7 @@ export function setupTraditionalAuth(app: Express) {
       const userSession = {
         id: user.id,
         tenantId: user.tenantId, // Critical for multi-tenant data isolation
+        branchId: user.branchId ?? null, // Active branch (drives branch_id stamping on writes)
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,

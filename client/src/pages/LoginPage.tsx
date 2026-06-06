@@ -16,7 +16,7 @@ import {
 import { Eye, EyeOff, Mail, Lock, KeyRound } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import primaxLogoPath from "@assets/primax_logo_1756452842865.png";
+import Logo from "@/components/Logo";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -63,7 +63,7 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
       
       toast({
         title: "Login Successful",
-        description: "Welcome to Primax School Management System!",
+        description: "Welcome to Frontbench!",
       });
       
       // Smart redirect based on user role - skip RoleSelector for non-super admins
@@ -134,18 +134,15 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
           {/* Logo and Header Section */}
           <div className="text-center mb-8">
-            <img 
-              src={primaxLogoPath} 
-              alt="Primax Logo" 
-              className="mx-auto mb-6"
-              style={{ width: 'auto', height: '72px' }}
-            />
-            
+            <div className="flex justify-center mb-6">
+              <Logo size="text-2xl" />
+            </div>
+
             <h1 className="text-2xl font-semibold text-gray-900 mb-2">
-              Welcome to Primax
+              Welcome back
             </h1>
             <p className="text-gray-600 text-sm">
-              Sign in to access your account
+              Sign in to access your school
             </p>
           </div>
 

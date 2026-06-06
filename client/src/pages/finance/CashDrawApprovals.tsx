@@ -19,7 +19,7 @@ export default function CashDrawApprovals() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: requests, isLoading } = useQuery<CashDrawRequest[]>({
+  const { data: requests, isLoading } = useQuery<any[]>({
     queryKey: ['/api/cash-draw-requests'],
   });
 

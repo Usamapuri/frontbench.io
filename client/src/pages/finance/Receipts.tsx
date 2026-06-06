@@ -6,9 +6,15 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatPKR } from "@/lib/currency";
+import { useTenant } from "@/hooks/useTenant";
+import { useBranches } from "@/hooks/useBranches";
 
 export default function Receipts() {
+  const { tenant } = useTenant();
+  const { branches } = useBranches();
+  const schoolName = tenant?.name ?? "Your School";
   const [searchQuery, setSearchQuery] = useState("");
+  const [branchFilter, setBranchFilter] = useState("all");
   
   // Advanced filtering states (same as invoices)
   const [paymentMethodFilter, setPaymentMethodFilter] = useState("all");
@@ -16,11 +22,11 @@ export default function Receipts() {
   const [amountRangeFilter, setAmountRangeFilter] = useState("all");
   const [studentFilter, setStudentFilter] = useState("all");
 
-  const { data: payments, isLoading } = useQuery({
+  const { data: payments, isLoading } = useQuery<any[]>({
     queryKey: ['/api/payments'],
   });
 
-  const { data: students } = useQuery({
+  const { data: students } = useQuery<any[]>({
     queryKey: ['/api/students'],
   });
 
@@ -168,7 +174,7 @@ export default function Receipts() {
         <body>
           <div class="receipt-container">
             <div class="header">
-              <h1>PRIMAX</h1>
+              <h1>${schoolName.toUpperCase()}</h1>
               <p>Educational Institution - Payment Receipt</p>
             </div>
             
@@ -235,7 +241,7 @@ export default function Receipts() {
                 For any queries, contact our finance office during business hours.
               </div>
               <div class="footer-signature">
-                Primax Educational Institution<br>
+                ${schoolName}<br>
                 Generated on ${currentDate} | This is a computer-generated receipt
               </div>
             </div>
@@ -338,7 +344,7 @@ export default function Receipts() {
         <body>
           <div class="receipt">
             <div class="header">
-              <h1>PRIMAX</h1>
+              <h1>${schoolName.toUpperCase()}</h1>
               <p>Educational Institution</p>
               <p>PAYMENT RECEIPT</p>
             </div>
@@ -475,7 +481,9 @@ export default function Receipts() {
       }
     })();
 
-    return matchesSearch && matchesPaymentMethod && matchesStudent && matchesDateRange && matchesAmountRange;
+    const matchesBranch = branchFilter === "all" || (payment as any).branchId === branchFilter;
+
+    return matchesSearch && matchesPaymentMethod && matchesStudent && matchesDateRange && matchesAmountRange && matchesBranch;
   });
 
   // Clear all filters function
@@ -552,6 +560,18 @@ export default function Receipts() {
             {/* Filter Controls */}
             <div className="flex flex-wrap gap-3 items-center">
               {/* Payment Method Filter */}
+              {branches.length > 1 && (
+                <Select value={branchFilter} onValueChange={setBranchFilter}>
+                  <SelectTrigger className="w-44" data-testid="select-branch-filter">
+                    <SelectValue placeholder="All Branches" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Branches</SelectItem>
+                    {branches.map((b) => (<SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              )}
+
               <Select value={paymentMethodFilter} onValueChange={setPaymentMethodFilter}>
                 <SelectTrigger className="w-40" data-testid="select-method-filter">
                   <SelectValue placeholder="Payment Method" />

@@ -72,7 +72,7 @@ export default function DailyClose() {
     queryKey: ['/api/daily-close', selectedDate],
   });
 
-  const { data: payments } = useQuery({
+  const { data: payments } = useQuery<any[]>({
     queryKey: ['/api/payments'],
   });
 

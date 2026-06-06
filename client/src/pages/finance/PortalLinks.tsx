@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { 
+import { useTenant } from "@/hooks/useTenant";
+import {
   Search, 
   ExternalLink, 
   Copy, 
@@ -27,6 +28,8 @@ interface Student {
 }
 
 export default function PortalLinks() {
+  const { tenant } = useTenant();
+  const schoolName = tenant?.name ?? "Your School";
   const [searchTerm, setSearchTerm] = useState("");
   const [copiedLinks, setCopiedLinks] = useState<Set<string>>(new Set());
   const { toast } = useToast();
@@ -89,7 +92,7 @@ export default function PortalLinks() {
   const sendEmail = (studentId: string, studentName: string) => {
     const link = generatePortalLink(studentId);
     const subject = `Student Portal Access - ${studentName}`;
-    const body = `Dear Parent,\n\nYou can access your child's academic portal using the following link:\n\n${link}\n\nThis portal provides real-time access to:\n- Attendance records\n- Grades and assessments\n- Fee status and payments\n\nBest regards,\nPrimax Academy`;
+    const body = `Dear Parent,\n\nYou can access your child's academic portal using the following link:\n\n${link}\n\nThis portal provides real-time access to:\n- Attendance records\n- Grades and assessments\n- Fee status and payments\n\nBest regards,\n${schoolName}`;
     
     const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     window.open(mailtoLink);

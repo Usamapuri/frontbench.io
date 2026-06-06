@@ -148,7 +148,7 @@ export default function AddStaffModal({ open, onOpenChange }: AddStaffModalProps
                   id="email"
                   type="email"
                   {...form.register("email")}
-                  placeholder="staff@primax.edu"
+                  placeholder="staff@yourschool.edu"
                 />
                 {form.formState.errors.email && (
                   <p className="text-sm text-red-600">{form.formState.errors.email.message}</p>

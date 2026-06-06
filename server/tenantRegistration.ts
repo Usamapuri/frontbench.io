@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { db } from './db';
-import { tenants, users, subjects } from '@shared/schema';
+import { eq } from 'drizzle-orm';
+import { tenants, users, subjects, branches } from '@shared/schema';
 import { randomUUID } from 'crypto';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
@@ -78,6 +79,7 @@ router.post('/register', async (req: Request, res: Response) => {
     // Create tenant and admin user in a transaction
     const tenantId = randomUUID();
     const adminUserId = randomUUID();
+    const mainBranchId = randomUUID();
 
     // Create tenant
     await db.insert(tenants).values({
@@ -96,10 +98,21 @@ router.post('/register', async (req: Request, res: Response) => {
       currency: 'PKR',
     });
 
-    // Create admin user
+    // Create the default Main Branch for this school
+    await db.insert(branches).values({
+      id: mainBranchId,
+      tenantId: tenantId,
+      name: 'Main Branch',
+      code: 'MAIN',
+      isMain: true,
+      isActive: true,
+    });
+
+    // Create admin user (assigned to the Main Branch)
     await db.insert(users).values({
       id: adminUserId,
       tenantId: tenantId,
+      branchId: mainBranchId,
       email: adminEmail,
       password: hashedPassword,
       firstName: adminName.split(' ')[0] || adminName,

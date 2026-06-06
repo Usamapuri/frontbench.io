@@ -18,9 +18,9 @@ declare global {
         faviconUrl?: string;
         timezone: string;
         currency: string;
-        isActive: boolean;
-        isVerified: boolean;
-      };
+        isActive: boolean | null;
+        isVerified: boolean | null;
+      } | null;
       subdomain?: string;
     }
   }
@@ -31,27 +31,43 @@ declare global {
  */
 export async function subdomainMiddleware(req: Request, res: Response, next: NextFunction) {
   try {
-    const hostname = req.get('host') || req.hostname;
-    // Don't try to set hostname as it's read-only, just use the variable
-    
-    // Skip subdomain resolution for localhost, IP addresses, and deployment platforms
-    const isLocalhost = hostname === 'localhost' || hostname.startsWith('127.0.0.1') || hostname.startsWith('192.168.') || /^\d+\.\d+\.\d+\.\d+/.test(hostname);
-    const isDeploymentPlatform = hostname.includes('.railway.app') || hostname.includes('.vercel.app') || hostname.includes('.netlify.app') || hostname.includes('.herokuapp.com');
-    
+    // Strip the port — req.get('host') is "localhost:5000" / "x.railway.app:443"
+    const hostname = (req.get('host') || req.hostname || '').split(':')[0];
+
+    // Hosts that don't carry a usable tenant subdomain (dev + default deploy domains)
+    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.') || /^\d+\.\d+\.\d+\.\d+$/.test(hostname);
+    const isDeploymentPlatform = hostname.endsWith('.railway.app') || hostname.endsWith('.vercel.app') || hostname.endsWith('.netlify.app') || hostname.endsWith('.herokuapp.com');
+
     if (isLocalhost || isDeploymentPlatform) {
-      // For development and deployment platforms, use default tenant
-      req.tenant = {
-        id: 'default-tenant-id',
-        name: 'Default Development Tenant',
-        subdomain: 'app',
-        primaryColor: '#3B82F6',
-        secondaryColor: '#1E40AF',
-        timezone: 'Asia/Karachi',
-        currency: 'PKR',
-        isActive: true,
-        isVerified: true
-      };
-      req.subdomain = 'app';
+      // No tenant subdomain here — resolve the tenant from the authenticated user's
+      // session instead of a fake default (the old behavior broke every tenant route
+      // on localhost AND on *.railway.app). Data isolation is still enforced by RLS.
+      const sessUser = (req.session as any)?.user;
+      if (sessUser?.tenantId) {
+        const t = await db.select().from(tenants).where(eq(tenants.id, sessUser.tenantId)).limit(1);
+        if (t.length) {
+          const td = t[0];
+          req.tenant = {
+            id: td.id,
+            name: td.name,
+            subdomain: td.subdomain,
+            domain: td.domain || undefined,
+            primaryColor: td.primaryColor || '#3B82F6',
+            secondaryColor: td.secondaryColor || '#1E40AF',
+            logoUrl: td.logoUrl || undefined,
+            faviconUrl: td.faviconUrl || undefined,
+            timezone: td.timezone || 'Asia/Karachi',
+            currency: td.currency || 'PKR',
+            isActive: td.isActive,
+            isVerified: td.isVerified,
+          };
+          req.subdomain = td.subdomain;
+          return next();
+        }
+      }
+      // Not logged in (or tenant missing) → no tenant context (landing/login).
+      req.tenant = null;
+      req.subdomain = '';
       return next();
     }
 

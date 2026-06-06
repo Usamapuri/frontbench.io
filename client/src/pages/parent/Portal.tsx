@@ -10,7 +10,7 @@ import { formatPKR } from "@/lib/currency";
 export default function ParentPortal() {
   const [selectedChild, setSelectedChild] = useState("");
 
-  const { data: children, isLoading } = useQuery<Student[]>({
+  const { data: children, isLoading } = useQuery<any[]>({
     queryKey: ['/api/students'], // In real implementation, this would filter by parent ID
   });
 

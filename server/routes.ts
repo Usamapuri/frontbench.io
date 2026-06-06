@@ -10,6 +10,7 @@ import {
   logTenantContext 
 } from "./tenantContext";
 import { scopedDb } from "./scopedDb";
+import { tenantDbMiddleware } from "./tenantDbMiddleware";
 import { setupTenantOnboardingRoutes } from "./tenantOnboarding";
 import { subdomainMiddleware, requireTenantMiddleware } from "./subdomainMiddleware";
 import { tenantRegistrationRouter } from "./tenantRegistration";
@@ -49,7 +50,8 @@ import {
   invoiceItems,
   classSchedules,
   scheduleChanges,
-  studentNotifications
+  studentNotifications,
+  tenants
 } from "@shared/schema";
 import { db } from "./db";
 import { and, desc, eq, gte, lte, sql } from 'drizzle-orm';
@@ -142,7 +144,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Apply tenant context middleware to all routes
   // This must be applied AFTER session middleware but BEFORE route handlers
   app.use(tenantContextMiddleware);
-  
+
+  // Pin a tenant-scoped DB connection (RLS role + app.tenant_id) for each authenticated,
+  // non-super-admin request. This is what actually enforces tenant isolation at the DB.
+  app.use(tenantDbMiddleware);
+
   // Setup tenant analytics routes (tenant-scoped)
   app.use('/api/analytics', tenantAnalyticsRoutes);
   
@@ -151,6 +157,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Setup notification routes
   app.use('/api/notifications', notificationRoutes);
+
+  // Current tenant (school) for the logged-in user — used for tenant-specific display
+  // (e.g. school name on invoices/receipts). Resolved by subdomainMiddleware from session.
+  app.get('/api/tenant', (req: any, res) => {
+    res.json(req.tenant ?? null);
+  });
+
+  // ---- Branches / campuses ----
+  const canManageBranches = (req: any) =>
+    ['management', 'super_admin'].includes(req.session?.user?.role);
+
+  app.get('/api/branches', requireAuth, async (_req, res) => {
+    try {
+      res.json(await storage.getBranches());
+    } catch (e: any) {
+      res.status(500).json({ message: e?.message || 'Failed to load branches' });
+    }
+  });
+
+  app.post('/api/branches', requireAuth, async (req: any, res) => {
+    if (!canManageBranches(req)) return res.status(403).json({ message: 'Not authorized to manage branches' });
+    try {
+      if (!req.body?.name) return res.status(400).json({ message: 'Branch name is required' });
+      res.status(201).json(await storage.createBranch(req.body));
+    } catch (e: any) {
+      res.status(500).json({ message: e?.message || 'Failed to create branch' });
+    }
+  });
+
+  app.put('/api/branches/:id', requireAuth, async (req: any, res) => {
+    if (!canManageBranches(req)) return res.status(403).json({ message: 'Not authorized to manage branches' });
+    try {
+      res.json(await storage.updateBranch(req.params.id, req.body));
+    } catch (e: any) {
+      res.status(500).json({ message: e?.message || 'Failed to update branch' });
+    }
+  });
+
+  // Switch the active branch (head office only). Drives branch_id stamping on new records.
+  app.post('/api/branches/active', requireAuth, async (req: any, res) => {
+    if (!canManageBranches(req)) return res.status(403).json({ message: 'Only head office can switch branches' });
+    try {
+      const { branchId } = req.body || {};
+      if (branchId) {
+        // Verify the branch exists within this tenant (RLS-scoped read)
+        const owned = (await storage.getBranches()).some((b: any) => b.id === branchId);
+        if (!owned) return res.status(404).json({ message: 'Branch not found' });
+      }
+      req.session.user.branchId = branchId || null;
+      req.session.save((err: any) =>
+        err ? res.status(500).json({ message: 'Failed to switch branch' })
+            : res.json({ branchId: req.session.user.branchId }));
+    } catch (e: any) {
+      res.status(500).json({ message: e?.message || 'Failed to switch branch' });
+    }
+  });
 
   // Health check endpoint
   app.get('/api/health', async (req, res) => {
@@ -587,7 +649,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error fetching student enrollments:", error);
       res.status(500).json({ 
         message: "Failed to fetch student enrollments", 
-        error: error.message || error 
+        error: (error as any).message || error 
       });
     }
   });
@@ -723,7 +785,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error processing enrollment:", error);
       res.status(400).json({ 
         message: "Failed to process enrollment", 
-        error: error.message || error 
+        error: (error as any).message || error 
       });
     }
   });
@@ -1274,7 +1336,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
             
             // Update invoice
-            const newAmountPaid = parseFloat(targetInvoice.amountPaid) + allocationAmount;
+            const newAmountPaid = parseFloat(targetInvoice.amountPaid || "0") + allocationAmount;
             const newBalanceDue = parseFloat(targetInvoice.total) - newAmountPaid;
             
             await storage.updateInvoice(targetInvoice.id, {
@@ -1328,7 +1390,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(assessment);
     } catch (error) {
       console.error("Error creating assessment:", error);
-      res.status(400).json({ message: "Failed to create assessment", error: error.message });
+      res.status(400).json({ message: "Failed to create assessment", error: (error as any).message });
     }
   });
 
@@ -1347,7 +1409,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(assessment);
     } catch (error) {
       console.error("Error creating assessment:", error);
-      res.status(400).json({ message: "Failed to create assessment", error: error.message });
+      res.status(400).json({ message: "Failed to create assessment", error: (error as any).message });
     }
   });
 
@@ -1994,7 +2056,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updatedAt: new Date(),
       };
       
-      const announcement = await storage.createAnnouncement(announcementData);
+      const announcement = await storage.createAnnouncement(announcementData as any);
       
       // If recipients are provided, add them
       if (req.body.recipients && req.body.recipients.length > 0) {

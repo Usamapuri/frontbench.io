@@ -9,14 +9,20 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import { useToast } from "@/hooks/use-toast";
+import { useTenant } from "@/hooks/useTenant";
+import { useBranches } from "@/hooks/useBranches";
 import { apiRequest } from "@/lib/queryClient";
 import type { Invoice } from "@shared/schema";
 import InvoiceWizard from "@/components/InvoiceWizard";
 import { isOverdue, getCurrentPakistanTime, formatPakistanDate } from "@/utils/pakistanTime";
 
 export default function Invoices() {
+  const { tenant } = useTenant();
+  const { branches } = useBranches();
+  const schoolName = tenant?.name ?? "Your School";
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [branchFilter, setBranchFilter] = useState("all");
+  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [showCreateInvoiceDialog, setShowCreateInvoiceDialog] = useState(false);
   const [showInvoiceWizard, setShowInvoiceWizard] = useState(false);
@@ -34,17 +40,17 @@ export default function Invoices() {
   const [selectedStudentId, setSelectedStudentId] = useState("");
   const [invoiceAmount, setInvoiceAmount] = useState("");
   const [invoiceNotes, setInvoiceNotes] = useState("");
-  const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
+  const [editingInvoice, setEditingInvoice] = useState<any>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: invoices, isLoading } = useQuery<Invoice[]>({
+  const { data: invoices, isLoading } = useQuery<any[]>({
     queryKey: ['/api/invoices'],
   });
 
-  const { data: students = [] } = useQuery({
+  const { data: students = [] } = useQuery<any[]>({
     queryKey: ['/api/students'],
   });
 
@@ -119,7 +125,9 @@ export default function Invoices() {
       }
     })();
 
-    return matchesSearch && matchesStatus && matchesStudent && matchesDateRange && matchesAmountRange;
+    const matchesBranch = branchFilter === "all" || (invoice as any).branchId === branchFilter;
+
+    return matchesSearch && matchesStatus && matchesStudent && matchesDateRange && matchesAmountRange && matchesBranch;
   }) || [];
 
   // Clear all filters function
@@ -369,9 +377,9 @@ export default function Invoices() {
     
     try {
       // Check if invoice has items array (new format with discount data)
-      if (invoice.items && invoice.items.length > 0) {
+      if ((invoice as any).items && (invoice as any).items.length > 0) {
         // Use the saved invoice items that include discount information
-        for (const item of invoice.items) {
+        for (const item of (invoice as any).items) {
           const unitPrice = parseFloat(item.unitPrice || '0');
           const discountAmount = parseFloat(item.discountAmount || '0');
           const totalPrice = parseFloat(item.totalPrice || item.unitPrice || '0');
@@ -406,7 +414,7 @@ export default function Invoices() {
             <div class="item-amount">Rs. ${Number(invoice.subtotal || invoice.total).toLocaleString()}</div>
           </div>`;
         
-        const discountAmount = parseFloat(invoice.discountAmount || '0');
+        const discountAmount = parseFloat((invoice as any).discountAmount || '0');
         if (discountAmount > 0) {
           lineItemsHTML += `
             <div class="line-item discount-item">
@@ -429,7 +437,7 @@ export default function Invoices() {
     const pdfHTML = `
       <html>
         <head>
-          <title>Invoice ${invoice.invoiceNumber} - Primax Educational Institution</title>
+          <title>Invoice ${invoice.invoiceNumber} - ${schoolName}</title>
           <style>
             @page { 
               size: A4; 
@@ -689,7 +697,7 @@ export default function Invoices() {
         <body>
           <div class="invoice-container">
             <div class="header">
-              <div class="school-name">PRIMAX EDUCATIONAL INSTITUTION</div>
+              <div class="school-name">${schoolName.toUpperCase()}</div>
               <div class="school-subtitle">Excellence in Education Since 2010</div>
             </div>
             
@@ -766,7 +774,7 @@ export default function Invoices() {
                 Contact our finance office for payment methods and assistance.
               </div>
               <div class="footer-signature">
-                Thank you for choosing Primax Educational Institution<br>
+                Thank you for choosing ${schoolName}<br>
                 Generated on ${currentDate} | This is a computer-generated invoice
               </div>
             </div>
@@ -795,9 +803,9 @@ export default function Invoices() {
     
     try {
       // Check if invoice has items array (new format with discount data)
-      if (invoice.items && invoice.items.length > 0) {
+      if ((invoice as any).items && (invoice as any).items.length > 0) {
         // Use the saved invoice items that include discount information
-        for (const item of invoice.items) {
+        for (const item of (invoice as any).items) {
           const unitPrice = parseFloat(item.unitPrice || '0');
           const discountAmount = parseFloat(item.discountAmount || '0');
           const totalPrice = parseFloat(item.totalPrice || item.unitPrice || '0');
@@ -830,7 +838,7 @@ export default function Invoices() {
             <span>Rs.${Number(invoice.subtotal || invoice.total).toLocaleString()}</span>
           </div>`;
         
-        const discountAmount = parseFloat(invoice.discountAmount || '0');
+        const discountAmount = parseFloat((invoice as any).discountAmount || '0');
         if (discountAmount > 0) {
           lineItemsHTML += `
             <div class="row" style="background: #e6ffe6; padding: 0.5mm;">
@@ -968,8 +976,7 @@ export default function Invoices() {
         <body>
           <div class="receipt">
             <div class="header">
-              <div class="school-name">PRIMAX EDUCATIONAL</div>
-              <div class="school-name">INSTITUTION</div>
+              <div class="school-name">${schoolName.toUpperCase()}</div>
               <div class="school-address">Excellence in Education</div>
               <div class="doc-type">INVOICE</div>
             </div>
@@ -1171,6 +1178,18 @@ export default function Invoices() {
             {/* Filter Controls */}
             <div className="flex flex-wrap gap-3 items-center">
               {/* Status Filter */}
+              {branches.length > 1 && (
+                <Select value={branchFilter} onValueChange={setBranchFilter}>
+                  <SelectTrigger className="w-44" data-testid="select-branch-filter">
+                    <SelectValue placeholder="All Branches" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Branches</SelectItem>
+                    {branches.map((b) => (<SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              )}
+
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-32" data-testid="select-status-filter">
                   <SelectValue placeholder="Status" />

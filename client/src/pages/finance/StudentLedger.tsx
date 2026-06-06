@@ -29,11 +29,14 @@ import { Edit, Settings, Eye, DollarSign, Bell, UserX, Trash2 } from "lucide-rea
 import { useToast } from "@/hooks/use-toast";
 import { formatPKR } from "@/lib/currency";
 import { apiRequest } from "@/lib/queryClient";
+import { useBranches } from "@/hooks/useBranches";
 import type { Student } from "@shared/schema";
 
 export default function StudentLedger() {
+  const { branches, nameOf } = useBranches();
   const [searchQuery, setSearchQuery] = useState("");
   const [classFilter, setClassFilter] = useState("");
+  const [branchFilter, setBranchFilter] = useState("all");
   const [feeStatusFilter, setFeeStatusFilter] = useState("");
   const [attendanceFilter, setAttendanceFilter] = useState("");
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
@@ -178,12 +181,15 @@ export default function StudentLedger() {
         (attendanceFilter === "poor" && student.attendancePercentage < 75);
 
       // Active/Deactivated filter logic
-      const matchesActiveStatus = columnSettings.showDeactivatedStudents 
+      const matchesActiveStatus = columnSettings.showDeactivatedStudents
         ? true // Show all students when toggle is on
         : student.isActive !== false; // Hide deactivated students by default
 
+      const matchesBranch =
+        branchFilter === "all" || branchFilter === "" || (student as any).branchId === branchFilter;
+
       return (
-        matchesSearch && matchesClass && matchesFeeStatus && matchesAttendance && matchesActiveStatus
+        matchesSearch && matchesClass && matchesFeeStatus && matchesAttendance && matchesActiveStatus && matchesBranch
       );
     }) || [];
 
@@ -366,7 +372,7 @@ export default function StudentLedger() {
 
 
   const handleUpdateColumnSettings = (setting: keyof typeof columnSettings, value: boolean) => {
-    setColumnSettings(prev => ({
+    setColumnSettings((prev: any) => ({
       ...prev,
       [setting]: value
     }));
@@ -514,6 +520,20 @@ export default function StudentLedger() {
         <CardContent className="space-y-6">
           {/* Filters */}
           <div className="flex flex-wrap gap-4">
+            {branches.length > 1 && (
+              <Select value={branchFilter} onValueChange={setBranchFilter}>
+                <SelectTrigger className="w-44" data-testid="select-branch-filter">
+                  <SelectValue placeholder="All Branches" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Branches</SelectItem>
+                  {branches.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
             <Select onValueChange={setClassFilter}>
               <SelectTrigger className="w-40" data-testid="select-class-filter">
                 <SelectValue placeholder="All Classes" />
@@ -630,6 +650,11 @@ export default function StudentLedger() {
                               >
                                 Roll: {student.rollNumber}
                               </p>
+                              {branches.length > 1 && (
+                                <p className="text-xs text-gray-400" data-testid={`text-branch-${student.id}`}>
+                                  {nameOf((student as any).branchId)}
+                                </p>
+                              )}
                             </div>
                           </div>
                         </td>
@@ -999,7 +1024,7 @@ export default function StudentLedger() {
                   <Input
                     id="edit-first-name"
                     value={editFormData.firstName || ''}
-                    onChange={(e) => setEditFormData(prev => ({ ...prev, firstName: e.target.value }))}
+                    onChange={(e) => setEditFormData((prev: any) => ({ ...prev, firstName: e.target.value }))}
                     data-testid="input-edit-first-name"
                     required
                   />
@@ -1009,7 +1034,7 @@ export default function StudentLedger() {
                   <Input
                     id="edit-last-name"
                     value={editFormData.lastName || ''}
-                    onChange={(e) => setEditFormData(prev => ({ ...prev, lastName: e.target.value }))}
+                    onChange={(e) => setEditFormData((prev: any) => ({ ...prev, lastName: e.target.value }))}
                     data-testid="input-edit-last-name"
                     required
                   />
@@ -1020,7 +1045,7 @@ export default function StudentLedger() {
                     id="edit-date-of-birth"
                     type="date"
                     value={editFormData.dateOfBirth || ''}
-                    onChange={(e) => setEditFormData(prev => ({ ...prev, dateOfBirth: e.target.value }))}
+                    onChange={(e) => setEditFormData((prev: any) => ({ ...prev, dateOfBirth: e.target.value }))}
                     data-testid="input-edit-date-of-birth"
                     required
                   />
@@ -1029,7 +1054,7 @@ export default function StudentLedger() {
                   <Label htmlFor="edit-gender">Gender *</Label>
                   <Select 
                     value={editFormData.gender || ''} 
-                    onValueChange={(value) => setEditFormData(prev => ({ ...prev, gender: value }))}
+                    onValueChange={(value) => setEditFormData((prev: any) => ({ ...prev, gender: value }))}
                   >
                     <SelectTrigger data-testid="select-edit-gender">
                       <SelectValue placeholder="Select gender" />
@@ -1044,7 +1069,7 @@ export default function StudentLedger() {
                   <Label htmlFor="edit-class-level">Class Level *</Label>
                   <Select 
                     value={editFormData.classLevels?.[0] || ''} 
-                    onValueChange={(value) => setEditFormData(prev => ({ ...prev, classLevels: [value] }))}
+                    onValueChange={(value) => setEditFormData((prev: any) => ({ ...prev, classLevels: [value] }))}
                   >
                     <SelectTrigger data-testid="select-edit-class-level">
                       <SelectValue placeholder="Select class level" />
@@ -1071,7 +1096,7 @@ export default function StudentLedger() {
                   <Input
                     id="edit-parent-name"
                     value={editFormData.parentName || ''}
-                    onChange={(e) => setEditFormData(prev => ({ ...prev, parentName: e.target.value }))}
+                    onChange={(e) => setEditFormData((prev: any) => ({ ...prev, parentName: e.target.value }))}
                     data-testid="input-edit-parent-name"
                     required
                   />
@@ -1082,7 +1107,7 @@ export default function StudentLedger() {
                     id="edit-parent-phone"
                     placeholder="+92 300 1234567"
                     value={editFormData.parentPhone || ''}
-                    onChange={(e) => setEditFormData(prev => ({ ...prev, parentPhone: e.target.value }))}
+                    onChange={(e) => setEditFormData((prev: any) => ({ ...prev, parentPhone: e.target.value }))}
                     data-testid="input-edit-parent-phone"
                     required
                   />
@@ -1094,7 +1119,7 @@ export default function StudentLedger() {
                     type="email"
                     placeholder="parent@example.com"
                     value={editFormData.parentEmail || ''}
-                    onChange={(e) => setEditFormData(prev => ({ ...prev, parentEmail: e.target.value }))}
+                    onChange={(e) => setEditFormData((prev: any) => ({ ...prev, parentEmail: e.target.value }))}
                     data-testid="input-edit-parent-email"
                   />
                 </div>
@@ -1108,7 +1133,7 @@ export default function StudentLedger() {
                     id="edit-student-phone"
                     placeholder="+92 300 1234567"
                     value={editFormData.studentPhone || ''}
-                    onChange={(e) => setEditFormData(prev => ({ ...prev, studentPhone: e.target.value }))}
+                    onChange={(e) => setEditFormData((prev: any) => ({ ...prev, studentPhone: e.target.value }))}
                     data-testid="input-edit-student-phone"
                     required
                   />
@@ -1120,7 +1145,7 @@ export default function StudentLedger() {
                     type="email"
                     placeholder="student@example.com"
                     value={editFormData.studentEmail || ''}
-                    onChange={(e) => setEditFormData(prev => ({ ...prev, studentEmail: e.target.value }))}
+                    onChange={(e) => setEditFormData((prev: any) => ({ ...prev, studentEmail: e.target.value }))}
                     data-testid="input-edit-student-email"
                     required
                   />
@@ -1131,7 +1156,7 @@ export default function StudentLedger() {
                     id="edit-home-address"
                     placeholder="Enter complete home address"
                     value={editFormData.homeAddress || ''}
-                    onChange={(e) => setEditFormData(prev => ({ ...prev, homeAddress: e.target.value }))}
+                    onChange={(e) => setEditFormData((prev: any) => ({ ...prev, homeAddress: e.target.value }))}
                     data-testid="input-edit-home-address"
                     rows={3}
                   />
@@ -1146,7 +1171,7 @@ export default function StudentLedger() {
                     id="edit-additional-parent-name"
                     placeholder="Enter additional parent/guardian name"
                     value={editFormData.additionalParentName || ''}
-                    onChange={(e) => setEditFormData(prev => ({ ...prev, additionalParentName: e.target.value }))}
+                    onChange={(e) => setEditFormData((prev: any) => ({ ...prev, additionalParentName: e.target.value }))}
                     data-testid="input-edit-additional-parent-name"
                   />
                 </div>
@@ -1156,7 +1181,7 @@ export default function StudentLedger() {
                     id="edit-additional-parent-phone"
                     placeholder="+92 300 1234567"
                     value={editFormData.additionalParentPhone || ''}
-                    onChange={(e) => setEditFormData(prev => ({ ...prev, additionalParentPhone: e.target.value }))}
+                    onChange={(e) => setEditFormData((prev: any) => ({ ...prev, additionalParentPhone: e.target.value }))}
                     data-testid="input-edit-additional-parent-phone"
                   />
                 </div>
@@ -1167,7 +1192,7 @@ export default function StudentLedger() {
                     type="email"
                     placeholder="additional.parent@example.com"
                     value={editFormData.additionalParentEmail || ''}
-                    onChange={(e) => setEditFormData(prev => ({ ...prev, additionalParentEmail: e.target.value }))}
+                    onChange={(e) => setEditFormData((prev: any) => ({ ...prev, additionalParentEmail: e.target.value }))}
                     data-testid="input-edit-additional-parent-email"
                   />
                 </div>

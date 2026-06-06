@@ -1,7 +1,8 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
-import primaxLogo from "@assets/primax_logo_1756370699409.png";
+import { useTenant } from "@/hooks/useTenant";
+import Logo from "@/components/Logo";
 
 interface SidebarProps {
   selectedRole?: string | null;
@@ -10,6 +11,7 @@ interface SidebarProps {
 export default function Sidebar({ selectedRole }: SidebarProps) {
   const [location] = useLocation();
   const { user } = useAuth();
+  const { tenant } = useTenant();
 
   const handleBackToRoleSelection = () => {
     localStorage.removeItem('selectedRole');
@@ -48,6 +50,7 @@ export default function Sidebar({ selectedRole }: SidebarProps) {
           { path: '/expenses', icon: 'fas fa-receipt', label: 'Expenses' },
           { path: '/payouts', icon: 'fas fa-money-bill', label: 'Payout Summary' },
           { path: '/staff-management', icon: 'fas fa-users', label: 'Staff Management' },
+          { path: '/branches', icon: 'fas fa-building', label: 'Branches' },
           { path: '/students', icon: 'fas fa-user-graduate', label: 'Student Ledger' },
           { path: '/daily-close-log', icon: 'fas fa-calendar-check', label: 'Daily Close Log' },
           { path: '/reports', icon: 'fas fa-chart-line', label: 'Reports' },
@@ -67,12 +70,14 @@ export default function Sidebar({ selectedRole }: SidebarProps) {
   return (
     <div className="w-64 bg-white shadow-lg flex flex-col">
       <div className="px-6 py-4 border-b min-h-[88px] flex items-center">
-        <div className="flex items-center space-x-3">
-          <img 
-            src={primaxLogo} 
-            alt="Primax Logo" 
-            className="h-14 w-auto"
-          />
+        <div className="flex items-center gap-3 min-w-0">
+          <Logo iconOnly />
+          <div className="min-w-0">
+            <div className="font-semibold text-gray-900 truncate">
+              {tenant?.name ?? "Frontbench.io"}
+            </div>
+            <div className="text-xs text-gray-400">Powered by Frontbench</div>
+          </div>
         </div>
       </div>
       

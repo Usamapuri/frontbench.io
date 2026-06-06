@@ -113,7 +113,7 @@ export default function RoleSelector() {
     
     // Use the accessibleDashboards array from the backend if available
     if (user.accessibleDashboards && user.accessibleDashboards.length > 0) {
-      return dashboardOptions.filter(d => user.accessibleDashboards.includes(d.role));
+      return dashboardOptions.filter(d => user.accessibleDashboards!.includes(d.role));
     }
     
     // Fallback logic for backward compatibility
@@ -170,7 +170,7 @@ export default function RoleSelector() {
 
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Welcome to Primax School Management
+            Welcome to Frontbench
           </h1>
           {user && (
             <div className="mb-6">

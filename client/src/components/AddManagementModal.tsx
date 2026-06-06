@@ -76,7 +76,7 @@ export default function AddManagementModal({ open, onOpenChange }: AddManagement
   });
 
   // Fetch subjects for selection
-  const { data: subjects } = useQuery({
+  const { data: subjects } = useQuery<any[]>({
     queryKey: ['/api/subjects'],
   });
 
@@ -200,7 +200,7 @@ export default function AddManagementModal({ open, onOpenChange }: AddManagement
                   id="email"
                   type="email"
                   {...form.register("email")}
-                  placeholder="admin@primax.edu"
+                  placeholder="admin@yourschool.edu"
                   data-testid="input-email"
                 />
                 {form.formState.errors.email && (

@@ -11,11 +11,11 @@ export default function ManagementDashboard() {
     queryKey: ['/api/dashboard/stats'],
   });
 
-  const { data: expenses } = useQuery({
+  const { data: expenses } = useQuery<any[]>({
     queryKey: ['/api/expenses'],
   });
 
-  const { data: payments } = useQuery({
+  const { data: payments } = useQuery<any[]>({
     queryKey: ['/api/payments'],
   });
 

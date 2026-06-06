@@ -2,10 +2,23 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
+export interface AuthUser {
+  id: string;
+  tenantId: string;
+  branchId: string | null;
+  email?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  role: string;
+  isSuperAdmin?: boolean;
+  isTeacher?: boolean;
+  accessibleDashboards?: string[];
+}
+
 export function useAuth() {
   const { toast } = useToast();
 
-  const { data: user, isLoading, error, refetch } = useQuery({
+  const { data: user, isLoading, error, refetch } = useQuery<AuthUser | null>({
     queryKey: ["/api/auth/user"],
     retry: false,
     refetchOnWindowFocus: false,

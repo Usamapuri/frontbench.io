@@ -21,7 +21,7 @@ export default function Earnings() {
     queryKey: ['/api/teacher/earnings'],
   });
 
-  const { data: cashDrawRequests } = useQuery<CashDrawRequest[]>({
+  const { data: cashDrawRequests } = useQuery<any[]>({
     queryKey: ['/api/cash-draw-requests'],
   });
 

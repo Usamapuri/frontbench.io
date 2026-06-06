@@ -147,7 +147,7 @@ router.get('/tenants', async (req: Request, res: Response) => {
     const [totalCount] = await db
       .select({ count: count() })
       .from(tenants)
-      .where(whereClause);
+      .where(whereClause as any);
 
     // Get tenants with pagination
     const tenantList = await db
@@ -170,7 +170,7 @@ router.get('/tenants', async (req: Request, res: Response) => {
         updatedAt: tenants.updatedAt
       })
       .from(tenants)
-      .where(whereClause)
+      .where(whereClause as any)
       .orderBy(desc(tenants.createdAt))
       .limit(limit)
       .offset((page - 1) * limit);
@@ -524,7 +524,7 @@ router.get('/audit-logs', async (req: Request, res: Response) => {
     const [totalCount] = await db
       .select({ count: count() })
       .from(auditLogs)
-      .where(whereClause);
+      .where(whereClause as any);
 
     // Get audit logs
     const logs = await db
@@ -541,7 +541,7 @@ router.get('/audit-logs', async (req: Request, res: Response) => {
         createdAt: auditLogs.createdAt
       })
       .from(auditLogs)
-      .where(whereClause)
+      .where(whereClause as any)
       .orderBy(desc(auditLogs.createdAt))
       .limit(limit)
       .offset((page - 1) * limit);

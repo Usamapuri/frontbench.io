@@ -13,15 +13,15 @@ export default function Reports() {
   const [dateTo, setDateTo] = useState("");
   const [reportType, setReportType] = useState("monthly");
 
-  const { data: payments } = useQuery<Payment[]>({
+  const { data: payments } = useQuery<any[]>({
     queryKey: ['/api/payments'],
   });
 
-  const { data: invoices } = useQuery<Invoice[]>({
+  const { data: invoices } = useQuery<any[]>({
     queryKey: ['/api/invoices'],
   });
 
-  const { data: students } = useQuery<Student[]>({
+  const { data: students } = useQuery<any[]>({
     queryKey: ['/api/students'],
   });
 

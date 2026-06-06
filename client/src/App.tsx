@@ -6,6 +6,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import NotFound from "@/pages/not-found";
 import LoginPage from "@/pages/LoginPage";
+import Landing from "@/pages/Landing";
+import Register from "@/pages/Register";
 import RoleSelector from "@/pages/RoleSelector";
 import Layout from "@/components/Layout";
 import OfflineBanner from "@/components/OfflineBanner";
@@ -39,6 +41,7 @@ import StaffManagement from "@/pages/management/StaffManagement";
 import TeacherImpersonation from "@/pages/management/TeacherImpersonation";
 import ReadOnlyTeacherDashboard from "@/pages/management/ReadOnlyTeacherDashboard";
 import StandaloneFinanceDashboard from "@/pages/management/StandaloneFinanceDashboard";
+import Branches from "@/pages/management/Branches";
 
 function AuthenticatedRouter() {
   const { user } = useAuth();
@@ -128,6 +131,7 @@ function AuthenticatedRouter() {
                     <Route path="/payouts" component={PayoutSummary} />
                     <Route path="/daily-close-log" component={DailyCloseLog} />
                     <Route path="/staff-management" component={StaffManagement} />
+                    <Route path="/branches" component={Branches} />
                     <Route path="/students" component={StudentLedger} />
                     <Route path="/reports" component={Reports} />
                     <Route path="/approvals" component={CashDrawApprovals} />
@@ -160,10 +164,23 @@ function AppRouter() {
   }
 
   if (!isAuthenticated) {
-    return <LoginPage onLoginSuccess={() => {
-      // Invalidate queries to refetch user data
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
-    }} />;
+    return (
+      <Switch>
+        <Route path="/login">
+          {() => (
+            <LoginPage
+              onLoginSuccess={() => {
+                // Invalidate queries to refetch user data
+                queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+              }}
+            />
+          )}
+        </Route>
+        <Route path="/register" component={Register} />
+        {/* Public marketing landing (default for "/" and any other path) */}
+        <Route component={Landing} />
+      </Switch>
+    );
   }
 
   return <AuthenticatedRouter />;

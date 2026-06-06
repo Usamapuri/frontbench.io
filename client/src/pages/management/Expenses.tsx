@@ -31,7 +31,7 @@ export default function Expenses() {
   });
 
   // Get all teachers and management staff for the "Who Paid" dropdown
-  const { data: staffMembers } = useQuery({
+  const { data: staffMembers } = useQuery<any[]>({
     queryKey: ['/api/staff'],
   });
 

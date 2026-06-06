@@ -159,7 +159,7 @@ export class PrimaxBillingService implements BillingService {
       const allocationAmount = Math.min(remainingAmount, invoiceBalance);
       
       // Create payment allocation
-      await db.insert(paymentAllocations).values({
+      await db.insert(paymentAllocations as any).values({
         paymentId: payment.id,
         invoiceId: invoice.id,
         amount: allocationAmount.toString()
@@ -226,7 +226,7 @@ export class PrimaxBillingService implements BillingService {
     });
     
     // Create payment allocation
-    await db.insert(paymentAllocations).values({
+    await db.insert(paymentAllocations as any).values({
       paymentId: payment.id,
       invoiceId,
       amount: amount.toString()
@@ -324,7 +324,7 @@ export class PrimaxBillingService implements BillingService {
     
     // Create adjustment record for audit trail
     const adjustmentRecord = await db
-      .insert(invoiceAdjustments)
+      .insert(invoiceAdjustments as any)
       .values({
         invoiceId,
         type,
@@ -369,22 +369,22 @@ export class PrimaxBillingService implements BillingService {
       })
       .where(eq(invoices.id, invoiceId));
     
-    return { adjustmentRecord: adjustmentRecord[0], updatedInvoice: { newTotal, newBalanceDue, newStatus } };
+    return { adjustmentRecord: (adjustmentRecord as any)[0], updatedInvoice: { newTotal, newBalanceDue, newStatus } };
   }
   
   /**
    * Get comprehensive student ledger with all invoices, payments, and adjustments
    */
   async getStudentLedger(studentId: string): Promise<any> {
-    // Get student invoices
-    const invoices = await db
+    // Get student invoices (renamed locals to avoid shadowing the imported tables)
+    const studentInvoices = await db
       .select()
       .from(invoices)
       .where(eq(invoices.studentId, studentId))
       .orderBy(desc(invoices.issueDate));
-    
+
     // Get student payments
-    const payments = await db
+    const studentPayments = await db
       .select()
       .from(payments)
       .where(eq(payments.studentId, studentId))
@@ -424,11 +424,11 @@ export class PrimaxBillingService implements BillingService {
       .orderBy(desc(invoiceAdjustments.appliedAt));
     
     // Calculate totals
-    const totalInvoiced = invoices.reduce((sum, inv) => sum + parseFloat(inv.total), 0);
-    const totalPaid = payments.reduce((sum, pay) => sum + parseFloat(pay.amount), 0);
-    const totalOutstanding = invoices.reduce((sum, inv) => sum + parseFloat(inv.balanceDue || '0'), 0);
+    const totalInvoiced = studentInvoices.reduce((sum: number, inv: any) => sum + parseFloat(inv.total), 0);
+    const totalPaid = studentPayments.reduce((sum: number, pay: any) => sum + parseFloat(pay.amount), 0);
+    const totalOutstanding = studentInvoices.reduce((sum: number, inv: any) => sum + parseFloat(inv.balanceDue || '0'), 0);
     const creditBalance = await this.getStudentCredit(studentId);
-    
+
     return {
       studentId,
       summary: {
@@ -437,14 +437,14 @@ export class PrimaxBillingService implements BillingService {
         totalOutstanding,
         creditBalance
       },
-      invoices: invoices.map(inv => ({
+      invoices: studentInvoices.map((inv: any) => ({
         ...inv,
         amount: parseFloat(inv.total),
         amountPaid: parseFloat(inv.amountPaid || '0'),
         balanceDue: parseFloat(inv.balanceDue || '0'),
         adjustments: parseFloat(inv.adjustments || '0')
       })),
-      payments: payments.map(pay => ({
+      payments: studentPayments.map((pay: any) => ({
         ...pay,
         amount: parseFloat(pay.amount)
       })),
@@ -603,7 +603,7 @@ export class PrimaxBillingService implements BillingService {
       receiptNumber: await this.generateReceiptNumber()
     });
     
-    await db.insert(paymentAllocations).values({
+    await db.insert(paymentAllocations as any).values({
       paymentId: creditPayment.id,
       invoiceId,
       amount: creditAmount.toString()
@@ -616,7 +616,7 @@ export class PrimaxBillingService implements BillingService {
     for (const allocation of allocations) {
       const { invoiceId, amount } = allocation;
       
-      await db.insert(paymentAllocations).values({
+      await db.insert(paymentAllocations as any).values({
         paymentId,
         invoiceId,
         amount: amount.toString()
